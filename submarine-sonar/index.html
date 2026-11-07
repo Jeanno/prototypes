@@ -1,0 +1,1192 @@
+<title>Fathom Sonar Console</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Saira+Stencil+One&display=swap">
+<style>
+:root{
+  /* Layout: watch-station console. Scope + waterfall on the left, instrument stack on the right; one column on phones. */
+  --hull:#081215; --panel:#0d1a1e; --panel-2:#122429; --rule:#1c343a; --rule-2:#29484f;
+  --phos:#63e6c4; --phos-dim:#2b7564; --amber:#ffb347; --hostile:#ff5d50; --bio:#86b8ff;
+  --ink:#d4e7e2; --muted:#7f9b96;
+  --f-display:"Saira Stencil One","Arial Black",Impact,sans-serif;
+  --f-ui:"Barlow Semi Condensed","Arial Narrow","Helvetica Neue",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--hull);color:var(--ink)}
+body{font-family:var(--f-ui);font-size:15px;line-height:1.4;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 20px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+.bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;padding-block:4px 10px;border-bottom:1px solid var(--rule)}
+.brand{display:flex;flex-direction:column;gap:0}
+.mark{font-family:var(--f-display);font-size:28px;line-height:1;letter-spacing:.05em;color:var(--phos)}
+.brand small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.status{display:flex;flex-wrap:wrap;gap:6px 22px;margin:0}
+.status div{display:flex;flex-direction:column}
+.status dt{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.status dd{margin:0;font-family:var(--f-data);font-size:15px;font-variant-numeric:tabular-nums}
+.status .on{color:var(--amber)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:14px}
+@media (min-width:980px){
+  .grid{grid-template-columns:minmax(0,1fr) 360px}
+  .side{max-height:calc(100vh - 100px);overflow-y:auto;position:sticky;top:12px;padding-right:4px;scrollbar-width:thin}
+}
+.scope-col{min-width:0;display:flex;justify-content:center}
+.stack{width:min(100%,max(320px,calc(100vh - 300px)));display:flex;flex-direction:column;gap:12px}
+.scope-wrap{position:relative;width:100%;aspect-ratio:1;max-width:100%}
+#scope{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none}
+.hud{position:absolute;font-family:var(--f-data);font-size:12px;letter-spacing:.04em;color:var(--muted);pointer-events:none;font-variant-numeric:tabular-nums}
+.hud.tl{top:0;left:0}.hud.tr{top:0;right:0;text-align:right}
+.hud.bl{bottom:0;left:0}.hud.br{bottom:0;right:0;text-align:right}
+.hud b{color:var(--phos);font-weight:500}
+
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;min-width:0}
+.card h2{margin:0 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.h-note{font-size:11px;letter-spacing:.08em;font-weight:500;color:var(--phos-dim);text-transform:none}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+
+.wf-wrap{position:relative;border:1px solid var(--rule);border-radius:3px;overflow:hidden;cursor:pointer}
+#wf{display:block;width:100%;height:150px}
+.wf-band{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,rgba(0,0,0,.45) 0 4px,rgba(0,0,0,.2) 4px 8px);pointer-events:none}
+.wf-mark{position:absolute;top:0;bottom:0;width:0;pointer-events:none}
+.wf-mark.hdg{border-left:1px dashed var(--amber);opacity:.7}
+.wf-mark.sel{border-left:1px solid var(--amber)}
+.wf-mark.sel::before{content:"";position:absolute;top:0;left:-5px;border:5px solid transparent;border-top-color:var(--amber)}
+.wf-axis{display:flex;justify-content:space-between;font-family:var(--f-data);font-size:10.5px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+
+.ctl{display:grid;grid-template-columns:70px minmax(0,1fr);align-items:center;gap:10px;padding-block:5px}
+.lbl{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--rule-2);border-radius:4px;overflow:hidden;justify-self:start}
+.seg button{background:transparent;border:0;border-right:1px solid var(--rule-2);min-height:44px;padding:0 14px;font-family:var(--f-data);font-size:13px;cursor:pointer;color:var(--ink)}
+.seg button:last-child{border-right:0}
+@media (hover:hover){.seg button:hover{background:var(--panel-2)}}
+.seg button:active{background:var(--panel-2)}
+.seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--phos) 18%,transparent);color:var(--phos)}
+.sl{display:flex;align-items:center;gap:10px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;margin:0;touch-action:pan-y;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--panel-2);border:1px solid var(--rule-2)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-13px;border-radius:50%;background:var(--phos);border:3px solid var(--hull);box-shadow:0 0 0 1px var(--phos-dim)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--panel-2);border:1px solid var(--rule-2)}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--phos);border:3px solid var(--hull)}
+input[type=range]:focus-visible{outline:none}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px var(--amber)}
+input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 2px var(--amber)}
+.val{font-family:var(--f-data);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sl .val{min-width:52px;text-align:right}
+.toggle{background:transparent;border:1px solid var(--rule-2);border-radius:4px;min-height:44px;padding:0 16px;font-family:var(--f-data);font-size:12px;cursor:pointer;justify-self:start}
+.toggle[aria-pressed="true"]{color:var(--phos);border-color:var(--phos-dim);background:color-mix(in srgb,var(--phos) 12%,transparent)}
+
+.ping-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--rule)}
+.ping-btn{font-family:var(--f-display);font-size:22px;letter-spacing:.08em;color:var(--phos);background:color-mix(in srgb,var(--phos) 10%,transparent);border:1px solid var(--phos-dim);border-radius:50%;width:96px;height:96px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:transform .1s,box-shadow .3s}
+@media (hover:hover){.ping-btn:hover{background:color-mix(in srgb,var(--phos) 18%,transparent)}}
+.ping-btn:active{transform:scale(.96)}
+.ping-btn.fire{animation:fire .9s ease-out}
+@keyframes fire{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--phos) 70%,transparent)}100%{box-shadow:0 0 0 22px transparent}}
+kbd{font-family:var(--f-data);font-size:10px;border:1px solid var(--rule-2);border-radius:3px;padding:0 4px;color:var(--muted);letter-spacing:0}
+.cd-top{display:flex;justify-content:space-between;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.meter{height:7px;background:var(--panel-2);border:1px solid var(--rule);border-radius:2px;overflow:hidden;margin-top:5px}
+.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--hostile));transition:width .25s}
+.hint{margin:6px 0 0;font-size:13px;color:var(--muted);text-wrap:pretty}
+
+.helm{display:grid;grid-template-columns:minmax(0,1fr) 58px;gap:16px}
+.helm-ctl{display:flex;flex-direction:column;gap:10px}
+.ctl2-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.gauge{position:relative;height:150px;border:1px solid var(--rule-2);border-radius:3px;background:linear-gradient(180deg,color-mix(in srgb,var(--bio) 14%,transparent),transparent 60%)}
+.g-surf{position:absolute;left:0;right:0;top:0;border-top:2px solid var(--phos-dim)}
+.g-layer{position:absolute;left:0;right:0;height:6px;margin-top:-3px;background:repeating-linear-gradient(90deg,var(--phos-dim) 0 3px,transparent 3px 6px)}
+.g-layer span{position:absolute;right:2px;top:6px;font-family:var(--f-data);font-size:9px;color:var(--muted)}
+.g-own,.g-ord{position:absolute;left:6px;right:6px;height:0}
+.g-own::before{content:"";position:absolute;left:50%;top:-4px;width:26px;height:8px;margin-left:-13px;border-radius:4px;background:var(--amber)}
+.g-ord{border-top:1px dashed var(--amber);opacity:.6}
+.chip{display:inline-block;font-family:var(--f-data);font-size:11px;letter-spacing:.04em;padding:1px 7px;border-radius:3px;border:1px solid var(--rule-2);color:var(--ink);text-transform:uppercase}
+.chip.below{color:var(--bio);border-color:color-mix(in srgb,var(--bio) 50%,transparent)}
+.chip.merchant,.chip.fishing{color:var(--phos);border-color:var(--phos-dim)}
+.chip.biologic{color:var(--bio);border-color:color-mix(in srgb,var(--bio) 50%,transparent)}
+.chip.submarine{color:var(--hostile);border-color:color-mix(in srgb,var(--hostile) 60%,transparent);background:color-mix(in srgb,var(--hostile) 12%,transparent)}
+
+.empty{margin:0;color:var(--muted);font-size:14px}
+.trk-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.trk-name{font-family:var(--f-display);font-size:30px;line-height:1;color:var(--amber)}
+.state{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-left:auto}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 12px;margin:12px 0 10px}
+.facts div{min-width:0}
+.facts dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.facts dd{margin:0;font-family:var(--f-data);font-size:15px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.facts .wide{grid-column:span 3}
+.sol-row{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.sol-row .meter{margin:0}
+.sol-row .meter i,.sol i{background:var(--phos)}
+.sol-row .val{text-align:right;color:var(--ink)}
+.btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{background:var(--panel-2);border:1px solid var(--rule-2);border-radius:4px;min-height:44px;padding:0 16px;font-size:15px;cursor:pointer}
+@media (hover:hover){.btn:hover{border-color:var(--phos-dim);color:var(--phos)}}
+.btn:active{border-color:var(--phos-dim);color:var(--phos)}
+
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-family:var(--f-data);font-size:12.5px;font-variant-numeric:tabular-nums}
+th{font-family:var(--f-ui);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 4px 6px;border-bottom:1px solid var(--rule)}
+td{padding:11px 6px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td.n,th.n{text-align:right}
+tbody tr{cursor:pointer}
+@media (hover:hover){tbody tr:hover{background:var(--panel-2)}}
+tbody tr.sel{background:color-mix(in srgb,var(--amber) 12%,transparent)}
+tbody tr.sel td:first-child{color:var(--amber)}
+tbody tr.lost{opacity:.5}
+tbody tr.hostile td:nth-child(2){color:var(--hostile)}
+.sol{display:inline-block;width:46px;height:5px;background:var(--panel-2);border:1px solid var(--rule);vertical-align:middle}
+.sol i{display:block;height:100%}
+
+#log{list-style:none;margin:0;padding:0;max-height:200px;overflow-y:auto;font-family:var(--f-data);font-size:12px;display:flex;flex-direction:column;gap:5px}
+#log li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px}
+#log time{color:var(--muted)}
+#log .alert span{color:var(--hostile)}
+#log .ping span{color:var(--phos)}
+#log .conn span{color:var(--amber)}
+
+.keys{margin-top:14px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 16px}
+.keys kbd{font-size:11px;margin-right:4px}
+
+.course-ctl{display:grid;grid-template-columns:52px minmax(0,1fr) 52px;align-items:center;gap:8px}
+.step{height:52px;background:var(--panel-2);border:1px solid var(--rule-2);border-radius:8px;font-family:var(--f-data);font-size:13px;cursor:pointer}
+.step:active{border-color:var(--amber);color:var(--amber)}
+.dial{position:relative;width:min(100%,150px);aspect-ratio:1;justify-self:center;touch-action:none;cursor:grab;border-radius:50%}
+.dial svg{display:block;width:100%;height:100%}
+.dial .face{fill:var(--panel-2);stroke:var(--rule-2)}
+.dial .tick{stroke:var(--phos-dim);stroke-width:1.2}
+.dial .tick.major{stroke:var(--phos);stroke-width:2}
+.dial .ord{stroke:var(--amber);stroke-width:3;stroke-linecap:round}
+.dial .knob{fill:var(--amber)}
+.dial .now{stroke:var(--phos);stroke-width:1.5;stroke-dasharray:3 3}
+.dial-read{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.dial-read .val{font-size:20px;color:var(--amber)}
+@media (hover:none){.keys,.ping-btn kbd{display:none}}
+
+@media (max-width:520px){
+  .mark{font-size:24px}
+  .status{gap:4px 14px}
+  .status dd{font-size:13px}
+  .hud{font-size:11px}
+  .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .facts .wide{grid-column:span 2}
+}
+@media (prefers-reduced-motion:reduce){
+  .ping-btn.fire{animation:none}
+  .meter i{transition:none}
+}
+</style>
+
+<header class="bar">
+  <div class="brand">
+    <span class="mark">FATHOM</span>
+    <small>Sonar watch trainer · own ship submerged</small>
+  </div>
+  <dl class="status" aria-live="off">
+    <div><dt>Time</dt><dd id="stTime">0347:00Z</dd></div>
+    <div><dt>Course</dt><dd id="stCrs">045°</dd></div>
+    <div><dt>Speed</dt><dd id="stSpd">8.0 kts</dd></div>
+    <div><dt>Depth</dt><dd id="stDep">150 ft</dd></div>
+    <div><dt>Mode</dt><dd id="stMode">PASSIVE</dd></div>
+    <div><dt>Tracks</dt><dd id="stTrk">0</dd></div>
+  </dl>
+</header>
+
+<main class="grid">
+  <section class="scope-col" aria-label="Sonar scope">
+    <div class="stack">
+      <div class="scope-wrap">
+        <canvas id="scope" aria-label="Plan position display. Tap a contact to select it, press and hold to steer toward a bearing, pinch to change range."></canvas>
+        <div class="hud tl" id="hudRange">RANGE <b>16</b> KYD<br>NORTH-UP</div>
+        <div class="hud tr" id="hudCursor">CURSOR<br>—</div>
+        <div class="hud bl">TAP · SELECT<br>HOLD · STEER THERE</div>
+        <div class="hud br">PINCH · RANGE<br>BAFFLES ASTERN DEAF</div>
+      </div>
+      <div class="card">
+        <h2>Broadband waterfall <span class="h-note">true bearing across, newest on top</span></h2>
+        <div class="wf-wrap" id="wfWrap">
+          <canvas id="wf" aria-label="Waterfall display of noise by bearing over time"></canvas>
+          <div class="wf-band" id="wfB1"></div><div class="wf-band" id="wfB2"></div>
+          <div class="wf-mark hdg" id="wfHdg"></div>
+          <div class="wf-mark sel" id="wfSel" hidden></div>
+        </div>
+        <div class="wf-axis"><span>000</span><span>045</span><span>090</span><span>135</span><span>180</span><span>225</span><span>270</span><span>315</span><span>360</span></div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="side">
+    <section class="card" aria-labelledby="hSonar">
+      <h2 id="hSonar">Sonar <span class="h-note" id="modeNote">listening, not transmitting</span></h2>
+      <div class="ping-row">
+        <button id="pingBtn" class="ping-btn" type="button">PING<kbd>P</kbd></button>
+        <div>
+          <div class="cd-top"><span>Counter-detection</span><span class="val" id="cdVal">0%</span></div>
+          <div class="meter"><i id="cdBar"></i></div>
+          <p class="hint" id="cdNote">Quiet. Pinging gives an exact fix, but anyone listening hears it.</p>
+        </div>
+      </div>
+      <div class="ctl"><span class="lbl">Mode</span>
+        <div class="seg" data-seg="mode"><button type="button" data-v="passive" aria-pressed="true">Passive</button><button type="button" data-v="active" aria-pressed="false">Active · auto</button></div></div>
+      <div class="ctl"><span class="lbl">Range</span>
+        <div class="seg" data-seg="range"><button type="button" data-v="4" aria-pressed="false">4</button><button type="button" data-v="8" aria-pressed="false">8</button><button type="button" data-v="16" aria-pressed="true">16</button><button type="button" data-v="32" aria-pressed="false">32 kyd</button></div></div>
+      <div class="ctl"><span class="lbl">Display</span>
+        <div class="seg" data-seg="orient"><button type="button" data-v="north" aria-pressed="true">North-up</button><button type="button" data-v="head" aria-pressed="false">Head-up</button></div></div>
+      <div class="ctl"><label class="lbl" for="gain">Gain</label>
+        <div class="sl"><input type="range" id="gain" min="0" max="100" value="50"><output class="val" id="gainVal" for="gain">50%</output></div></div>
+      <div class="ctl"><label class="lbl" for="rpm">Sweep</label>
+        <div class="sl"><input type="range" id="rpm" min="4" max="30" value="12"><output class="val" id="rpmVal" for="rpm">12 rpm</output></div></div>
+      <div class="ctl"><span class="lbl">Time</span>
+        <div class="seg" data-seg="time"><button type="button" data-v="1" aria-pressed="false">1×</button><button type="button" data-v="10" aria-pressed="false">10×</button><button type="button" data-v="30" aria-pressed="true">30×</button><button type="button" data-v="60" aria-pressed="false">60×</button></div></div>
+      <div class="ctl"><span class="lbl">Audio</span>
+        <button type="button" class="toggle" id="soundBtn" aria-pressed="false">Sound off</button></div>
+    </section>
+
+    <section class="card" aria-labelledby="hHelm">
+      <h2 id="hHelm">Helm <span class="chip" id="layerChip">Above layer</span></h2>
+      <div class="helm">
+        <div class="helm-ctl">
+          <div>
+            <div class="ctl2-top"><span class="lbl">Course</span><span class="val" id="crsNow">steady</span></div>
+            <div class="course-ctl">
+              <button type="button" class="step" data-crs="-10" aria-label="Come left 10 degrees">−10°</button>
+              <div class="dial" id="dial" role="slider" tabindex="0" aria-label="Ordered course" aria-valuemin="0" aria-valuemax="359" aria-valuenow="45">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="face" cx="60" cy="60" r="58"/>
+                  <g class="ticks"></g>
+                  <line class="now" id="dialNow" x1="60" y1="34" x2="60" y2="8"/>
+                  <g id="dialOrd"><line class="ord" x1="60" y1="36" x2="60" y2="16"/><circle class="knob" cx="60" cy="12" r="7"/></g>
+                </svg>
+                <div class="dial-read"><span class="val" id="crsVal">045°</span></div>
+              </div>
+              <button type="button" class="step" data-crs="10" aria-label="Come right 10 degrees">+10°</button>
+            </div>
+          </div>
+          <div><div class="ctl2-top"><label class="lbl" for="spd">Speed</label><span class="val" id="spdVal">8 kts</span></div><input type="range" id="spd" min="0" max="30" value="8"></div>
+          <div><div class="ctl2-top"><label class="lbl" for="dep">Depth</label><span class="val" id="depVal">150 ft</span></div><input type="range" id="dep" min="60" max="800" step="10" value="150"></div>
+        </div>
+        <div class="gauge" aria-hidden="true">
+          <div class="g-surf"></div>
+          <div class="g-layer" id="gLayer"><span>LAYER</span></div>
+          <div class="g-ord" id="gOrd"></div>
+          <div class="g-own" id="gOwn"></div>
+        </div>
+      </div>
+      <p class="hint">Turning sharpens the range estimate on passive tracks. Above 8 kts your own flow noise drowns quiet contacts. The layer at 250 ft splits the sound: deep contacts are hard to hear from above it.</p>
+    </section>
+
+    <section class="card" aria-labelledby="hSel">
+      <h2 id="hSel">Selected track <span class="h-note">target motion analysis</span></h2>
+      <p class="empty" id="selEmpty">No track selected. Click a blip on the scope, a trace on the waterfall, or a row in the track list.</p>
+      <div id="selBody" hidden>
+        <div class="trk-head"><span class="trk-name" id="selName">S1</span><span class="chip" id="selClass">Unknown</span><span class="state" id="selState">Held</span></div>
+        <dl class="facts">
+          <div><dt>Bearing</dt><dd id="fBrg">—</dd></div>
+          <div><dt>Range</dt><dd id="fRng">—</dd></div>
+          <div><dt>Signal</dt><dd id="fSe">—</dd></div>
+          <div><dt>Course</dt><dd id="fCrs">—</dd></div>
+          <div><dt>Speed</dt><dd id="fSpd">—</dd></div>
+          <div><dt>Depth</dt><dd id="fDep">—</dd></div>
+          <div><dt>CPA</dt><dd id="fCpa">—</dd></div>
+          <div><dt>Time to CPA</dt><dd id="fTcpa">—</dd></div>
+          <div><dt>Aspect</dt><dd id="fAsp">—</dd></div>
+          <div class="wide"><dt>Signature</dt><dd id="fSig">—</dd></div>
+        </dl>
+        <div class="sol-row"><span>Solution</span><div class="meter"><i id="selSolBar"></i></div><span class="val" id="selSol">0%</span></div>
+        <div class="btns"><button type="button" class="btn" id="steerBtn">Steer toward</button><button type="button" class="btn" id="selPing">Ping for range</button></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hTrk">
+      <h2 id="hTrk">Track list <span class="h-note">S = sonar contact</span></h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Trk</th><th>Class</th><th class="n">Brg</th><th class="n">Rng kyd</th><th>Solution</th></tr></thead>
+          <tbody id="trkBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hLog">
+      <h2 id="hLog">Sonar log <span class="h-note">newest first</span></h2>
+      <ul id="log" aria-live="polite"></ul>
+    </section>
+  </aside>
+</main>
+
+<footer class="keys">
+  <span><kbd>P</kbd>Ping</span>
+  <span><kbd>←</kbd><kbd>→</kbd>Course ±5°</span>
+  <span><kbd>↑</kbd><kbd>↓</kbd>Speed</span>
+  <span><kbd>[</kbd><kbd>]</kbd>Range scale</span>
+  <span><kbd>H</kbd>North-up / head-up</span>
+</footer>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const rootCss = getComputedStyle(document.documentElement);
+const hex = n => { const h = rootCss.getPropertyValue(n).trim().replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const COL = { phos: hex('--phos'), dim: hex('--phos-dim'), amber: hex('--amber'), hostile: hex('--hostile'), bio: hex('--bio'), hull: hex('--hull'), muted: hex('--muted') };
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+const rad = d => d * Math.PI / 180;
+const deg = r => r * 180 / Math.PI;
+const norm = d => ((d % 360) + 360) % 360;
+const angDiff = (a, b) => ((a - b + 540) % 360) - 180;
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const approach = (v, t, m) => v + Math.sign(t - v) * Math.min(Math.abs(t - v), m);
+const fmt3 = d => String(Math.round(norm(d)) % 360).padStart(3, '0');
+
+const YD = 2025.37 / 3600; // yards per second per knot
+const PING_SPEED = 10000; // display yards per real second
+const RANGES = [4, 8, 16, 32];
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const KINDS = {
+  merchant:  { label: 'Merchant',  chip: 'merchant',  sl: 150, ts: 25, depth: 0,   spd: [11, 18], blades: [4, 5], rpm: [78, 118] },
+  trawler:   { label: 'Fishing',   chip: 'fishing',   sl: 135, ts: 14, depth: 0,   spd: [3, 8],   blades: [3, 4], rpm: [170, 260] },
+  biologic:  { label: 'Biologic',  chip: 'biologic',  sl: 128, ts: 8,  depth: 120, spd: [1, 4] },
+  submarine: { label: 'Submarine', chip: 'submarine', sl: 112, ts: 20, depth: 520, spd: [4, 6],   blades: [7, 7], rpm: [60, 85] },
+};
+
+const S = {
+  t: 0, timeScale: 30, rangeKyd: 16, northUp: true, gain: 0.5, rpm: reduceMotion ? 6 : 12, mode: 'passive',
+  layer: 250, counter: 0, sierra: 1, nextId: 1, contacts: [], selected: null, pings: [], lastPing: -1e9,
+  sweep: 0, blips: [], specks: [], subRespawnT: 0, sound: false, pingFlash: false,
+  own: { x: 0, y: 0, course: 45, orderedCourse: 45, speed: 8, orderedSpeed: 8, depth: 150, orderedDepth: 150, lastTurnT: -1e4 },
+};
+
+/* ---------- contacts ---------- */
+function makeContact(kind, brg, kyd, course, speed) {
+  const k = KINDS[kind], o = S.own;
+  return {
+    id: S.nextId++, kind, name: null, n: 0,
+    x: o.x + Math.sin(rad(brg)) * kyd * 1000, y: o.y + Math.cos(rad(brg)) * kyd * 1000,
+    course: norm(course), speed: speed ?? rand(...k.spd), depth: k.depth, sl: k.sl,
+    blades: k.blades ? k.blades[Math.random() < 0.5 ? 0 : 1] : 0, rpm: k.rpm ? Math.round(rand(...k.rpm)) : 0,
+    r: kyd * 1000, brg, se: -99, detected: false, held: false, classified: false, q: 0, listen: 0, lostFor: 0, frozen: null,
+    err: (Math.random() < 0.5 ? -1 : 1) * rand(0.2, 0.5), bJit: rand(-3, 3), cJit: rand(-35, 35), sJit: rand(-0.4, 0.4),
+    nextTurn: S.t + rand(300, 900), vocal: true, nextVocal: S.t + rand(60, 240), evading: false, track: [], lastTrackT: -1e9,
+  };
+}
+function spawnRandom() {
+  const roll = Math.random();
+  const kind = roll < 0.5 ? 'merchant' : roll < 0.8 ? 'trawler' : 'biologic';
+  const brg = rand(0, 360);
+  S.contacts.push(makeContact(kind, brg, rand(30, 38), brg + 180 + rand(-50, 50)));
+}
+function spawnSub() {
+  S.contacts.push(makeContact('submarine', rand(0, 360), rand(14, 20), rand(0, 360), 5));
+}
+function designate(c) {
+  c.detected = true; c.n = S.sierra++; c.name = 'S' + c.n;
+}
+
+/* ---------- acoustics ---------- */
+const TL = r => 20 * Math.log10(Math.max(r, 100)) + 0.6 * r / 1000;
+const noiseLevel = () => 45 + Math.max(0, S.own.speed - 8) * 1.6;
+const layerPen = c => ((S.own.depth > S.layer) !== (c.depth > S.layer)) ? 8 : 0;
+const inBaffles = brg => Math.abs(angDiff(brg, S.own.course + 180)) < 30;
+const passiveSE = c => c.sl - TL(c.r) - (noiseLevel() - 15) - (8 - S.gain * 6) - layerPen(c) - (inBaffles(c.brg) ? 18 : 0);
+const activeEE = (c, r) => 220 - 2 * TL(r) + KINDS[c.kind].ts - (noiseLevel() - 15) - 10 - 1.5 * layerPen(c);
+
+function est(c) {
+  if (!c.held && c.frozen) {
+    const dx = c.frozen.x - S.own.x, dy = c.frozen.y - S.own.y;
+    return { brg: norm(deg(Math.atan2(dx, dy))), r: Math.hypot(dx, dy), x: c.frozen.x, y: c.frozen.y };
+  }
+  const u = 1 - c.q;
+  const brg = norm(c.brg + c.bJit * u), r = c.r * (1 + c.err * u);
+  return { brg, r, x: S.own.x + Math.sin(rad(brg)) * r, y: S.own.y + Math.cos(rad(brg)) * r };
+}
+const estCourse = c => norm(c.course + c.cJit * (1 - c.q));
+const estSpeed = c => Math.max(0, c.speed * (1 + c.sJit * (1 - c.q)));
+
+function cpa(c) {
+  const e = est(c), o = S.own;
+  const px = e.x - o.x, py = e.y - o.y, ec = rad(estCourse(c)), es = estSpeed(c);
+  const vx = Math.sin(ec) * es * YD - Math.sin(rad(o.course)) * o.speed * YD;
+  const vy = Math.cos(ec) * es * YD - Math.cos(rad(o.course)) * o.speed * YD;
+  const v2 = vx * vx + vy * vy;
+  if (v2 < 1e-6) return { t: Infinity, r: e.r };
+  const t = -(px * vx + py * vy) / v2;
+  if (t <= 0) return { t: 0, r: e.r, opening: true };
+  return { t, r: Math.hypot(px + vx * t, py + vy * t) };
+}
+
+/* ---------- simulation ---------- */
+function step(dt) {
+  S.t += dt;
+  const o = S.own;
+  const dc = angDiff(o.orderedCourse, o.course);
+  if (Math.abs(dc) > 0.3) { o.course = norm(o.course + Math.sign(dc) * Math.min(Math.abs(dc), 1.5 * dt)); o.lastTurnT = S.t; }
+  o.speed = approach(o.speed, o.orderedSpeed, 0.06 * dt);
+  o.depth = approach(o.depth, o.orderedDepth, 2.5 * dt);
+  o.x += Math.sin(rad(o.course)) * o.speed * YD * dt;
+  o.y += Math.cos(rad(o.course)) * o.speed * YD * dt;
+  S.counter = Math.max(0, S.counter - 0.025 * dt);
+  for (const c of S.contacts) move(c, dt);
+  sense(dt);
+  cull();
+}
+
+function move(c, dt) {
+  if (c.kind === 'trawler' && S.t > c.nextTurn) {
+    c.course = norm(c.course + rand(-110, 110)); c.speed = rand(3, 8); c.nextTurn = S.t + rand(300, 900);
+  }
+  if (c.kind === 'biologic') {
+    if (S.t > c.nextVocal) { c.vocal = !c.vocal; c.nextVocal = S.t + rand(60, 240); }
+    c.sl = c.vocal ? 128 : 96;
+    c.course = norm(c.course + rand(-1, 1) * dt * 0.4);
+  }
+  if (c.kind === 'submarine') {
+    if (!c.evading && S.counter >= 100) {
+      c.evading = true; c.course = norm(c.brg + rand(-35, 35)); c.speed = 20; c.sl = 145;
+      log(c.name ? `${c.name} speeding up, cavitating. She heard us and is running.` : `Cavitation transient bearing ${fmt3(c.brg)}. Possible submarine running.`, 'alert');
+    } else if (c.evading && S.counter < 40) {
+      c.evading = false; c.speed = rand(4, 6); c.sl = 112; c.course = norm(c.course + rand(-90, 90));
+      if (c.held) log(`${c.name} slowing. Cavitation has stopped.`);
+    }
+  }
+  c.x += Math.sin(rad(c.course)) * c.speed * YD * dt;
+  c.y += Math.cos(rad(c.course)) * c.speed * YD * dt;
+}
+
+function sense(dt) {
+  const maneuvering = S.t - S.own.lastTurnT < 240;
+  for (const c of S.contacts) {
+    const dx = c.x - S.own.x, dy = c.y - S.own.y;
+    c.r = Math.hypot(dx, dy); c.brg = norm(deg(Math.atan2(dx, dy)));
+    c.se = passiveSE(c);
+    if (c.se > 0) {
+      c.listen += dt; c.lostFor = 0;
+      if (!c.detected) {
+        designate(c); c.held = true; c.q = 0.05;
+        log(`New contact bearing ${fmt3(c.brg)}. Designate ${c.name}.`);
+      } else if (!c.held) {
+        c.held = true; c.frozen = null;
+        log(`Regained ${c.name}, bearing ${fmt3(c.brg)}.`);
+      }
+      c.q = Math.min(1, c.q + 0.0015 * (maneuvering ? 3 : 1) * clamp(c.se / 10, 0.25, 1) * dt);
+      if (!c.classified && c.listen > 150 && c.se > 2) classify(c);
+    } else {
+      if (c.held) {
+        c.lostFor += dt;
+        if (c.lostFor > 240) { const e = est(c); c.frozen = { x: e.x, y: e.y }; c.held = false; log(`Lost contact ${c.name}.`); }
+      }
+      c.q = Math.max(0, c.q - 0.0004 * dt);
+    }
+    if (c.held && S.t - c.lastTrackT > 90) {
+      const e = est(c); c.track.push({ x: e.x, y: e.y }); if (c.track.length > 10) c.track.shift(); c.lastTrackT = S.t;
+    }
+  }
+}
+
+function classify(c) {
+  c.classified = true;
+  const spd = Math.round(estSpeed(c));
+  const msg = {
+    merchant: `${c.name} classified MERCHANT. ${c.blades}-blade screw, ${c.rpm} rpm, about ${spd} kts.`,
+    trawler: `${c.name} classified FISHING VESSEL. Diesel, ${c.blades}-blade screw, ${c.rpm} rpm.`,
+    biologic: `${c.name} classified BIOLOGIC. Humpback song, intermittent.`,
+    submarine: `${c.name} classified SUBMARINE. ${c.blades}-blade skewed screw, ${c.rpm} rpm. Possible hostile.`,
+  }[c.kind];
+  log(msg, c.kind === 'submarine' ? 'alert' : '');
+}
+
+function cull() {
+  for (let i = S.contacts.length - 1; i >= 0; i--) {
+    const c = S.contacts[i];
+    if (c.r > 46000) {
+      if (c.detected) log(`${c.name} out past 46 kyd. Track dropped.`);
+      if (c.kind === 'submarine') S.subRespawnT = S.t + 900;
+      if (S.selected === c) S.selected = null;
+      S.contacts.splice(i, 1);
+    }
+  }
+  if (S.contacts.filter(c => c.kind !== 'submarine').length < 4) spawnRandom();
+  if (!S.contacts.some(c => c.kind === 'submarine') && S.t > S.subRespawnT) spawnSub();
+}
+
+/* ---------- active sonar ---------- */
+function ping() {
+  const now = performance.now();
+  if (now - S.lastPing < 1200) return;
+  S.lastPing = now;
+  S.pings.push({ t0: now, ox: S.own.x, oy: S.own.y, done: new Set(), echoes: 0 });
+  S.counter = Math.min(130, S.counter + 28);
+  S.pingFlash = true;
+  const btn = $('#pingBtn'); btn.classList.remove('fire'); void btn.offsetWidth; btn.classList.add('fire');
+  log('Transmitting. Active ping.', 'ping');
+  tone(1150, 1.8, 0.35);
+}
+
+function updatePings(now) {
+  for (let i = S.pings.length - 1; i >= 0; i--) {
+    const p = S.pings[i], r = (now - p.t0) / 1000 * PING_SPEED;
+    for (const c of S.contacts) {
+      if (p.done.has(c.id)) continue;
+      const d = Math.hypot(c.x - p.ox, c.y - p.oy);
+      if (d > r) continue;
+      p.done.add(c.id);
+      const ee = activeEE(c, d);
+      if (ee <= 0) continue;
+      p.echoes++;
+      if (!c.detected) {
+        designate(c);
+        log(c.kind === 'submarine'
+          ? `Echo bearing ${fmt3(c.brg)}, ${(c.r / 1000).toFixed(1)} kyd, no passive trace. Designate ${c.name}, possible submerged contact.`
+          : `Echo bearing ${fmt3(c.brg)}, ${(c.r / 1000).toFixed(1)} kyd. Designate ${c.name}.`, c.kind === 'submarine' ? 'alert' : 'ping');
+      }
+      c.held = true; c.frozen = null; c.lostFor = 0; c.q = 1;
+      paintContact(c, est(c), now, true);
+      tone(1150, 0.3, 0.04 + 0.12 * clamp(ee / 25, 0, 1));
+    }
+    if (r > 46000) {
+      log(p.echoes ? `Ping returns: ${p.echoes} echo${p.echoes > 1 ? 'es' : ''}. Ranges updated.` : 'Ping returns: no echoes.', 'ping');
+      S.pings.splice(i, 1);
+    }
+  }
+}
+
+/* ---------- scope rendering ---------- */
+const sc = $('#scope'), ctx = sc.getContext('2d');
+let dpr = 1, cx = 0, cy = 0, R = 100, hatch = null;
+const rot = () => S.northUp ? 0 : S.own.course;
+const persist = () => clamp(0.75 * 60 / S.rpm, 1, 6);
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const box = sc.getBoundingClientRect();
+  sc.width = Math.max(1, Math.round(box.width * dpr)); sc.height = Math.max(1, Math.round(box.height * dpr));
+  cx = sc.width / 2; cy = sc.height / 2; R = Math.min(sc.width, sc.height) / 2 - 30 * dpr;
+  const hc = document.createElement('canvas'); hc.width = hc.height = Math.round(8 * dpr);
+  const h = hc.getContext('2d'); h.strokeStyle = rgba(COL.phos, 0.09); h.lineWidth = dpr;
+  h.beginPath(); h.moveTo(0, hc.height); h.lineTo(hc.width, 0); h.stroke();
+  hatch = ctx.createPattern(hc, 'repeat');
+}
+new ResizeObserver(resize).observe(sc);
+
+function toScreen(brg, r) {
+  const a = rad(brg - rot()), k = R / (S.rangeKyd * 1000);
+  return [cx + Math.sin(a) * r * k, cy - Math.cos(a) * r * k];
+}
+function worldToScreen(x, y) {
+  const dx = x - S.own.x, dy = y - S.own.y;
+  return toScreen(deg(Math.atan2(dx, dy)), Math.hypot(dx, dy));
+}
+function contactColor(c) {
+  if (c === S.selected) return COL.amber;
+  if (c.classified && c.kind === 'submarine') return COL.hostile;
+  if (c.classified && c.kind === 'biologic') return COL.bio;
+  return COL.phos;
+}
+
+function paintContact(c, e, now, echo = false) {
+  const rn = e.r / (S.rangeKyd * 1000);
+  if (rn > 1.02) return;
+  const a = rad(norm(e.brg - rot()));
+  const col = (c.classified && c.kind === 'submarine') ? COL.hostile : (c.classified && c.kind === 'biologic') ? COL.bio : COL.phos;
+  const s = echo ? 1 : clamp(0.35 + c.se / 20, 0.35, 1);
+  S.blips.push({ x: Math.sin(a) * rn, y: -Math.cos(a) * rn, t0: now, s, size: echo ? 1.5 : 1, col, echo });
+  if (!echo && c.q < 0.9) {
+    // range smear shows how uncertain the passive solution still is
+    const u = (1 - c.q) * 0.35;
+    for (let k = -3; k <= 3; k++) {
+      if (!k) continue;
+      const rr = rn * (1 + u * k / 3);
+      if (rr > 1) continue;
+      S.blips.push({ x: Math.sin(a) * rr, y: -Math.cos(a) * rr, t0: now, s: s * 0.35, size: 0.55, col, echo: false });
+    }
+  }
+  if (S.blips.length > 600) S.blips.splice(0, S.blips.length - 600);
+}
+
+function sweep(dtR, now) {
+  const prev = S.sweep, d = S.rpm * 6 * dtR;
+  S.sweep = norm(prev + d);
+  for (const c of S.contacts) {
+    if (!c.held) continue;
+    const e = est(c), x = norm(norm(e.brg - rot()) - prev);
+    if (x > 0 && x <= d) paintContact(c, e, now);
+  }
+  const want = S.gain * S.gain * d * 7 * (1 + Math.max(0, S.own.speed - 8) / 10);
+  const n = Math.floor(want) + (Math.random() < want % 1 ? 1 : 0);
+  for (let i = 0; i < n; i++) {
+    const a = rad(prev + Math.random() * d), rr = Math.sqrt(Math.random());
+    S.specks.push({ x: Math.sin(a) * rr, y: -Math.cos(a) * rr, t0: now, a: rand(0.15, 0.6) });
+  }
+  if (S.specks.length > 2500) S.specks.splice(0, S.specks.length - 2500);
+}
+
+function tri(x, y, ang, size) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  ctx.beginPath(); ctx.moveTo(0, size); ctx.lineTo(-size * 0.7, -size * 0.4); ctx.lineTo(size * 0.7, -size * 0.4); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function draw(now) {
+  const W = sc.width, H = sc.height, r0 = rot(), P = persist();
+  ctx.clearRect(0, 0, W, H);
+  if (R <= 10) return;
+  const TAU = Math.PI * 2;
+
+  ctx.fillStyle = rgba(COL.hull, 1);
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill();
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+  g.addColorStop(0, rgba(COL.phos, 0.08)); g.addColorStop(1, rgba(COL.phos, 0.015));
+  ctx.fillStyle = g; ctx.fill();
+
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.clip();
+
+  // grid
+  ctx.lineWidth = dpr;
+  ctx.strokeStyle = rgba(COL.phos, 0.05);
+  for (let b = 0; b < 360; b += 30) {
+    const a = rad(b - 90);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke();
+  }
+  ctx.strokeStyle = rgba(COL.phos, 0.17);
+  for (let k = 1; k <= 4; k++) { ctx.beginPath(); ctx.arc(cx, cy, R * k / 4, 0, TAU); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+  ctx.font = `500 ${10 * dpr}px "IBM Plex Mono", monospace`;
+  ctx.fillStyle = rgba(COL.phos, 0.45); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+  for (let k = 1; k <= 4; k++) ctx.fillText(String(S.rangeKyd * k / 4), cx + R * k / 4 - 3 * dpr, cy - 3 * dpr);
+
+  // baffles
+  const ba = rad(S.own.course + 180 - r0 - 90);
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, ba - rad(30), ba + rad(30)); ctx.closePath();
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
+  if (hatch) { ctx.fillStyle = hatch; ctx.fill(); }
+  ctx.setLineDash([4 * dpr, 4 * dpr]); ctx.strokeStyle = rgba(COL.phos, 0.22); ctx.stroke(); ctx.setLineDash([]);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = rgba(COL.phos, 0.35);
+  ctx.fillText('BAFFLES', cx + Math.cos(ba) * R * 0.78, cy + Math.sin(ba) * R * 0.78);
+
+  // sweep
+  const sa = rad(S.sweep - 90);
+  if (ctx.createConicGradient) {
+    const trail = 75, tr = trail / 360;
+    const cg = ctx.createConicGradient(sa - rad(trail), cx, cy);
+    cg.addColorStop(0, rgba(COL.phos, 0));
+    cg.addColorStop(tr * 0.75, rgba(COL.phos, 0.05));
+    cg.addColorStop(tr, rgba(COL.phos, 0.26));
+    cg.addColorStop(tr + 0.002, rgba(COL.phos, 0));
+    cg.addColorStop(1, rgba(COL.phos, 0));
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill();
+  }
+  ctx.strokeStyle = rgba(COL.phos, 0.85); ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(sa) * R, cy + Math.sin(sa) * R); ctx.stroke();
+
+  // phosphor: specks and blips decay with age
+  ctx.globalCompositeOperation = 'lighter';
+  const sp = S.specks, sz = 1.4 * dpr; let j = 0;
+  for (let i = 0; i < sp.length; i++) {
+    const s = sp[i], a = s.a * Math.exp(-(now - s.t0) / 1000 / (P * 0.6));
+    if (a < 0.02) continue;
+    sp[j++] = s;
+    ctx.fillStyle = rgba(COL.phos, a); ctx.fillRect(cx + s.x * R, cy + s.y * R, sz, sz);
+  }
+  sp.length = j;
+  const bl = S.blips, base = Math.max(2.5 * dpr, R * 0.011); j = 0;
+  for (let i = 0; i < bl.length; i++) {
+    const b = bl[i], age = (now - b.t0) / 1000, a = b.s * Math.exp(-age / P);
+    if (a < 0.02) continue;
+    bl[j++] = b;
+    const px = cx + b.x * R, py = cy + b.y * R, rs = base * b.size;
+    ctx.fillStyle = rgba(b.col, a * 0.22); ctx.beginPath(); ctx.arc(px, py, rs * 2.6, 0, TAU); ctx.fill();
+    ctx.fillStyle = rgba(b.col, a); ctx.beginPath(); ctx.arc(px, py, rs, 0, TAU); ctx.fill();
+    if (b.echo && age < 0.6) {
+      ctx.strokeStyle = rgba(b.col, 1 - age / 0.6); ctx.lineWidth = 1.5 * dpr;
+      ctx.beginPath(); ctx.arc(px, py, rs * (2 + age * 14), 0, TAU); ctx.stroke();
+    }
+  }
+  bl.length = j;
+  ctx.globalCompositeOperation = 'source-over';
+
+  // ping wavefronts
+  for (const p of S.pings) {
+    const rn = (now - p.t0) / 1000 * PING_SPEED / (S.rangeKyd * 1000);
+    if (rn > 1) continue;
+    ctx.strokeStyle = rgba(COL.phos, 0.15 + 0.75 * (1 - rn)); ctx.lineWidth = 2 * dpr;
+    ctx.beginPath(); ctx.arc(cx, cy, rn * R, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = rgba(COL.phos, 0.12 * (1 - rn)); ctx.lineWidth = 10 * dpr;
+    ctx.beginPath(); ctx.arc(cx, cy, Math.max(0, rn * R - 6 * dpr), 0, TAU); ctx.stroke();
+  }
+  ctx.restore();
+
+  // own ship
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rad(S.own.course - r0));
+  ctx.strokeStyle = rgba(COL.amber, 0.45); ctx.lineWidth = dpr; ctx.setLineDash([3 * dpr, 5 * dpr]);
+  ctx.beginPath(); ctx.moveTo(0, -14 * dpr); ctx.lineTo(0, -R); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = rgba(COL.amber, 0.95);
+  ctx.beginPath(); ctx.ellipse(0, 0, 3.4 * dpr, 10 * dpr, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = rgba(COL.hull, 0.9); ctx.fillRect(-1.4 * dpr, -4 * dpr, 2.8 * dpr, 4.5 * dpr);
+  ctx.restore();
+
+  // tracks: history dots, labels, selection
+  ctx.font = `500 ${10.5 * dpr}px "IBM Plex Mono", monospace`;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  const maxR = S.rangeKyd * 1000;
+  for (const c of S.contacts) {
+    if (!c.detected) continue;
+    const e = est(c), col = contactColor(c), sel = c === S.selected;
+    if (sel || c.held) {
+      ctx.fillStyle = rgba(col, sel ? 0.55 : 0.25);
+      for (const t of c.track) {
+        const [tx, ty] = worldToScreen(t.x, t.y);
+        if (Math.hypot(tx - cx, ty - cy) < R) { ctx.beginPath(); ctx.arc(tx, ty, 1.4 * dpr, 0, Math.PI * 2); ctx.fill(); }
+      }
+    }
+    // bezel bearing marker, drawn even when the track is off-scale
+    ctx.fillStyle = rgba(col, c.held ? 0.9 : 0.35);
+    const ma = rad(e.brg - r0);
+    tri(cx + Math.sin(ma) * (R - 6 * dpr), cy - Math.cos(ma) * (R - 6 * dpr), ma, 4.5 * dpr);
+    if (e.r > maxR) continue;
+    const [x, y] = toScreen(e.brg, e.r);
+    if (c.held && c.q > 0.35) {
+      const ca = rad(estCourse(c) - r0), len = estSpeed(c) * YD * 360 / maxR * R;
+      ctx.strokeStyle = rgba(col, sel ? 0.8 : 0.35); ctx.lineWidth = dpr;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.sin(ca) * len, y - Math.cos(ca) * len); ctx.stroke();
+    }
+    ctx.fillStyle = rgba(col, c.held ? (sel ? 1 : 0.75) : 0.4);
+    ctx.fillText(c.held ? c.name : c.name + '?', x + 9 * dpr, y - 9 * dpr);
+    if (!c.held) { ctx.strokeStyle = rgba(col, 0.4); ctx.lineWidth = dpr; ctx.strokeRect(x - 3 * dpr, y - 3 * dpr, 6 * dpr, 6 * dpr); }
+    if (sel) {
+      const s = 11 * dpr, k = 4 * dpr;
+      ctx.strokeStyle = rgba(COL.amber, 0.95); ctx.lineWidth = 1.5 * dpr; ctx.beginPath();
+      for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+        ctx.moveTo(x + sx * s, y + sy * (s - k)); ctx.lineTo(x + sx * s, y + sy * s); ctx.lineTo(x + sx * (s - k), y + sy * s);
+      }
+      ctx.stroke();
+    }
+  }
+
+  // bezel
+  ctx.strokeStyle = rgba(COL.phos, 0.4); ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = dpr; ctx.font = `500 ${10.5 * dpr}px "IBM Plex Mono", monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let b = 0; b < 360; b += 5) {
+    const a = rad(b - r0), sn = Math.sin(a), cs = -Math.cos(a), len = b % 30 === 0 ? 9 : b % 10 === 0 ? 6 : 3;
+    ctx.strokeStyle = rgba(COL.phos, b % 30 === 0 ? 0.6 : 0.3);
+    ctx.beginPath(); ctx.moveTo(cx + sn * R, cy + cs * R); ctx.lineTo(cx + sn * (R + len * dpr), cy + cs * (R + len * dpr)); ctx.stroke();
+    if (b % 30 === 0) {
+      ctx.fillStyle = rgba(COL.phos, b === 0 ? 0.95 : 0.55);
+      ctx.fillText(fmt3(b), cx + sn * (R + 20 * dpr), cy + cs * (R + 20 * dpr));
+    }
+  }
+  ctx.fillStyle = rgba(COL.amber, 0.95);
+  const ha = rad(S.own.course - r0);
+  tri(cx + Math.sin(ha) * (R + 5 * dpr), cy - Math.cos(ha) * (R + 5 * dpr), ha, 5 * dpr);
+
+  // ordered course, shown while the boat is still turning onto it
+  const oc = S.own.orderedCourse;
+  if (Math.abs(angDiff(oc, S.own.course)) > 0.5) {
+    const oa = rad(oc - r0), s = 5 * dpr;
+    ctx.save(); ctx.translate(cx + Math.sin(oa) * (R + 5 * dpr), cy - Math.cos(oa) * (R + 5 * dpr)); ctx.rotate(oa);
+    ctx.strokeStyle = rgba(COL.amber, 0.9); ctx.lineWidth = 1.5 * dpr;
+    ctx.beginPath(); ctx.moveTo(0, s); ctx.lineTo(-s * 0.7, -s * 0.4); ctx.lineTo(s * 0.7, -s * 0.4); ctx.closePath(); ctx.stroke();
+    ctx.restore();
+  }
+  if (press && !press.fired && press.p.rn <= 1.1) {
+    const f = (now - press.t0 - 150) / 450;
+    if (f > 0) {
+      ctx.strokeStyle = rgba(COL.amber, 0.9); ctx.lineWidth = 3 * dpr;
+      ctx.beginPath(); ctx.arc(press.p.x, press.p.y, 26 * dpr, -Math.PI / 2, -Math.PI / 2 + Math.min(1, f) * Math.PI * 2); ctx.stroke();
+    }
+  }
+  if (steerMark) {
+    const age = (now - steerMark.t0) / 700;
+    if (age >= 1) steerMark = null;
+    else {
+      ctx.strokeStyle = rgba(COL.amber, 1 - age); ctx.lineWidth = 2 * dpr;
+      ctx.beginPath(); ctx.arc(steerMark.x, steerMark.y, (26 + age * 30) * dpr, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+}
+
+/* ---------- waterfall ---------- */
+const wf = $('#wf'), wctx = wf.getContext('2d');
+const WF_W = 720, WF_H = 180;
+wf.width = WF_W; wf.height = WF_H;
+wctx.fillStyle = rgba(COL.hull, 1); wctx.fillRect(0, 0, WF_W, WF_H);
+const LUT = (() => {
+  const stops = [[0, COL.hull], [0.35, COL.dim], [0.75, COL.phos], [1, [236, 255, 248]]], out = [];
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255; let k = 0; while (t > stops[k + 1][0]) k++;
+    const [t0, c0] = stops[k], [t1, c1] = stops[k + 1], f = (t - t0) / (t1 - t0);
+    out.push(c0.map((v, n) => Math.round(v + (c1[n] - v) * f)));
+  }
+  return out;
+})();
+const wfRowImg = wctx.createImageData(WF_W, 1), wfI = new Float32Array(WF_W);
+function wfRow() {
+  const base = 0.09 + 0.1 * S.gain + Math.max(0, S.own.speed - 8) * 0.014;
+  const bc = norm(S.own.course + 180);
+  for (let i = 0; i < WF_W; i++) {
+    wfI[i] = base * (0.45 + Math.random());
+    if (Math.abs(angDiff(i / 2, bc)) < 30) wfI[i] += 0.05 * Math.random();
+  }
+  if (S.pingFlash) { for (let i = 0; i < WF_W; i++) wfI[i] += 0.55; S.pingFlash = false; }
+  for (const c of S.contacts) {
+    const s = Math.min(1.1, (c.se + 8) / 22);
+    if (s <= 0) continue;
+    const center = Math.round(c.brg * 2), sig = c.evading ? 3.6 : 2.4;
+    for (let d = -9; d <= 9; d++) {
+      const i = ((center + d) % WF_W + WF_W) % WF_W;
+      wfI[i] += s * Math.exp(-(d * d) / (2 * sig * sig)) * (0.75 + 0.25 * Math.random());
+    }
+  }
+  const px = wfRowImg.data;
+  for (let i = 0; i < WF_W; i++) {
+    const c = LUT[clamp(wfI[i] * 255 | 0, 0, 255)];
+    px[i * 4] = c[0]; px[i * 4 + 1] = c[1]; px[i * 4 + 2] = c[2]; px[i * 4 + 3] = 255;
+  }
+  wctx.drawImage(wf, 0, 0, WF_W, WF_H - 1, 0, 1, WF_W, WF_H - 1);
+  wctx.putImageData(wfRowImg, 0, 0);
+}
+
+/* ---------- audio ---------- */
+let AC = null, hum = null, bus = null;
+function ensureAudio() {
+  if (!AC) {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    const buf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate), d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < d.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+    const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+    const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 180;
+    hum = AC.createGain(); hum.gain.value = 0;
+    src.connect(lp).connect(hum).connect(AC.destination); src.start();
+    bus = AC.createGain(); bus.connect(AC.destination);
+    const dl = AC.createDelay(1); dl.delayTime.value = 0.23;
+    const fb = AC.createGain(); fb.gain.value = 0.42;
+    const lp2 = AC.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 2200;
+    bus.connect(dl); dl.connect(lp2); lp2.connect(fb); fb.connect(dl); lp2.connect(AC.destination);
+  }
+  AC.resume();
+}
+function tone(freq, dur, vol) {
+  if (!S.sound || !AC) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(bus); o.start(t); o.stop(t + dur + 0.05);
+}
+
+/* ---------- UI ---------- */
+const logEl = $('#log');
+function zulu() {
+  const s = Math.floor(3 * 3600 + 47 * 60 + S.t), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60, ss = s % 60;
+  return `${String(h).padStart(2, '0')}${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+function log(msg, kind = '') {
+  const li = document.createElement('li'); li.className = kind;
+  const t = document.createElement('time'); t.textContent = zulu();
+  const sp = document.createElement('span'); sp.textContent = msg;
+  li.append(t, sp); logEl.prepend(li);
+  while (logEl.children.length > 60) logEl.lastChild.remove();
+}
+
+function select(c) { S.selected = c; updateUI(); }
+
+function setSeg(name, v) {
+  if (name === 'mode') { S.mode = v; if (v === 'active') ping(); }
+  if (name === 'range') { S.rangeKyd = +v; S.blips.length = 0; S.specks.length = 0; }
+  if (name === 'orient') { S.northUp = v === 'north'; S.blips.length = 0; S.specks.length = 0; }
+  if (name === 'time') S.timeScale = +v;
+  document.querySelectorAll(`[data-seg="${name}"] button`).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v))));
+  updateUI();
+}
+document.querySelectorAll('[data-seg]').forEach(g => g.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) setSeg(g.dataset.seg, b.dataset.v);
+}));
+
+function orderCourse(v, say) {
+  v = Math.round(norm(v)) % 360;
+  S.own.orderedCourse = v;
+  if (say) {
+    const d = angDiff(v, S.own.course);
+    log(Math.abs(d) < 1 ? `Conn: steady on ${fmt3(v)}.` : `Conn: come ${d > 0 ? 'right' : 'left'} to ${fmt3(v)}.`, 'conn');
+  }
+  updateUI();
+}
+function orderSpeed(v) { S.own.orderedSpeed = clamp(Math.round(v), 0, 30); $('#spd').value = S.own.orderedSpeed; updateUI(); }
+function orderDepth(v, say) {
+  S.own.orderedDepth = clamp(Math.round(v / 10) * 10, 60, 800); $('#dep').value = S.own.orderedDepth;
+  if (say) log(`Conn: make depth ${S.own.orderedDepth} ft${S.own.orderedDepth > S.layer ? ', below the layer' : ''}.`, 'conn');
+  updateUI();
+}
+
+const dial = $('#dial');
+(() => {
+  const NS = 'http://www.w3.org/2000/svg', g = dial.querySelector('.ticks');
+  for (let b = 0; b < 360; b += 10) {
+    const a = rad(b), r2 = b % 90 === 0 ? 46 : b % 30 === 0 ? 50 : 53, l = document.createElementNS(NS, 'line');
+    l.setAttribute('x1', 60 + Math.sin(a) * 56); l.setAttribute('y1', 60 - Math.cos(a) * 56);
+    l.setAttribute('x2', 60 + Math.sin(a) * r2); l.setAttribute('y2', 60 - Math.cos(a) * r2);
+    l.setAttribute('class', b % 90 === 0 ? 'tick major' : 'tick');
+    g.append(l);
+  }
+})();
+const dialAngle = ev => {
+  const b = dial.getBoundingClientRect();
+  return Math.round(deg(Math.atan2(ev.clientX - b.left - b.width / 2, b.top + b.height / 2 - ev.clientY)) / 5) * 5;
+};
+let dialDrag = false;
+dial.addEventListener('pointerdown', ev => { dialDrag = true; try { dial.setPointerCapture(ev.pointerId); } catch {} orderCourse(dialAngle(ev)); });
+dial.addEventListener('pointermove', ev => { if (dialDrag) orderCourse(dialAngle(ev)); });
+const endDial = () => { if (dialDrag) { dialDrag = false; orderCourse(S.own.orderedCourse, true); } };
+dial.addEventListener('pointerup', endDial);
+dial.addEventListener('pointercancel', endDial);
+document.querySelectorAll('[data-crs]').forEach(b => b.addEventListener('click', () => orderCourse(S.own.orderedCourse + +b.dataset.crs, true)));
+$('#spd').addEventListener('input', e => orderSpeed(+e.target.value));
+$('#spd').addEventListener('change', () => log(`Conn: all ahead, make turns for ${S.own.orderedSpeed} kts.`, 'conn'));
+$('#dep').addEventListener('input', e => orderDepth(+e.target.value));
+$('#dep').addEventListener('change', e => orderDepth(+e.target.value, true));
+$('#gain').addEventListener('input', e => { S.gain = e.target.value / 100; $('#gainVal').textContent = e.target.value + '%'; });
+$('#rpm').addEventListener('input', e => { S.rpm = +e.target.value; $('#rpmVal').textContent = e.target.value + ' rpm'; });
+$('#rpm').value = S.rpm; $('#rpmVal').textContent = S.rpm + ' rpm';
+$('#pingBtn').addEventListener('click', ping);
+$('#selPing').addEventListener('click', ping);
+$('#steerBtn').addEventListener('click', () => { if (S.selected) orderCourse(est(S.selected).brg, true); });
+$('#soundBtn').addEventListener('click', e => {
+  S.sound = !S.sound;
+  if (S.sound) { try { ensureAudio(); } catch { S.sound = false; } }
+  e.currentTarget.setAttribute('aria-pressed', String(S.sound));
+  e.currentTarget.textContent = S.sound ? 'Sound on' : 'Sound off';
+  if (hum && AC) hum.gain.setTargetAtTime(S.sound ? 0.03 : 0, AC.currentTime, 0.2);
+});
+
+function scopePoint(ev) {
+  const b = sc.getBoundingClientRect();
+  const x = (ev.clientX - b.left) * dpr, y = (ev.clientY - b.top) * dpr;
+  const dx = x - cx, dy = y - cy, rn = Math.hypot(dx, dy) / R;
+  return { x, y, rn, brg: norm(deg(Math.atan2(dx, -dy)) + rot()) };
+}
+// tap selects, press-and-hold steers, two-finger pinch steps the range scale
+const ptrs = new Map();
+let press = null, pinch = null, steerMark = null, cursorTimer = 0;
+function showCursor(p) {
+  $('#hudCursor').innerHTML = p.rn <= 1
+    ? `CURSOR<br>BRG <b>${fmt3(p.brg)}</b> RNG <b>${(p.rn * S.rangeKyd).toFixed(1)}</b>`
+    : 'CURSOR<br>—';
+}
+const clearCursor = () => { $('#hudCursor').innerHTML = 'CURSOR<br>—'; };
+function tapSelect(p, touch) {
+  let best = null, bd = (touch ? 36 : 24) * dpr;
+  for (const c of S.contacts) {
+    if (!c.detected) continue;
+    const e = est(c); if (e.r > S.rangeKyd * 1000) continue;
+    const [x, y] = toScreen(e.brg, e.r), d = Math.hypot(x - p.x, y - p.y);
+    if (d < bd) { bd = d; best = c; }
+  }
+  if (best || p.rn <= 1) select(best);
+}
+sc.addEventListener('pointerdown', ev => {
+  try { sc.setPointerCapture(ev.pointerId); } catch {}
+  ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
+  if (ptrs.size >= 2) {
+    press = null;
+    const [a, b] = [...ptrs.values()];
+    pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) };
+    return;
+  }
+  const p = scopePoint(ev);
+  showCursor(p); clearTimeout(cursorTimer);
+  press = { id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, t0: performance.now(), p, touch: ev.pointerType !== 'mouse', fired: false };
+});
+sc.addEventListener('pointermove', ev => {
+  const tracked = ptrs.has(ev.pointerId);
+  if (ev.pointerType === 'mouse' || tracked) showCursor(scopePoint(ev));
+  if (!tracked) return;
+  ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
+  if (pinch && ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), i = RANGES.indexOf(S.rangeKyd);
+    if (d / pinch.d > 1.3 && i > 0) { setSeg('range', RANGES[i - 1]); pinch.d = d; }
+    else if (d / pinch.d < 0.77 && i < RANGES.length - 1) { setSeg('range', RANGES[i + 1]); pinch.d = d; }
+    return;
+  }
+  if (press && press.id === ev.pointerId && Math.hypot(ev.clientX - press.sx, ev.clientY - press.sy) > 12) press = null;
+});
+function endPointer(ev) {
+  ptrs.delete(ev.pointerId);
+  if (ptrs.size < 2) pinch = null;
+  if (press && press.id === ev.pointerId) {
+    if (!press.fired && ev.type === 'pointerup') tapSelect(press.p, press.touch);
+    press = null;
+  }
+  if (ev.pointerType !== 'mouse') { clearTimeout(cursorTimer); cursorTimer = setTimeout(clearCursor, 1500); }
+}
+sc.addEventListener('pointerup', endPointer);
+sc.addEventListener('pointercancel', endPointer);
+sc.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse') clearCursor(); });
+sc.addEventListener('contextmenu', ev => ev.preventDefault());
+function checkPress(now) {
+  if (!press || press.fired || now - press.t0 < 600) return;
+  press.fired = true;
+  if (press.p.rn > 1.1) return;
+  orderCourse(press.p.brg, true);
+  steerMark = { x: press.p.x, y: press.p.y, t0: now };
+  try { navigator.vibrate?.(20); } catch {}
+}
+$('#wfWrap').addEventListener('click', ev => {
+  const b = ev.currentTarget.getBoundingClientRect(), brg = (ev.clientX - b.left) / b.width * 360;
+  let best = null, bd = 8;
+  for (const c of S.contacts) {
+    if (!c.detected) continue;
+    const d = Math.abs(angDiff(est(c).brg, brg)); if (d < bd) { bd = d; best = c; }
+  }
+  if (best) select(best);
+});
+
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const tag = e.target.tagName, k = e.key;
+  if (k === 'p' || k === 'P') { ping(); e.preventDefault(); return; }
+  if (tag === 'INPUT') return;
+  if (k === ' ' && tag !== 'BUTTON') { ping(); e.preventDefault(); return; }
+  if (k === 'ArrowLeft' || k === 'ArrowRight') { orderCourse(S.own.orderedCourse + (k === 'ArrowLeft' ? -5 : 5), true); e.preventDefault(); }
+  else if (k === 'ArrowUp' || k === 'ArrowDown') { orderSpeed(S.own.orderedSpeed + (k === 'ArrowUp' ? 1 : -1)); e.preventDefault(); }
+  else if (k === '[' || k === ']') { const v = RANGES[RANGES.indexOf(S.rangeKyd) + (k === ']' ? 1 : -1)]; if (v) setSeg('range', v); }
+  else if (k === 'h' || k === 'H') setSeg('orient', S.northUp ? 'head' : 'north');
+});
+
+const rows = new Map();
+function updateTable() {
+  const tb = $('#trkBody'), list = S.contacts.filter(c => c.detected).sort((a, b) => a.n - b.n);
+  const ids = new Set(list.map(c => c.id));
+  for (const [id, tr] of rows) if (!ids.has(id)) { tr.remove(); rows.delete(id); }
+  for (const c of list) {
+    let tr = rows.get(c.id);
+    if (!tr) {
+      tr = document.createElement('tr'); tr.tabIndex = 0;
+      tr.innerHTML = '<td></td><td></td><td class="n"></td><td class="n"></td><td><span class="sol"><i></i></span></td>';
+      tr.addEventListener('click', () => select(c));
+      tr.addEventListener('keydown', ev => { if (ev.key === 'Enter') select(c); });
+      rows.set(c.id, tr);
+      tb.appendChild(tr);
+    }
+    const e = est(c), td = tr.children;
+    td[0].textContent = c.name;
+    td[1].textContent = c.classified ? KINDS[c.kind].label : 'Unknown';
+    td[2].textContent = fmt3(e.brg);
+    td[3].textContent = (e.r / 1000).toFixed(1);
+    td[4].firstChild.firstChild.style.width = Math.round(c.q * 100) + '%';
+    tr.className = [c === S.selected ? 'sel' : '', c.held ? '' : 'lost', c.classified && c.kind === 'submarine' ? 'hostile' : ''].join(' ').trim();
+  }
+}
+
+function updateSel() {
+  const c = S.selected;
+  $('#selEmpty').hidden = !!c; $('#selBody').hidden = !c;
+  if (!c) return;
+  const e = est(c), known = c.held && c.q >= 0.3;
+  $('#selName').textContent = c.name;
+  const chip = $('#selClass');
+  chip.textContent = c.classified ? KINDS[c.kind].label : 'Unknown';
+  chip.className = 'chip ' + (c.classified ? KINDS[c.kind].chip : '');
+  $('#selState').textContent = !c.held ? 'Lost · last known' : inBaffles(c.brg) ? 'In baffles' : c.se > 0 ? 'Held · passive' : 'Held · echo only';
+  $('#fBrg').textContent = fmt3(e.brg) + '°T';
+  $('#fRng').textContent = (e.r / 1000).toFixed(1) + ' kyd';
+  $('#fSe').textContent = c.held && c.se > 0 ? `+${c.se.toFixed(0)} dB` : 'below noise';
+  $('#fCrs').textContent = known ? fmt3(estCourse(c)) + '°T' : '---';
+  $('#fSpd').textContent = known ? estSpeed(c).toFixed(1) + ' kts' : '--';
+  $('#fDep').textContent = c.classified ? (c.depth > 0 ? (c.depth > S.layer ? 'Deep, below layer' : 'Shallow') : 'Surface') : (c.q >= 1 && c.depth > S.layer ? 'Submerged?' : '—');
+  if (known) {
+    const k = cpa(c);
+    $('#fCpa').textContent = k.opening ? 'Opening' : (k.r / 1000).toFixed(1) + ' kyd';
+    $('#fTcpa').textContent = k.opening ? 'Past' : isFinite(k.t) ? Math.round(k.t / 60) + ' min' : '—';
+    const asp = angDiff(norm(e.brg + 180), estCourse(c));
+    $('#fAsp').textContent = `${Math.abs(Math.round(asp))}° ${asp >= 0 ? 'stbd' : 'port'}`;
+  } else { $('#fCpa').textContent = $('#fTcpa').textContent = $('#fAsp').textContent = '—'; }
+  $('#fSig').textContent = c.classified ? (c.blades ? `${c.blades}-blade screw, ${c.rpm} rpm${c.evading ? ', cavitating' : ''}` : (c.vocal ? 'Song and clicks' : 'Silent, between songs')) : (c.held && c.se > 0 ? 'Analyzing tonals…' : 'No passive signature');
+  $('#selSolBar').style.width = Math.round(c.q * 100) + '%';
+  $('#selSol').textContent = Math.round(c.q * 100) + '%';
+}
+
+function updateUI() {
+  const o = S.own;
+  $('#stTime').textContent = zulu() + 'Z';
+  $('#stCrs').textContent = fmt3(o.course) + '°';
+  $('#stSpd').textContent = o.speed.toFixed(1) + ' kts';
+  $('#stDep').textContent = Math.round(o.depth) + ' ft';
+  const md = $('#stMode'); md.textContent = S.mode.toUpperCase(); md.className = S.mode === 'active' ? 'on' : '';
+  $('#stTrk').textContent = S.contacts.filter(c => c.held).length;
+  $('#modeNote').textContent = S.mode === 'active' ? 'pinging every 6 s' : 'listening, not transmitting';
+  $('#hudRange').innerHTML = `RANGE <b>${S.rangeKyd}</b> KYD<br>${S.northUp ? 'NORTH-UP' : 'HEAD-UP'}`;
+
+  const turning = Math.abs(angDiff(o.orderedCourse, o.course)) > 0.5;
+  $('#crsVal').textContent = fmt3(o.orderedCourse) + '°';
+  $('#crsNow').textContent = turning ? `turning · now ${fmt3(o.course)}°` : 'steady';
+  $('#dialOrd').setAttribute('transform', `rotate(${o.orderedCourse} 60 60)`);
+  $('#dialNow').setAttribute('transform', `rotate(${o.course} 60 60)`);
+  dial.setAttribute('aria-valuenow', o.orderedCourse);
+  $('#spdVal').textContent = `${o.orderedSpeed} kts${o.orderedSpeed > 8 ? ' · noisy' : ''}`;
+  $('#depVal').textContent = `${o.orderedDepth} ft${Math.abs(o.depth - o.orderedDepth) > 2 ? ` · now ${Math.round(o.depth)}` : ''}`;
+  const below = o.depth > S.layer, chip = $('#layerChip');
+  chip.textContent = below ? 'Below layer' : 'Above layer'; chip.className = 'chip' + (below ? ' below' : '');
+  $('#gLayer').style.top = (S.layer / 800 * 100) + '%';
+  $('#gOwn').style.top = (o.depth / 800 * 100) + '%';
+  $('#gOrd').style.top = (o.orderedDepth / 800 * 100) + '%';
+
+  const cd = Math.min(100, Math.round(S.counter));
+  $('#cdVal').textContent = cd + '%';
+  $('#cdBar').style.width = cd + '%';
+  $('#cdNote').textContent = cd >= 100 ? 'Counter-detected. Any submarine out there knows where you are.'
+    : cd >= 60 ? 'High. Another ping may give you away.'
+    : cd >= 25 ? 'Elevated. Your pings are being heard.'
+    : 'Quiet. Pinging gives an exact fix, but anyone listening hears it.';
+
+  const bStart = norm(o.course + 150), w = 60 / 360 * 100, l = bStart / 360 * 100;
+  const b1 = $('#wfB1'), b2 = $('#wfB2');
+  b1.style.left = l + '%'; b1.style.width = Math.min(w, 100 - l) + '%';
+  b2.hidden = l + w <= 100; b2.style.left = '0'; b2.style.width = Math.max(0, l + w - 100) + '%';
+  $('#wfHdg').style.left = (o.course / 360 * 100) + '%';
+  const ws = $('#wfSel'); ws.hidden = !S.selected;
+  if (S.selected) ws.style.left = (est(S.selected).brg / 360 * 100) + '%';
+
+  if (hum && AC && S.sound) hum.gain.setTargetAtTime(0.025 + o.speed * 0.004, AC.currentTime, 0.4);
+  updateTable(); updateSel();
+}
+
+/* ---------- boot ---------- */
+S.contacts.push(
+  makeContact('merchant', 20, 22, 250, 15),
+  makeContact('merchant', 300, 30, 110, 13),
+  makeContact('trawler', 130, 9, 40, 5),
+  makeContact('biologic', 210, 6, 180, 2),
+  makeContact('submarine', 75, 11, 300, 5),
+);
+log('Sonar watch set. Layer at 250 ft; own ship at 150 ft, above it.');
+for (let i = 0; i < 180; i++) { step(2.2); wfRow(); }
+S.selected = S.contacts.find(c => c.held && c.kind === 'trawler') || S.contacts.find(c => c.held) || null;
+{
+  const now = performance.now();
+  for (const c of S.contacts) if (c.held) paintContact(c, est(c), now - rand(0, 1500));
+}
+resize();
+updateUI();
+
+let last = performance.now(), wfAcc = 0, uiAcc = 0;
+function frame(now) {
+  const dtR = Math.min(0.1, (now - last) / 1000); last = now;
+  let simDt = dtR * S.timeScale;
+  while (simDt > 0) { const h = Math.min(2, simDt); step(h); simDt -= h; }
+  updatePings(now);
+  checkPress(now);
+  if (S.mode === 'active' && now - S.lastPing > 6000) ping();
+  sweep(dtR, now);
+  draw(now);
+  wfAcc += dtR; if (wfAcc > 0.12) { wfAcc = 0; wfRow(); }
+  uiAcc += dtR; if (uiAcc > 0.25) { uiAcc = 0; updateUI(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
