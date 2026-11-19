@@ -1,0 +1,1244 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wanderglobe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#03050d;
+  --glass:rgba(13,19,38,.58);
+  --glass-strong:rgba(15,22,44,.86);
+  --line:rgba(255,255,255,.08);
+  --line-strong:rgba(255,255,255,.16);
+  --text:#e9edf7;
+  --muted:#8d97b3;
+  --faint:#5b6583;
+  --accent:#ff8a5b;
+  --accent-soft:color-mix(in srgb, var(--accent) 18%, transparent);
+  --radius:20px;
+  --serif:"Instrument Serif", ui-serif, Georgia, serif;
+  --sans:Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+#scene{position:fixed;inset:0;display:block;touch-action:none}
+.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 60% 50%,transparent 45%,rgba(0,0,0,.55) 100%)}
+svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);box-shadow:0 20px 60px -20px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.05)}
+
+/* Panel */
+#panel{position:fixed;top:16px;left:16px;bottom:16px;width:340px;border-radius:var(--radius);display:flex;flex-direction:column;overflow:hidden;z-index:5;transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .5s}
+body.loading #panel{transform:translateX(-24px);opacity:0}
+.brand{display:flex;align-items:center;gap:12px;padding:20px 20px 6px}
+.brand h1{margin:0;font:400 28px/1 var(--serif);letter-spacing:.2px}
+.brand h1 em{color:var(--accent);transition:color .4s}
+.brand p{margin:3px 0 0;color:var(--muted);font-size:12px}
+.logo{width:36px;height:36px;flex:none}
+.sec{padding:14px 20px}
+.sec + .sec{border-top:1px solid var(--line)}
+.label{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{position:relative;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:14px;color:#0b1020;background:var(--c);box-shadow:0 0 0 2px var(--bg),0 0 0 2px transparent;transition:transform .2s,box-shadow .25s}
+.chip:hover{transform:translateY(-2px)}
+.chip.on{box-shadow:0 0 0 2px #0b1020,0 0 0 4px var(--c),0 0 24px -2px var(--c)}
+.chip .n{position:absolute;right:-4px;bottom:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#0d1326;color:var(--text);font-size:10px;display:grid;place-items:center;border:1px solid var(--line-strong)}
+.chip.add{background:transparent;color:var(--muted);border:1px dashed var(--line-strong)}
+.chip.add:hover{color:var(--text);border-color:var(--muted)}
+
+.me-row{display:flex;align-items:center;gap:8px}
+.pname{flex:1;min-width:0;background:transparent;border:0;outline:0;font:400 26px/1.1 var(--serif);padding:2px 0;border-bottom:1px solid transparent;transition:border-color .2s}
+.pname:hover{border-bottom-color:var(--line)}
+.pname:focus{border-bottom-color:var(--accent)}
+.iconbtn{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:var(--muted);transition:background .2s,color .2s}
+.iconbtn:hover{background:rgba(255,255,255,.06);color:var(--text)}
+.swatches{display:flex;gap:7px;margin-top:10px}
+.sw{width:18px;height:18px;border-radius:50%;background:var(--c);opacity:.55;transition:opacity .2s,transform .2s}
+.sw:hover{opacity:1;transform:scale(1.12)}
+.sw.on{opacity:1;box-shadow:0 0 0 2px #0b1020,0 0 0 3.5px var(--c)}
+.homeline{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--muted)}
+.homeline b{color:var(--text);font-weight:500}
+
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.stat .v{font:400 30px/1 var(--serif);letter-spacing:.3px}
+.stat .v small{font:500 11px var(--sans);color:var(--faint);margin-left:3px}
+.stat .k{font-size:11px;color:var(--muted);margin-top:5px}
+.bar{height:4px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:14px}
+.bar i{display:block;height:100%;width:0;border-radius:2px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 50%,transparent),var(--accent));box-shadow:0 0 12px var(--accent);transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.barcap{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:7px}
+.conts{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.cont{font-size:10.5px;padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--faint);transition:all .3s}
+.cont.on{color:var(--text);border-color:color-mix(in srgb,var(--accent) 55%,transparent);background:var(--accent-soft)}
+
+.tabs{display:flex;gap:4px;padding:4px;margin:0 20px;border-radius:12px;background:rgba(255,255,255,.04)}
+.tab{flex:1;padding:7px 0;border-radius:9px;color:var(--muted);font-size:12.5px;font-weight:500;transition:all .2s}
+.tab.on{background:rgba(255,255,255,.08);color:var(--text)}
+.list{flex:1;overflow:auto;padding:10px 12px 12px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
+.item{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:12px;cursor:pointer;transition:background .15s}
+.item:hover{background:rgba(255,255,255,.05)}
+.item .dot{width:8px;height:8px;border-radius:50%;background:var(--c,var(--accent));box-shadow:0 0 10px var(--c,var(--accent));flex:none}
+.item .t{flex:1;min-width:0}
+.item .t b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .t span{font-size:11.5px;color:var(--muted)}
+.item .km{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.item .del{opacity:0;color:var(--faint);width:26px;height:26px;border-radius:8px;display:grid;place-items:center}
+.item:hover .del{opacity:1}
+.item .del:hover{color:#ff8f8f;background:rgba(255,120,120,.1)}
+.group-h{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:12px 10px 4px}
+.flag{font-size:16px;width:20px;text-align:center;flex:none}
+.empty{padding:26px 18px;text-align:center;color:var(--muted);font-size:13px}
+.empty .big{font:italic 400 22px/1.2 var(--serif);color:var(--text);margin-bottom:6px}
+.foot{display:flex;gap:6px;padding:12px;border-top:1px solid var(--line)}
+.fbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 6px;border-radius:11px;color:var(--muted);font-size:12px;font-weight:500;transition:all .2s}
+.fbtn:hover{background:rgba(255,255,255,.05);color:var(--text)}
+.fbtn.on{background:var(--accent-soft);color:var(--text)}
+.sheet-handle{display:none}
+.hide-c{}
+
+/* Search */
+#search{position:fixed;top:16px;left:50%;transform:translateX(-50%);width:min(440px,calc(100vw - 32px));z-index:6;margin-left:178px;transition:opacity .6s .2s}
+body.loading #search{opacity:0}
+.sbox{display:flex;align-items:center;gap:10px;padding:0 16px;height:48px;border-radius:16px}
+.sbox input{flex:1;background:none;border:0;outline:0;font-size:14px}
+.sbox input::placeholder{color:var(--faint)}
+.kbd{font-size:11px;color:var(--faint);border:1px solid var(--line-strong);border-radius:6px;padding:1px 6px}
+.results{margin-top:8px;border-radius:16px;padding:6px;display:none;max-height:60vh;overflow:auto;background:var(--glass-strong)}
+.results.open{display:block}
+.res{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;cursor:pointer}
+.res.sel,.res:hover{background:rgba(255,255,255,.07)}
+.res b{font-weight:500}
+.res span{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap}
+.res .ico{width:20px;text-align:center;flex:none;color:var(--muted)}
+.res-h{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:8px 10px 4px}
+
+/* Popover */
+#pop{position:fixed;left:0;top:0;width:280px;border-radius:18px;padding:16px;z-index:7;opacity:0;pointer-events:none;transform-origin:0 0;transition:opacity .2s;background:var(--glass-strong)}
+#pop.open{opacity:1;pointer-events:auto}
+#pop.hidden{opacity:0;pointer-events:none}
+#pop::before{content:"";position:absolute;left:var(--ax,-6px);top:22px;width:12px;height:12px;background:inherit;border-left:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg);display:none}
+.pk{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;padding-right:22px}
+.pk .flag{font-size:14px;width:auto}
+#pop h3{margin:6px 0 2px;font:400 28px/1.05 var(--serif)}
+.psub{color:var(--muted);font-size:12.5px;margin-bottom:4px}
+.pnote{font:italic 400 17px/1.35 var(--serif);color:#cfd6e8;margin:8px 0 2px}
+.visitors{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.vchip{display:flex;align-items:center;gap:5px;font-size:11px;padding:2px 8px 2px 3px;border-radius:99px;background:rgba(255,255,255,.05)}
+.vchip i{width:14px;height:14px;border-radius:50%;background:var(--c)}
+.acts{display:flex;gap:6px;margin-top:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 13px;border-radius:11px;font-weight:500;font-size:12.5px;background:rgba(255,255,255,.07);transition:all .2s;white-space:nowrap}
+.btn:hover{background:rgba(255,255,255,.12)}
+.btn.primary{background:var(--accent);color:#0b1020;box-shadow:0 6px 20px -6px var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.on{background:var(--accent-soft);color:var(--text);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 60%,transparent)}
+.btn.grow{flex:1}
+.btn.sq{width:36px;padding:0}
+.btn.danger:hover{background:rgba(255,110,110,.15);color:#ffb0b0}
+.x{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:var(--muted)}
+.x:hover{background:rgba(255,255,255,.07);color:var(--text)}
+
+/* Labels */
+#labels{position:fixed;inset:0;pointer-events:none;z-index:3}
+.lbl{position:absolute;left:0;top:0;font-size:11px;font-weight:500;padding:3px 8px 3px 7px;border-radius:7px;background:rgba(6,10,22,.62);border-left:2px solid var(--c);white-space:nowrap;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .25s;will-change:transform}
+.lbl.home{font:italic 400 14px/1.1 var(--serif);border-left:0;padding:3px 9px;background:rgba(255,231,163,.14);color:#ffe7a3}
+.lbl.hot{background:rgba(6,10,22,.9);z-index:2}
+
+#tip{position:fixed;left:0;top:0;pointer-events:none;z-index:4;padding:6px 11px;border-radius:10px;font-size:12.5px;font-weight:500;display:flex;gap:7px;align-items:center;opacity:0;transition:opacity .15s;background:var(--glass-strong)}
+#tip.on{opacity:1}
+#tip .tv{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+
+/* Modal */
+#modal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(2,4,10,.5);opacity:0;pointer-events:none;transition:opacity .25s;padding:16px}
+#modal.open{opacity:1;pointer-events:auto}
+.mcard{width:min(400px,100%);border-radius:22px;padding:22px;background:var(--glass-strong);transform:translateY(10px) scale(.98);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+#modal.open .mcard{transform:none}
+.mcard h2{margin:0 0 2px;font:400 30px/1.1 var(--serif)}
+.mcard .psub{margin-bottom:16px}
+.field{display:block;margin-bottom:12px}
+.field span{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:500}
+.field input,.field textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:10px 12px;outline:0;transition:border-color .2s;resize:none;color-scheme:dark}
+.field input:focus,.field textarea:focus{border-color:color-mix(in srgb,var(--accent) 70%,transparent)}
+.check{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);margin:4px 0 16px;cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+.mrow{display:flex;gap:8px;justify-content:flex-end}
+
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);z-index:30;padding:10px 12px 10px 16px;border-radius:14px;display:flex;align-items:center;gap:12px;font-size:13px;opacity:0;pointer-events:none;transition:all .35s cubic-bezier(.2,.8,.2,1);background:var(--glass-strong)}
+#toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#toast button{color:var(--accent);font-weight:600;font-size:12.5px;padding:4px 8px;border-radius:8px}
+#toast button:hover{background:rgba(255,255,255,.06)}
+
+#hint{position:fixed;right:20px;bottom:18px;z-index:2;color:var(--faint);font-size:11.5px;text-align:right;transition:opacity .6s 1s}
+body.loading #hint{opacity:0}
+#hint b{color:var(--muted);font-weight:500}
+
+#loader{position:fixed;inset:0;display:grid;place-items:center;z-index:40;transition:opacity .9s;pointer-events:none}
+body:not(.loading) #loader{opacity:0}
+#loader div{text-align:center}
+#loader h1{margin:0;font:italic 400 44px/1 var(--serif)}
+#loader p{margin:10px 0 0;color:var(--muted);font-size:13px;letter-spacing:.04em}
+.shimmer{background:linear-gradient(90deg,#5b6583 0%,#e9edf7 50%,#5b6583 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sh 1.8s linear infinite}
+@keyframes sh{to{background-position:-200% 0}}
+input[type=file]{display:none}
+
+@media (max-width:760px){
+  #search{margin-left:0;top:max(12px,env(safe-area-inset-top))}
+  #panel{top:auto;left:8px;right:8px;bottom:8px;width:auto;max-height:62vh;border-radius:22px;transition:max-height .45s cubic-bezier(.2,.8,.2,1),transform .5s,opacity .5s}
+  #panel.collapsed{max-height:176px}
+  #panel.collapsed .hide-c{display:none}
+  .sheet-handle{display:block;width:100%;height:22px;flex:none;position:relative}
+  .sheet-handle::after{content:"";position:absolute;left:50%;top:9px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:rgba(255,255,255,.22)}
+  .hide-m{display:none}
+  .brand{display:none}
+  .sec{padding:12px 16px}
+  .stats{grid-template-columns:repeat(4,1fr);gap:6px}
+  .stat{padding:9px 8px}
+  .stat .v{font-size:22px}
+  .stat .v small{display:none}
+  .stat .k{font-size:10px}
+  .bar,.barcap,.conts,.swatches,.homeline{display:none}
+  #panel:not(.collapsed) .swatches,#panel:not(.collapsed) .homeline{display:flex}
+  #hint{display:none}
+  #pop{width:min(280px,calc(100vw - 24px))}
+}
+</style>
+
+<body class="loading">
+<canvas id="scene"></canvas>
+<div class="vignette"></div>
+<div id="labels"></div>
+<div id="tip" class="glass"></div>
+
+<div id="loader"><div><h1 class="shimmer">Wanderglobe</h1><p id="loadmsg">Charting the world…</p></div></div>
+
+<aside id="panel" class="glass collapsed">
+  <button class="sheet-handle" id="handle" aria-label="Expand panel"></button>
+  <header class="brand">
+    <svg class="logo" viewBox="0 0 36 36"><defs><radialGradient id="lg" cx="35%" cy="35%"><stop offset="0" stop-color="#9cc3ff"/><stop offset="1" stop-color="#1b2d63"/></radialGradient></defs><circle cx="18" cy="18" r="11" fill="url(#lg)"/><ellipse cx="18" cy="18" rx="17" ry="6" fill="none" stroke="var(--accent)" stroke-width="1.4" transform="rotate(-24 18 18)" opacity=".9"/><circle cx="31.4" cy="11.5" r="2.2" fill="var(--accent)"/></svg>
+    <div><h1>Wander<em>globe</em></h1><p>Every place you've been, glowing.</p></div>
+  </header>
+  <section class="sec">
+    <div class="label hide-m">Travellers</div>
+    <div class="chips" id="chips"></div>
+  </section>
+  <section class="sec hide-c">
+    <div class="me-row">
+      <input class="pname" id="pname" maxlength="28" spellcheck="false" aria-label="Profile name">
+      <button class="iconbtn" id="pdel" title="Delete profile"></button>
+    </div>
+    <div class="swatches" id="swatches"></div>
+    <div class="homeline" id="homeline"></div>
+  </section>
+  <section class="sec">
+    <div class="stats" id="stats"></div>
+    <div class="bar"><i id="landbar"></i></div>
+    <div class="barcap"><span id="landcap"></span><span id="sharedcap"></span></div>
+    <div class="conts" id="conts"></div>
+  </section>
+  <nav class="tabs hide-c"><button class="tab on" data-tab="places">Places</button><button class="tab" data-tab="countries">Countries</button></nav>
+  <div class="list hide-c" id="list"></div>
+  <footer class="foot hide-c">
+    <button class="fbtn" id="compare"></button>
+    <button class="fbtn" id="export"></button>
+    <button class="fbtn" id="import"></button>
+    <input type="file" id="file" accept="application/json,.json">
+  </footer>
+</aside>
+
+<div id="search">
+  <div class="sbox glass"><span id="sico"></span><input id="q" placeholder="Search a country, city or place…" autocomplete="off" spellcheck="false"><span class="kbd">/</span></div>
+  <div class="results glass" id="results"></div>
+</div>
+
+<div id="pop" class="glass"></div>
+
+<div id="modal"><form class="mcard glass" id="mform">
+  <h2>Add a place</h2>
+  <div class="psub" id="msub"></div>
+  <label class="field"><span>Name</span><input id="mname" required maxlength="60" placeholder="Kyoto, a mountain hut, that café…"></label>
+  <label class="field"><span>When</span><input id="mdate" type="month"></label>
+  <label class="field"><span>A line to remember it by</span><textarea id="mnote" rows="2" maxlength="200" placeholder="Optional"></textarea></label>
+  <label class="check" id="mcheckwrap"><input type="checkbox" id="mcheck" checked><span id="mchecklbl"></span></label>
+  <div class="mrow"><button type="button" class="btn" id="mcancel">Cancel</button><button class="btn primary" id="msave">Save place</button></div>
+</form></div>
+
+<div id="toast" class="glass"><span id="tmsg"></span><button id="tundo">Undo</button></div>
+<div id="hint"><b>Click</b> a country to mark it · <b>Drag</b> to spin · <b>Scroll</b> to zoom</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+  "topojson-client":"https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm",
+  "d3-geo":"https://cdn.jsdelivr.net/npm/d3-geo@3.1.1/+esm"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import * as topojson from 'topojson-client';
+import { geoEquirectangular, geoPath, geoCentroid, geoArea, geoGraticule, geoDistance } from 'd3-geo';
+
+const ATLAS = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json';
+// atlas name -> [ISO2, continent, common name, UN member]
+const META = {"Zimbabwe":["ZW","Africa","Zimbabwe",1],"Zambia":["ZM","Africa","Zambia",1],"Yemen":["YE","Asia","Yemen",1],"Vietnam":["VN","Asia","Vietnam",1],"Venezuela":["VE","South America","Venezuela",1],"Vatican":["VA","Europe","Vatican City",1],"Vanuatu":["VU","Oceania","Vanuatu",1],"Uzbekistan":["UZ","Asia","Uzbekistan",1],"Uruguay":["UY","South America","Uruguay",1],"Micronesia":["FM","Oceania","Micronesia",1],"Marshall Is.":["MH","Oceania","Marshall Islands",1],"N. Mariana Is.":["MP","Oceania","Northern Mariana Islands",0],"U.S. Virgin Is.":["VI","North America","United States Virgin Islands",0],"Guam":["GU","Oceania","Guam",0],"American Samoa":["AS","Oceania","American Samoa",0],"Puerto Rico":["PR","North America","Puerto Rico",0],"United States of America":["US","North America","United States",1],"S. Geo. and the Is.":["GS","Antarctica","South Georgia",0],"Br. Indian Ocean Ter.":["IO","Africa","British Indian Ocean Territory",0],"Saint Helena":["SH","Africa","Saint Helena, Ascension and Tristan da Cunha",0],"Pitcairn Is.":["PN","Oceania","Pitcairn Islands",0],"Anguilla":["AI","North America","Anguilla",0],"Falkland Is.":["FK","South America","Falkland Islands",0],"Cayman Is.":["KY","North America","Cayman Islands",0],"Bermuda":["BM","North America","Bermuda",0],"British Virgin Is.":["VG","North America","British Virgin Islands",0],"Turks and Caicos Is.":["TC","North America","Turks and Caicos Islands",0],"Montserrat":["MS","North America","Montserrat",0],"Jersey":["JE","Europe","Jersey",0],"Guernsey":["GG","Europe","Guernsey",0],"Isle of Man":["IM","Europe","Isle of Man",0],"United Kingdom":["GB","Europe","United Kingdom",1],"United Arab Emirates":["AE","Asia","United Arab Emirates",1],"Ukraine":["UA","Europe","Ukraine",1],"Uganda":["UG","Africa","Uganda",1],"Turkmenistan":["TM","Asia","Turkmenistan",1],"Turkey":["TR","Asia","Türkiye",1],"Tunisia":["TN","Africa","Tunisia",1],"Trinidad and Tobago":["TT","North America","Trinidad and Tobago",1],"Tonga":["TO","Oceania","Tonga",1],"Togo":["TG","Africa","Togo",1],"Timor-Leste":["TL","Asia","Timor-Leste",1],"Thailand":["TH","Asia","Thailand",1],"Tanzania":["TZ","Africa","Tanzania",1],"Tajikistan":["TJ","Asia","Tajikistan",1],"Taiwan":["TW","Asia","Taiwan",0],"Syria":["SY","Asia","Syria",1],"Switzerland":["CH","Europe","Switzerland",1],"Sweden":["SE","Europe","Sweden",1],"eSwatini":["SZ","Africa","Eswatini",1],"Suriname":["SR","South America","Suriname",1],"S. Sudan":["SS","Africa","South Sudan",1],"Sudan":["SD","Africa","Sudan",1],"Sri Lanka":["LK","Asia","Sri Lanka",1],"Spain":["ES","Europe","Spain",1],"South Korea":["KR","Asia","South Korea",1],"South Africa":["ZA","Africa","South Africa",1],"Somalia":["SO","Africa","Somalia",1],"Solomon Is.":["SB","Oceania","Solomon Islands",1],"Slovakia":["SK","Europe","Slovakia",1],"Slovenia":["SI","Europe","Slovenia",1],"Singapore":["SG","Asia","Singapore",1],"Sierra Leone":["SL","Africa","Sierra Leone",1],"Seychelles":["SC","Africa","Seychelles",1],"Serbia":["RS","Europe","Serbia",1],"Senegal":["SN","Africa","Senegal",1],"Saudi Arabia":["SA","Asia","Saudi Arabia",1],"São Tomé and Principe":["ST","Africa","São Tomé and Príncipe",1],"San Marino":["SM","Europe","San Marino",1],"Samoa":["WS","Oceania","Samoa",1],"St. Vin. and Gren.":["VC","North America","Saint Vincent and the Grenadines",1],"Saint Lucia":["LC","North America","Saint Lucia",1],"St. Kitts and Nevis":["KN","North America","Saint Kitts and Nevis",1],"Rwanda":["RW","Africa","Rwanda",1],"Russia":["RU","Europe","Russia",1],"Romania":["RO","Europe","Romania",1],"Qatar":["QA","Asia","Qatar",1],"Portugal":["PT","Europe","Portugal",1],"Poland":["PL","Europe","Poland",1],"Philippines":["PH","Asia","Philippines",1],"Peru":["PE","South America","Peru",1],"Paraguay":["PY","South America","Paraguay",1],"Papua New Guinea":["PG","Oceania","Papua New Guinea",1],"Panama":["PA","North America","Panama",1],"Palau":["PW","Oceania","Palau",1],"Pakistan":["PK","Asia","Pakistan",1],"Oman":["OM","Asia","Oman",1],"Norway":["NO","Europe","Norway",1],"North Korea":["KP","Asia","North Korea",1],"Nigeria":["NG","Africa","Nigeria",1],"Niger":["NE","Africa","Niger",1],"Nicaragua":["NI","North America","Nicaragua",1],"New Zealand":["NZ","Oceania","New Zealand",1],"Niue":["NU","Oceania","Niue",0],"Cook Is.":["CK","Oceania","Cook Islands",0],"Netherlands":["NL","Europe","Netherlands",1],"Aruba":["AW","North America","Aruba",0],"Curaçao":["CW","North America","Curaçao",0],"Nepal":["NP","Asia","Nepal",1],"Nauru":["NR","Oceania","Nauru",1],"Namibia":["NA","Africa","Namibia",1],"Mozambique":["MZ","Africa","Mozambique",1],"Morocco":["MA","Africa","Morocco",1],"W. Sahara":["EH","Africa","Western Sahara",0],"Montenegro":["ME","Europe","Montenegro",1],"Mongolia":["MN","Asia","Mongolia",1],"Moldova":["MD","Europe","Moldova",1],"Monaco":["MC","Europe","Monaco",1],"Mexico":["MX","North America","Mexico",1],"Mauritius":["MU","Africa","Mauritius",1],"Mauritania":["MR","Africa","Mauritania",1],"Malta":["MT","Europe","Malta",1],"Mali":["ML","Africa","Mali",1],"Maldives":["MV","Asia","Maldives",1],"Malaysia":["MY","Asia","Malaysia",1],"Malawi":["MW","Africa","Malawi",1],"Madagascar":["MG","Africa","Madagascar",1],"Macedonia":["MK","Europe","North Macedonia",1],"Luxembourg":["LU","Europe","Luxembourg",1],"Lithuania":["LT","Europe","Lithuania",1],"Liechtenstein":["LI","Europe","Liechtenstein",1],"Libya":["LY","Africa","Libya",1],"Liberia":["LR","Africa","Liberia",1],"Lesotho":["LS","Africa","Lesotho",1],"Lebanon":["LB","Asia","Lebanon",1],"Latvia":["LV","Europe","Latvia",1],"Laos":["LA","Asia","Laos",1],"Kyrgyzstan":["KG","Asia","Kyrgyzstan",1],"Kuwait":["KW","Asia","Kuwait",1],"Kiribati":["KI","Oceania","Kiribati",1],"Kenya":["KE","Africa","Kenya",1],"Kazakhstan":["KZ","Asia","Kazakhstan",1],"Jordan":["JO","Asia","Jordan",1],"Japan":["JP","Asia","Japan",1],"Jamaica":["JM","North America","Jamaica",1],"Italy":["IT","Europe","Italy",1],"Israel":["IL","Asia","Israel",1],"Palestine":["PS","Asia","Palestine",0],"Ireland":["IE","Europe","Ireland",1],"Iraq":["IQ","Asia","Iraq",1],"Iran":["IR","Asia","Iran",1],"Indonesia":["ID","Asia","Indonesia",1],"India":["IN","Asia","India",1],"Iceland":["IS","Europe","Iceland",1],"Hungary":["HU","Europe","Hungary",1],"Honduras":["HN","North America","Honduras",1],"Haiti":["HT","North America","Haiti",1],"Guyana":["GY","South America","Guyana",1],"Guinea-Bissau":["GW","Africa","Guinea-Bissau",1],"Guinea":["GN","Africa","Guinea",1],"Guatemala":["GT","North America","Guatemala",1],"Grenada":["GD","North America","Grenada",1],"Greece":["GR","Europe","Greece",1],"Ghana":["GH","Africa","Ghana",1],"Germany":["DE","Europe","Germany",1],"Georgia":["GE","Asia","Georgia",1],"Gambia":["GM","Africa","Gambia",1],"Gabon":["GA","Africa","Gabon",1],"France":["FR","Europe","France",1],"St. Pierre and Miquelon":["PM","North America","Saint Pierre and Miquelon",0],"Wallis and Futuna Is.":["WF","Oceania","Wallis and Futuna",0],"St-Martin":["MF","North America","Saint Martin",0],"St-Barthélemy":["BL","North America","Saint Barthélemy",0],"Fr. Polynesia":["PF","Oceania","French Polynesia",0],"New Caledonia":["NC","Oceania","New Caledonia",0],"Fr. S. Antarctic Lands":["TF","Antarctica","French Southern and Antarctic Lands",0],"Åland":["AX","Europe","Åland Islands",0],"Finland":["FI","Europe","Finland",1],"Fiji":["FJ","Oceania","Fiji",1],"Ethiopia":["ET","Africa","Ethiopia",1],"Estonia":["EE","Europe","Estonia",1],"Eritrea":["ER","Africa","Eritrea",1],"Eq. Guinea":["GQ","Africa","Equatorial Guinea",1],"El Salvador":["SV","North America","El Salvador",1],"Egypt":["EG","Africa","Egypt",1],"Ecuador":["EC","South America","Ecuador",1],"Dominican Rep.":["DO","North America","Dominican Republic",1],"Dominica":["DM","North America","Dominica",1],"Djibouti":["DJ","Africa","Djibouti",1],"Greenland":["GL","North America","Greenland",0],"Faeroe Is.":["FO","Europe","Faroe Islands",0],"Denmark":["DK","Europe","Denmark",1],"Czechia":["CZ","Europe","Czechia",1],"Cyprus":["CY","Europe","Cyprus",1],"Cuba":["CU","North America","Cuba",1],"Croatia":["HR","Europe","Croatia",1],"Côte d'Ivoire":["CI","Africa","Ivory Coast",1],"Costa Rica":["CR","North America","Costa Rica",1],"Dem. Rep. Congo":["CD","Africa","DR Congo",1],"Congo":["CG","Africa","Republic of the Congo",1],"Comoros":["KM","Africa","Comoros",1],"Colombia":["CO","South America","Colombia",1],"China":["CN","Asia","China",1],"Macao":["MO","Asia","Macau",0],"Hong Kong":["HK","Asia","Hong Kong",0],"Chile":["CL","South America","Chile",1],"Chad":["TD","Africa","Chad",1],"Central African Rep.":["CF","Africa","Central African Republic",1],"Cabo Verde":["CV","Africa","Cape Verde",1],"Canada":["CA","North America","Canada",1],"Cameroon":["CM","Africa","Cameroon",1],"Cambodia":["KH","Asia","Cambodia",1],"Myanmar":["MM","Asia","Myanmar",1],"Burundi":["BI","Africa","Burundi",1],"Burkina Faso":["BF","Africa","Burkina Faso",1],"Bulgaria":["BG","Europe","Bulgaria",1],"Brunei":["BN","Asia","Brunei",1],"Brazil":["BR","South America","Brazil",1],"Botswana":["BW","Africa","Botswana",1],"Bosnia and Herz.":["BA","Europe","Bosnia and Herzegovina",1],"Bolivia":["BO","South America","Bolivia",1],"Bhutan":["BT","Asia","Bhutan",1],"Benin":["BJ","Africa","Benin",1],"Belize":["BZ","North America","Belize",1],"Belgium":["BE","Europe","Belgium",1],"Belarus":["BY","Europe","Belarus",1],"Barbados":["BB","North America","Barbados",1],"Bangladesh":["BD","Asia","Bangladesh",1],"Bahrain":["BH","Asia","Bahrain",1],"Bahamas":["BS","North America","Bahamas",1],"Azerbaijan":["AZ","Asia","Azerbaijan",1],"Austria":["AT","Europe","Austria",1],"Australia":["AU","Oceania","Australia",1],"Heard I. and McDonald Is.":["HM","Antarctica","Heard Island and McDonald Islands",0],"Norfolk Island":["NF","Oceania","Norfolk Island",0],"Ashmore and Cartier Is.":["AU","Oceania","Australia",1],"Armenia":["AM","Asia","Armenia",1],"Argentina":["AR","South America","Argentina",1],"Antigua and Barb.":["AG","North America","Antigua and Barbuda",1],"Angola":["AO","Africa","Angola",1],"Andorra":["AD","Europe","Andorra",1],"Algeria":["DZ","Africa","Algeria",1],"Albania":["AL","Europe","Albania",1],"Afghanistan":["AF","Asia","Afghanistan",1],"Antarctica":["AQ","Antarctica","Antarctica",0],"Sint Maarten":["SX","North America","Sint Maarten",0],"Kosovo":["XK","Europe","Kosovo",0],"Somaliland":["","Africa","Somaliland",0],"N. Cyprus":["","Asia","Northern Cyprus",0],"Indian Ocean Ter.":["","Oceania","Indian Ocean Territories",0],"Siachen Glacier":["","Asia","Siachen Glacier",0]};
+// name, ISO2, lat, lon
+const CITIES = [["Tokyo","JP",35.68,139.69],["Osaka","JP",34.69,135.5],["Kyoto","JP",35.01,135.77],["Sapporo","JP",43.06,141.35],["Seoul","KR",37.57,126.98],["Busan","KR",35.18,129.08],["Beijing","CN",39.9,116.4],["Shanghai","CN",31.23,121.47],["Shenzhen","CN",22.54,114.06],["Guangzhou","CN",23.13,113.26],["Chengdu","CN",30.57,104.07],["Xi'an","CN",34.34,108.94],["Hong Kong","HK",22.32,114.17],["Macau","MO",22.2,113.54],["Taipei","TW",25.03,121.57],["Singapore","SG",1.35,103.82],["Bangkok","TH",13.76,100.5],["Chiang Mai","TH",18.79,98.98],["Phuket","TH",7.88,98.39],["Kuala Lumpur","MY",3.14,101.69],["Penang","MY",5.41,100.33],["Jakarta","ID",-6.21,106.85],["Bali","ID",-8.65,115.22],["Manila","PH",14.6,120.98],["Hanoi","VN",21.03,105.85],["Ho Chi Minh City","VN",10.82,106.63],["Da Nang","VN",16.05,108.22],["Phnom Penh","KH",11.56,104.92],["Siem Reap","KH",13.36,103.86],["Yangon","MM",16.87,96.2],["Kathmandu","NP",27.72,85.32],["Delhi","IN",28.61,77.21],["Mumbai","IN",19.08,72.88],["Bengaluru","IN",12.97,77.59],["Jaipur","IN",26.91,75.79],["Colombo","LK",6.93,79.86],["Malé","MV",4.18,73.51],["Ulaanbaatar","MN",47.89,106.91],["Almaty","KZ",43.24,76.89],["Tbilisi","GE",41.72,44.79],["Tehran","IR",35.69,51.39],["Dubai","AE",25.2,55.27],["Abu Dhabi","AE",24.45,54.38],["Doha","QA",25.29,51.53],["Riyadh","SA",24.71,46.68],["Istanbul","TR",41.01,28.98],["Tel Aviv","IL",32.09,34.78],["Amman","JO",31.95,35.93],["Cairo","EG",30.04,31.24],["Marrakesh","MA",31.63,-7.99],["Casablanca","MA",33.57,-7.59],["Cape Town","ZA",-33.92,18.42],["Johannesburg","ZA",-26.2,28.05],["Nairobi","KE",-1.29,36.82],["Zanzibar","TZ",-6.17,39.2],["Addis Ababa","ET",9.03,38.74],["Lagos","NG",6.52,3.38],["Accra","GH",5.6,-0.19],["London","GB",51.51,-0.13],["Edinburgh","GB",55.95,-3.19],["Manchester","GB",53.48,-2.24],["Dublin","IE",53.35,-6.26],["Paris","FR",48.86,2.35],["Nice","FR",43.7,7.27],["Lyon","FR",45.76,4.84],["Amsterdam","NL",52.37,4.9],["Brussels","BE",50.85,4.35],["Berlin","DE",52.52,13.4],["Munich","DE",48.14,11.58],["Frankfurt","DE",50.11,8.68],["Hamburg","DE",53.55,9.99],["Zurich","CH",47.38,8.54],["Geneva","CH",46.2,6.14],["Vienna","AT",48.21,16.37],["Prague","CZ",50.08,14.44],["Budapest","HU",47.5,19.04],["Warsaw","PL",52.23,21.01],["Kraków","PL",50.06,19.94],["Copenhagen","DK",55.68,12.57],["Stockholm","SE",59.33,18.07],["Oslo","NO",59.91,10.75],["Helsinki","FI",60.17,24.94],["Reykjavík","IS",64.15,-21.94],["Lisbon","PT",38.72,-9.14],["Porto","PT",41.16,-8.63],["Madrid","ES",40.42,-3.7],["Barcelona","ES",41.39,2.17],["Seville","ES",37.39,-5.98],["Rome","IT",41.9,12.5],["Milan","IT",45.46,9.19],["Venice","IT",45.44,12.32],["Florence","IT",43.77,11.26],["Naples","IT",40.85,14.27],["Athens","GR",37.98,23.73],["Santorini","GR",36.39,25.46],["Dubrovnik","HR",42.65,18.09],["Moscow","RU",55.76,37.62],["Saint Petersburg","RU",59.93,30.34],["New York","US",40.71,-74.01],["Los Angeles","US",34.05,-118.24],["San Francisco","US",37.77,-122.42],["Chicago","US",41.88,-87.63],["Las Vegas","US",36.17,-115.14],["Seattle","US",47.61,-122.33],["Miami","US",25.76,-80.19],["Boston","US",42.36,-71.06],["Washington, D.C.","US",38.91,-77.04],["Honolulu","US",21.31,-157.86],["New Orleans","US",29.95,-90.07],["Austin","US",30.27,-97.74],["Toronto","CA",43.65,-79.38],["Vancouver","CA",49.28,-123.12],["Montreal","CA",45.5,-73.57],["Banff","CA",51.18,-115.57],["Mexico City","MX",19.43,-99.13],["Cancún","MX",21.16,-86.85],["Havana","CU",23.11,-82.37],["Bogotá","CO",4.71,-74.07],["Cartagena","CO",10.39,-75.48],["Lima","PE",-12.05,-77.04],["Cusco","PE",-13.53,-71.97],["Santiago","CL",-33.45,-70.67],["Buenos Aires","AR",-34.6,-58.38],["Rio de Janeiro","BR",-22.91,-43.17],["São Paulo","BR",-23.55,-46.63],["Quito","EC",-0.18,-78.47],["La Paz","BO",-16.49,-68.12],["Sydney","AU",-33.87,151.21],["Melbourne","AU",-37.81,144.96],["Brisbane","AU",-27.47,153.03],["Perth","AU",-31.95,115.86],["Cairns","AU",-16.92,145.77],["Auckland","NZ",-36.85,174.76],["Queenstown","NZ",-45.03,168.66],["Wellington","NZ",-41.29,174.78],["Nadi","FJ",-17.8,177.42],["Ushuaia","AR",-54.8,-68.3],["South Pole","AQ",-90,0],["McMurdo Station","AQ",-77.85,166.67],["Antarctic Peninsula","AQ",-64.83,-62.87],["Deception Island","AQ",-62.97,-60.65]];
+const CONTINENTS = ['Africa','Asia','Europe','North America','South America','Oceania','Antarctica'];
+const PALETTE = ['#ff8a5b','#5eead4','#c4b5fd','#fbbf24','#f472b6','#60a5fa','#a3e635'];
+const HOME_COLOR = '#ffe7a3';
+const UN_TOTAL = 195;
+const D2R = Math.PI / 180;
+const MOBILE = matchMedia('(max-width:760px)').matches;
+
+const ICONS = {
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  pin:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v11h14V9"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/>',
+  down:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  up:'<path d="M12 15V4M7 9l5-5 5 5M5 20h14"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  plane:'<path d="M10.5 13.5 3 11l1.5-1.5 8 1L17 6a2 2 0 0 1 3 3l-4.5 4.5 1 8L15 23l-2.5-7.5L9 19v3l-1.5 1-1-3.5L3 18.5 4 17h3l3.5-3.5z"/>',
+};
+const icon = (n, s = 16) => `<svg class="i" viewBox="0 0 24 24" style="width:${s}px;height:${s}px">${ICONS[n]}</svg>`;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const flagOf = iso => iso && iso.length === 2 ? String.fromCodePoint(...[...iso].map(c => 0x1F1A5 + c.charCodeAt(0))) : '🏳️';
+const fmtLL = (lat, lon) => `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'} ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}`;
+const fmtDate = d => { if (!d) return ''; const [y, m] = d.split('-'); return new Date(+y, +m - 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }); };
+const km = (a, b) => geoDistance([a.lon, a.lat], [b.lon, b.lat]) * 6371;
+const nf = n => Math.round(n).toLocaleString();
+
+/* ---------------- state ---------------- */
+const KEY = 'wanderglobe.v1';
+const newProfile = (name, color) => ({ id: uid(), name, color, countries: [], places: [], home: null });
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s?.profiles?.length) return s; } catch {}
+  const p = newProfile('Me', PALETTE[0]);
+  return { profiles: [p], activeId: p.id, compare: false };
+}
+const state = load();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+const active = () => state.profiles.find(p => p.id === state.activeId) || state.profiles[0];
+const shown = () => state.compare ? state.profiles : [active()];
+
+/* ---------------- geo helpers ---------------- */
+const toVec = (lat, lon, r = 1) => { const la = lat * D2R, lo = lon * D2R; return new THREE.Vector3(Math.cos(la) * Math.sin(lo) * r, Math.sin(la) * r, Math.cos(la) * Math.cos(lo) * r); };
+const toLatLon = v => { const n = v.clone().normalize(); return { lat: Math.asin(n.y) / D2R, lon: Math.atan2(n.x, n.z) / D2R }; };
+function slerpVec(a, b, t, out = new THREE.Vector3()) {
+  const o = Math.acos(THREE.MathUtils.clamp(a.dot(b), -1, 1));
+  if (o < 1e-4) return out.copy(a).lerp(b, t);
+  const s = Math.sin(o);
+  return out.copy(a).multiplyScalar(Math.sin((1 - t) * o) / s).addScaledVector(b, Math.sin(t * o) / s);
+}
+
+/* ---------------- renderer & scene ---------------- */
+const canvas = $('#scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.05, 400);
+const controls = new OrbitControls(camera, canvas);
+Object.assign(controls, { enableDamping: true, dampingFactor: 0.06, enablePan: false, minDistance: 1.3, maxDistance: 7, rotateSpeed: 0.45, zoomSpeed: 0.7, autoRotate: true, autoRotateSpeed: 0.35, minPolarAngle: 0.12, maxPolarAngle: Math.PI - 0.12 });
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.75, 0.5, 0.68);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+const U = { uTime: { value: 0 }, uSun: { value: new THREE.Vector3(0, 0, 1) }, uIntro: { value: 0 } };
+const SUN_VIEW = new THREE.Vector3(-0.55, 0.5, 0.67).normalize();
+
+// Nebula
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(150, 48, 32), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false,
+  uniforms: { uA: { value: new THREE.Color('#3a1d6e') }, uB: { value: new THREE.Color('#0d4a5e') } },
+  vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }`,
+  fragmentShader: `uniform vec3 uA, uB; varying vec3 vDir;
+    float h(vec3 p){ p = fract(p*.3183099+.1); p *= 17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+    float n(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+      return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),
+                 mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z); }
+    float fbm(vec3 p){ float v=0., a=.5; for(int i=0;i<5;i++){ v+=a*n(p); p*=2.03; a*=.5; } return v; }
+    void main(){ vec3 d = normalize(vDir);
+      float a = fbm(d*1.8), b = fbm(d*3.2+7.3);
+      vec3 c = uA*pow(a,3.2)*.55 + uB*pow(b,3.6)*.5 + vec3(.0015,.002,.006);
+      gl_FragColor = vec4(c,1.); }`,
+})));
+
+// Stars
+{
+  const N = MOBILE ? 2500 : 5000, pos = new Float32Array(N * 3), size = new Float32Array(N), seed = new Float32Array(N), col = new Float32Array(N * 3);
+  const c = new THREE.Color();
+  for (let i = 0; i < N; i++) {
+    const v = new THREE.Vector3().randomDirection().multiplyScalar(90 + Math.random() * 40);
+    pos.set([v.x, v.y, v.z], i * 3);
+    size[i] = Math.pow(Math.random(), 4) * 2.6 + 0.6;
+    seed[i] = Math.random() * 100;
+    c.setHSL(Math.random() < .7 ? .6 : .08, .5, .75 + Math.random() * .25); col.set([c.r, c.g, c.b], i * 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+  g.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  scene.add(new THREE.Points(g, new THREE.ShaderMaterial({
+    uniforms: { uTime: U.uTime, uPR: { value: renderer.getPixelRatio() } },
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, vertexColors: true,
+    vertexShader: `uniform float uTime, uPR; attribute float aSize, aSeed; varying float vA; varying vec3 vC;
+      void main(){ vC = color; vA = .55 + .45*sin(uTime*(.6+fract(aSeed)*1.6) + aSeed);
+        gl_PointSize = aSize * uPR; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }`,
+    fragmentShader: `varying float vA; varying vec3 vC; void main(){ float d = length(gl_PointCoord-.5); float a = smoothstep(.5,0.,d); gl_FragColor = vec4(vC*a*vA*.9, 1.); }`,
+  })));
+}
+
+const globe = new THREE.Group();
+scene.add(globe);
+
+// Ocean
+const ocean = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 96), new THREE.ShaderMaterial({
+  uniforms: { uSun: U.uSun, uDeep: { value: new THREE.Color('#040a1c') }, uMid: { value: new THREE.Color('#0c1f48') }, uRim: { value: new THREE.Color('#3f7dff') } },
+  vertexShader: `varying vec3 vN, vW; void main(){ vN = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
+  fragmentShader: `uniform vec3 uSun, uDeep, uMid, uRim; varying vec3 vN, vW;
+    void main(){ vec3 n = normalize(vN), v = normalize(cameraPosition - vW);
+      float sun = max(dot(n,uSun),0.), fres = pow(1.-max(dot(n,v),0.), 3.);
+      vec3 c = mix(uDeep, uMid, smoothstep(-.2,1.,sun));
+      c += uRim * fres * (.35 + .65*sun) * .9;
+      gl_FragColor = vec4(c,1.); }`,
+}));
+globe.add(ocean);
+
+// Atmosphere halo
+const ATM_R = 1.2, ATM_COS = Math.sqrt(1 - 1 / (ATM_R * ATM_R));
+globe.add(new THREE.Mesh(new THREE.SphereGeometry(ATM_R, 96, 64), new THREE.ShaderMaterial({
+  side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: { uSun: U.uSun, uC: { value: new THREE.Color('#4d8dff') }, uK: { value: ATM_COS } },
+  vertexShader: `varying vec3 vN, vW; void main(){ vN = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
+  fragmentShader: `uniform vec3 uSun, uC; uniform float uK; varying vec3 vN, vW;
+    void main(){ vec3 v = normalize(cameraPosition - vW); float x = clamp(-dot(normalize(vN), v)/uK, 0., 1.);
+      float i = pow(x, 4.5) * (.3 + .8*max(dot(normalize(vN),uSun)*.5+.5, 0.));
+      gl_FragColor = vec4(uC*i*.9, 1.); }`,
+})));
+
+/* ---------------- interaction plumbing ---------------- */
+const pointer = new THREE.Vector2(), ray = new THREE.Raycaster();
+let hoverDirty = false, lastMove = null, downAt = null, dragging = false, flight = null, idleTimer = 0;
+const tip = $('#tip'), pop = $('#pop'), labelsEl = $('#labels');
+
+function scheduleAutoRotate() {
+  clearTimeout(idleTimer);
+  controls.autoRotate = false;
+  idleTimer = setTimeout(() => { if (!popState && !flight) controls.autoRotate = true; }, 9000);
+}
+controls.addEventListener('start', () => { dragging = true; scheduleAutoRotate(); });
+controls.addEventListener('end', () => { dragging = false; scheduleAutoRotate(); });
+
+function flyTo(lat, lon, dist) {
+  const from = camera.position.clone(), fromLen = from.length();
+  const toDir = toVec(THREE.MathUtils.clamp(lat, -80, 80), lon).normalize();
+  const toLen = dist ?? Math.min(Math.max(fromLen, 2.1), 2.9);
+  const ang = from.clone().normalize().angleTo(toDir);
+  flight = { t0: performance.now(), dur: 900 + ang * 450, fromDir: from.normalize(), toDir, fromLen, toLen, lift: Math.min(ang, 1.6) * 0.45 };
+  controls.enabled = false;
+  scheduleAutoRotate();
+}
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+/* ---------------- boot ---------------- */
+let COUNTRIES, byKey, countryAt, countryNear, dotMesh, dotCountry, dotPos, dotQuat, dotJitter;
+let hoverCi = -1, visitors = [];
+const borderGroup = new THREE.Group(), fillMesh = { mesh: null }, pinsGroup = new THREE.Group(), arcsGroup = new THREE.Group();
+globe.add(borderGroup, pinsGroup, arcsGroup);
+
+
+function buildWorld(topo) {
+  const features = topojson.feature(topo, topo.objects.countries).features;
+  COUNTRIES = features.map((f, i) => {
+    const key = f.properties.name, m = META[key] || ['', '', key, 0];
+    let main = f;
+    if (f.geometry.type === 'MultiPolygon') {
+      let best = -1;
+      for (const coords of f.geometry.coordinates) { const g = { type: 'Polygon', coordinates: coords }, a = geoArea(g); if (a > best) { best = a; main = g; } }
+    }
+    const [lon, lat] = geoCentroid(main);
+    return { i, key, name: m[2] || key, iso2: m[0], cont: m[1], un: m[3], feature: f, lat, lon, dots: [] };
+  });
+  byKey = new Map(COUNTRIES.map(c => [c.key, c]));
+
+  // Country-id raster: each country painted in a checksummed colour so antialiased border pixels can be rejected.
+  const IW = 2880, IH = 1440, idc = document.createElement('canvas');
+  idc.width = IW; idc.height = IH;
+  const ictx = idc.getContext('2d', { willReadFrequently: true });
+  const iproj = geoEquirectangular().scale(IW / (2 * Math.PI)).translate([IW / 2, IH / 2]).precision(0.1);
+  const ipath = geoPath(iproj, ictx);
+  for (const c of COUNTRIES) {
+    const r = c.i + 1;
+    ictx.fillStyle = `rgb(${r},${(r * 97) & 255},${(r * 31 + 17) & 255})`;
+    ictx.beginPath(); ipath(c.feature); ictx.fill();
+  }
+  const ID = ictx.getImageData(0, 0, IW, IH).data;
+  const pix = (x, y) => {
+    x = ((x % IW) + IW) % IW; y = Math.max(0, Math.min(IH - 1, y));
+    const o = (y * IW + x) * 4;
+    if (ID[o + 3] < 128 || ID[o] === 0) return -1;
+    const r = ID[o];
+    return ID[o + 1] === ((r * 97) & 255) && ID[o + 2] === ((r * 31 + 17) & 255) && r <= COUNTRIES.length ? r - 1 : -2;
+  };
+  const NB = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1],[2,0],[-2,0],[0,2],[0,-2]];
+  countryAt = (lat, lon) => {
+    const x = Math.floor((lon + 180) / 360 * IW), y = Math.floor((90 - lat) / 180 * IH);
+    const v = pix(x, y);
+    if (v !== -2) return v;
+    for (const [dx, dy] of NB) { const w = pix(x + dx, y + dy); if (w >= 0) return w; }
+    return -1;
+  };
+  countryNear = (lat, lon) => {
+    const v = countryAt(lat, lon);
+    if (v >= 0) return v;
+    const x = Math.floor((lon + 180) / 360 * IW), y = Math.floor((90 - lat) / 180 * IH);
+    for (let r = 3; r <= 12; r += 3) for (let a = 0; a < 16; a++) {
+      const w = pix(x + Math.round(Math.cos(a / 8 * Math.PI) * r), y + Math.round(Math.sin(a / 8 * Math.PI) * r));
+      if (w >= 0) return w;
+    }
+    return -1;
+  };
+
+  // Hex dots on an equal-area-ish grid
+  const STEP = MOBILE ? 0.72 : 0.5, R = 1.0012, DOT_R = STEP * D2R * 0.36;
+  const pts = [];
+  for (let lat = -90 + STEP / 2; lat < 90; lat += STEP) {
+    const n = Math.max(1, Math.round(360 / STEP * Math.cos(lat * D2R)));
+    for (let k = 0; k < n; k++) {
+      const lon = -180 + (k + 0.5) * 360 / n, ci = countryAt(lat, lon);
+      if (ci >= 0) pts.push([lat, lon, ci]);
+    }
+  }
+  for (const c of COUNTRIES) c.count = 0;
+  for (const p of pts) COUNTRIES[p[2]].count++;
+  for (const c of COUNTRIES) if (!c.count) { pts.push([c.lat, c.lon, c.i]); c.count = 1; }
+
+  const N = pts.length;
+  dotCountry = new Int16Array(N); dotPos = new Float32Array(N * 3); dotQuat = new Float32Array(N * 4); dotJitter = new Float32Array(N);
+  const seeds = new Float32Array(N), z = new THREE.Vector3(0, 0, 1), q = new THREE.Quaternion();
+  pts.forEach(([lat, lon, ci], j) => {
+    const v = toVec(lat, lon, R);
+    dotPos.set([v.x, v.y, v.z], j * 3);
+    q.setFromUnitVectors(z, v.clone().normalize()); dotQuat.set([q.x, q.y, q.z, q.w], j * 4);
+    dotCountry[j] = ci; COUNTRIES[ci].dots.push(j);
+    dotJitter[j] = 0.82 + Math.random() * 0.3;
+    seeds[j] = ((lon + 180) / 360) * 0.75 + Math.random() * 0.25;
+  });
+  const geo = new THREE.CircleGeometry(DOT_R, 6);
+  geo.setAttribute('aSeed', new THREE.InstancedBufferAttribute(seeds, 1));
+  dotMesh = new THREE.InstancedMesh(geo, new THREE.ShaderMaterial({
+    uniforms: { uIntro: U.uIntro, uSun: U.uSun },
+    vertexShader: `uniform float uIntro; uniform vec3 uSun; attribute float aSeed; varying vec3 vC; varying float vS;
+      void main(){ vec4 c = modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.), p = modelMatrix*instanceMatrix*vec4(position,1.);
+        float s = smoothstep(aSeed*.7, aSeed*.7+.3, uIntro); p.xyz = c.xyz + (p.xyz-c.xyz)*s;
+        vec3 n = normalize(c.xyz); float f = clamp(dot(n, normalize(cameraPosition-c.xyz)),0.,1.);
+        vS = (.3 + .7*clamp(dot(n,uSun)*.6+.55,0.,1.)) * (.35 + .65*smoothstep(0.,.55,f));
+        vC = instanceColor; gl_Position = projectionMatrix*viewMatrix*p; }`,
+    fragmentShader: `varying vec3 vC; varying float vS; void main(){ gl_FragColor = vec4(vC*vS, 1.); }`,
+  }), N);
+  dotMesh.frustumCulled = false;
+  for (let j = 0; j < N; j++) dotMesh.setColorAt(j, BASE);
+  globe.add(dotMesh);
+
+  // Faint graticule and borders
+  const lineMat = (color, opacity) => new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
+  globe.add(new THREE.LineSegments(linesGeo(geoGraticule().step([30, 30]).precision(2)().coordinates, 1.0004), lineMat('#6f8fd6', 0.07)));
+  globe.add(new THREE.LineSegments(linesGeo(topojson.mesh(topo, topo.objects.countries).coordinates, 1.0018), lineMat('#8aa4e6', 0.13)));
+  hoverLine = new THREE.LineSegments(new THREE.BufferGeometry(), lineMat('#ffffff', 0.85));
+  hoverLine.renderOrder = 3;
+  globe.add(hoverLine);
+
+  // Visited fill, painted into an equirectangular canvas
+  fillCanvas = document.createElement('canvas'); fillCanvas.width = 2048; fillCanvas.height = 1024;
+  fillTex = new THREE.CanvasTexture(fillCanvas); fillTex.colorSpace = THREE.SRGBColorSpace; fillTex.anisotropy = 4;
+  fillPath = geoPath(geoEquirectangular().scale(2048 / (2 * Math.PI)).translate([1024, 512]).precision(0.2), fillCanvas.getContext('2d'));
+  const fm = new THREE.Mesh(new THREE.SphereGeometry(1.0006, 128, 96), new THREE.MeshBasicMaterial({ map: fillTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  fm.rotation.y = -Math.PI / 2; // SphereGeometry's u=0 sits at lon -90 in our mapping
+  globe.add(fm);
+
+  refreshWorld();
+  renderPanel();
+  startIntro();
+}
+
+const BASE = new THREE.Color('#33446e');
+let hoverLine, fillCanvas, fillTex, fillPath;
+
+function linesGeo(lines, r) {
+  const out = [];
+  for (const line of lines) for (let i = 0; i < line.length - 1; i++) {
+    const a = toVec(line[i][1], line[i][0], r), b = toVec(line[i + 1][1], line[i + 1][0], r);
+    out.push(a.x, a.y, a.z, b.x, b.y, b.z);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(out, 3));
+  return g;
+}
+const outlineCache = new Map();
+function outlineGeo(ci) {
+  if (!outlineCache.has(ci)) {
+    const g = COUNTRIES[ci].feature.geometry;
+    const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+    outlineCache.set(ci, linesGeo(polys.flat(), 1.0028));
+  }
+  return outlineCache.get(ci);
+}
+
+/* ---------------- world refresh ---------------- */
+const tmpM = new THREE.Matrix4(), tmpP = new THREE.Vector3(), tmpQ = new THREE.Quaternion(), tmpS = new THREE.Vector3(), tmpC = new THREE.Color();
+function computeVisitors() {
+  visitors = COUNTRIES.map(() => []);
+  for (const p of shown()) for (const k of p.countries) { const c = byKey.get(k); if (c) visitors[c.i].push(p.color); }
+}
+function paintDot(j) {
+  const ci = dotCountry[j], vis = visitors[ci], hot = ci === hoverCi;
+  let s;
+  if (vis.length) { tmpC.set(vis[j % vis.length]); tmpC.multiplyScalar(glow(tmpC) * (hot ? 1.4 : 1)); s = hot ? 1.2 : 1.12; }
+  else { tmpC.copy(BASE).multiplyScalar(dotJitter[j] * (hot ? 2.1 : 1)); s = hot ? 1.05 : 0.9; }
+  dotMesh.setColorAt(j, tmpC);
+  tmpP.fromArray(dotPos, j * 3); tmpQ.fromArray(dotQuat, j * 4); tmpS.setScalar(s);
+  dotMesh.setMatrixAt(j, tmpM.compose(tmpP, tmpQ, tmpS));
+}
+const glow = c => THREE.MathUtils.clamp(0.5 / (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b), 0.7, 1.3);
+function paintCountry(ci) { if (ci < 0) return; for (const j of COUNTRIES[ci].dots) paintDot(j); }
+function flushDots() { dotMesh.instanceColor.needsUpdate = true; dotMesh.instanceMatrix.needsUpdate = true; }
+
+function refreshWorld() {
+  computeVisitors();
+  for (let j = 0; j < dotCountry.length; j++) paintDot(j);
+  flushDots();
+  // outlines + fill
+  borderGroup.children.forEach(o => o.material.dispose());
+  borderGroup.clear();
+  const ctx = fillCanvas.getContext('2d');
+  ctx.clearRect(0, 0, 2048, 1024);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of shown()) {
+    ctx.fillStyle = p.color; ctx.globalAlpha = (state.compare ? 0.12 : 0.18) * Math.min(1, glow(new THREE.Color(p.color)));
+    const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(p.color).multiplyScalar(1.3), transparent: true, opacity: 0.75, depthWrite: false });
+    for (const k of p.countries) {
+      const c = byKey.get(k); if (!c) continue;
+      ctx.beginPath(); fillPath(c.feature); ctx.fill();
+      borderGroup.add(new THREE.LineSegments(outlineGeo(c.i), mat));
+    }
+  }
+  ctx.globalAlpha = 1;
+  fillTex.needsUpdate = true;
+  rebuildPins();
+  rebuildArcs();
+}
+
+function setHover(ci) {
+  if (ci === hoverCi) return;
+  const prev = hoverCi; hoverCi = ci;
+  paintCountry(prev); paintCountry(ci); flushDots();
+  hoverLine.geometry = ci >= 0 ? outlineGeo(ci) : new THREE.BufferGeometry();
+}
+
+/* ---------------- pins & arcs ---------------- */
+let pins = [];
+const seenPins = new Set(), seenArcs = new Set();
+const pinGeo = { beam: new THREE.CylinderGeometry(0.0011, 0.0011, 1, 6).translate(0, 0.5, 0), head: new THREE.SphereGeometry(1, 20, 14), ring: new THREE.RingGeometry(0.75, 1, 48).rotateX(-Math.PI / 2), hit: new THREE.SphereGeometry(0.028, 8, 6) };
+function makePin(place, color, profile, isHome) {
+  const g = new THREE.Group(), n = toVec(place.lat, place.lon).normalize();
+  g.position.copy(n);
+  g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+  const h = isHome ? 0.065 : 0.045, hr = isHome ? 0.0085 : 0.0065;
+  const c = new THREE.Color(color);
+  const beam = new THREE.Mesh(pinGeo.beam, new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.2), transparent: true, opacity: 0.75, depthWrite: false }));
+  beam.scale.set(isHome ? 1.6 : 1, h, isHome ? 1.6 : 1);
+  const head = new THREE.Mesh(pinGeo.head, new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(2.2) }));
+  head.scale.setScalar(hr); head.position.y = h;
+  const ring = new THREE.Mesh(pinGeo.ring, new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.6), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  ring.position.y = 0.002;
+  const hit = new THREE.Mesh(pinGeo.hit, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }));
+  hit.position.y = h * 0.6;
+  g.add(beam, head, ring, hit);
+  const key = (isHome ? 'home:' : '') + profile.id + ':' + (place.id || 'h');
+  const born = seenPins.has(key) ? -10 : performance.now() / 1000;
+  seenPins.add(key);
+  const lbl = document.createElement('div');
+  lbl.className = 'lbl' + (isHome ? ' home' : '');
+  lbl.style.setProperty('--c', color);
+  lbl.textContent = isHome ? '⌂ ' + (place.name || 'Home') : place.name;
+  labelsEl.appendChild(lbl);
+  const pin = { place, profile, isHome, group: g, ring, hit, lbl, tip: n.clone().multiplyScalar(1 + h + 0.012), born, phase: Math.random() * 2 };
+  hit.userData.pin = pin;
+  pinsGroup.add(g);
+  return pin;
+}
+function rebuildPins() {
+  for (const p of pins) { p.lbl.remove(); p.group.traverse(o => o.material?.dispose()); }
+  pinsGroup.clear(); pins = [];
+  for (const prof of shown()) {
+    for (const pl of prof.places) pins.push(makePin(pl, prof.color, prof, false));
+    if (prof.home) pins.push(makePin(prof.home, state.compare ? prof.color : HOME_COLOR, prof, true));
+  }
+}
+
+const arcMatBase = {
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform float uTime, uProg, uOff; uniform vec3 uC; varying vec2 vUv;
+    void main(){ if (vUv.x > uProg) discard;
+      float head = fract(uTime*.22 + uOff), d = head - vUv.x; if (d < 0.) d += 1.;
+      float pulse = exp(-d*10.) * step(vUv.x, uProg);
+      float edge = smoothstep(0.,.04,vUv.x) * smoothstep(1.,.96,vUv.x);
+      float tipGlow = smoothstep(.06,0.,uProg - vUv.x) * step(uProg, .999);
+      gl_FragColor = vec4(uC * (.28 + pulse*1.6 + tipGlow*2.) * edge, 1.); }`,
+};
+let arcs = [];
+function arcGeo(a, b) {
+  const va = toVec(a.lat, a.lon).normalize(), vb = toVec(b.lat, b.lon).normalize(), ang = va.angleTo(vb);
+  const h = Math.min(0.02 + ang * 0.09, 0.2), pts = [];
+  for (let i = 0; i <= 64; i++) { const t = i / 64; pts.push(slerpVec(va, vb, t).multiplyScalar(1.002 + Math.sin(Math.PI * t) * h)); }
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 120, 0.0019, 6, false);
+}
+function rebuildArcs() {
+  for (const a of arcs) { a.mesh.geometry.dispose(); a.mesh.material.dispose(); }
+  arcsGroup.clear(); arcs = [];
+  for (const prof of shown()) {
+    const legs = [];
+    if (prof.home) for (const pl of prof.places) legs.push([prof.home, pl, prof.id + ':h>' + pl.id + ':' + pl.lat + ',' + pl.lon + ':' + prof.home.lat]);
+    else {
+      const chain = [...prof.places].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
+      for (let i = 1; i < chain.length; i++) legs.push([chain[i - 1], chain[i], prof.id + ':' + chain[i - 1].id + '>' + chain[i].id]);
+    }
+    for (const [a, b, key] of legs) {
+      if (km(a, b) < 30) continue;
+      const mat = new THREE.ShaderMaterial({ ...arcMatBase, uniforms: { uTime: U.uTime, uProg: { value: seenArcs.has(key) ? 1 : 0 }, uOff: { value: Math.random() }, uC: { value: new THREE.Color(prof.color) } } });
+      const mesh = new THREE.Mesh(arcGeo(a, b), mat);
+      arcsGroup.add(mesh);
+      arcs.push({ mesh, mat, key, start: performance.now() / 1000 + 0.3 + arcs.length * 0.06 });
+      seenArcs.add(key);
+    }
+  }
+}
+
+/* ---------------- intro ---------------- */
+function startIntro() {
+  const p = active(), tzLon = THREE.MathUtils.clamp(-new Date().getTimezoneOffset() / 4, -180, 180);
+  const start = p.home || p.places[0] || { lat: 22, lon: tzLon };
+  const dir = toVec(THREE.MathUtils.clamp(start.lat, -50, 50) * 0.7 + 8, start.lon).normalize();
+  camera.position.copy(dir).multiplyScalar(9);
+  flight = { t0: performance.now() + 150, dur: 2600, fromDir: dir.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -0.9), toDir: dir, fromLen: 9, toLen: MOBILE ? 4.4 : 3.05, lift: 0 };
+  controls.enabled = false;
+  introT0 = performance.now();
+  requestAnimationFrame(() => document.body.classList.remove('loading'));
+}
+let introT0 = 0;
+
+/* ---------------- render loop ---------------- */
+const proj = new THREE.Vector3(), camDir = new THREE.Vector3();
+function loop(now) {
+  requestAnimationFrame(loop);
+  const t = U.uTime.value = performance.now() / 1000;
+  if (introT0) U.uIntro.value = Math.min(1, (now - introT0) / 2600);
+
+  if (flight) {
+    const k = Math.min(1, Math.max(0, (now - flight.t0) / flight.dur)), e = ease(k);
+    const d = slerpVec(flight.fromDir, flight.toDir, e);
+    camera.position.copy(d.normalize()).multiplyScalar(THREE.MathUtils.lerp(flight.fromLen, flight.toLen, e) + Math.sin(Math.PI * e) * flight.lift);
+    camera.lookAt(0, 0, 0);
+    if (k >= 1) { flight = null; controls.enabled = true; }
+  } else controls.update();
+
+  U.uSun.value.copy(SUN_VIEW).applyQuaternion(camera.quaternion);
+
+  // pins & labels
+  camDir.copy(camera.position).normalize();
+  const dist = camera.position.length(), showAll = dist < 2.5 || pins.length <= 14;
+  for (const p of pins) {
+    const age = t - p.born, grow = THREE.MathUtils.clamp(age / 0.6, 0, 1);
+    p.group.scale.setScalar(grow < 1 ? 1 + 2.7 * Math.pow(grow - 1, 3) + 1.7 * Math.pow(grow - 1, 2) : 1);
+    const r = ((t + p.phase) % 2.4) / 2.4;
+    p.ring.scale.setScalar((p.isHome ? 0.012 : 0.008) + r * (p.isHome ? 0.05 : 0.032));
+    p.ring.material.opacity = (1 - r) * 0.8;
+    const facing = p.group.position.dot(camDir);
+    proj.copy(p.tip).project(camera);
+    const x = (proj.x * .5 + .5) * innerWidth, y = (-proj.y * .5 + .5) * innerHeight;
+    const vis = facing > 0.25 && (showAll || p.isHome || p.lbl.classList.contains('hot'));
+    p.lbl.style.opacity = vis ? Math.min(1, (facing - 0.25) * 4) : 0;
+    p.lbl.style.transform = `translate(${x + 9}px,${y}px) translate(0,-50%)`;
+  }
+  for (const a of arcs) if (a.mat.uniforms.uProg.value < 1) {
+    a.mat.uniforms.uProg.value = Math.min(1, Math.max(0, (t - a.start) / 1.4));
+  }
+
+  if (popState) {
+    proj.copy(popState.anchor).project(camera);
+    const facing = popState.anchor.clone().normalize().dot(camDir);
+    let x = (proj.x * .5 + .5) * innerWidth, y = (-proj.y * .5 + .5) * innerHeight;
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    const right = x + 18 + w < innerWidth - 12;
+    x = right ? x + 18 : x - 18 - w;
+    y = THREE.MathUtils.clamp(y - 30, 12, innerHeight - h - 12);
+    if (MOBILE) { x = (innerWidth - w) / 2; y = Math.max(72, Math.min(y, innerHeight * 0.35)); }
+    pop.style.transform = `translate(${x}px,${y}px)`;
+    pop.classList.toggle('hidden', facing < 0.05 && !flight);
+  }
+
+  if (hoverDirty && !dragging && !flight) { hoverDirty = false; doHover(); }
+  composer.render();
+}
+requestAnimationFrame(loop);
+
+function pickAt(cx, cy) {
+  if (!countryAt) return null;
+  pointer.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1);
+  ray.setFromCamera(pointer, camera);
+  const ph = ray.intersectObjects(pins.map(p => p.hit), false)[0];
+  const oh = ray.intersectObject(ocean, false)[0];
+  if (ph && (!oh || ph.distance < oh.distance + 0.05)) return { pin: ph.object.userData.pin };
+  if (!oh) return null;
+  const ll = toLatLon(oh.point);
+  return { ...ll, ci: countryAt(ll.lat, ll.lon), point: oh.point };
+}
+let hotPin = null;
+function doHover() {
+  if (!lastMove || lastMove.pointerType === 'touch') return;
+  const hit = pickAt(lastMove.clientX, lastMove.clientY);
+  if (hotPin && hotPin !== hit?.pin) { hotPin.lbl.classList.remove('hot'); hotPin = null; }
+  if (hit?.pin) {
+    hotPin = hit.pin; hotPin.lbl.classList.add('hot');
+    canvas.style.cursor = 'pointer'; tip.classList.remove('on'); setHover(-1);
+    return;
+  }
+  const ci = hit ? hit.ci : -1;
+  setHover(ci);
+  canvas.style.cursor = ci >= 0 ? 'pointer' : hit ? 'crosshair' : 'grab';
+  if (ci >= 0) {
+    const c = COUNTRIES[ci], who = visitors[ci].length;
+    tip.innerHTML = `<span class="flag">${flagOf(c.iso2)}</span>${esc(c.name)}${who ? '<span class="tv"></span>' : ''}`;
+    tip.style.transform = `translate(${lastMove.clientX + 16}px,${lastMove.clientY + 14}px)`;
+    tip.classList.add('on');
+  } else tip.classList.remove('on');
+}
+
+canvas.addEventListener('pointermove', e => { lastMove = e; hoverDirty = true; });
+canvas.addEventListener('pointerleave', () => { tip.classList.remove('on'); setHover(-1); });
+canvas.addEventListener('pointerdown', e => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; tip.classList.remove('on'); $('#results').classList.remove('open'); });
+canvas.addEventListener('pointerup', e => {
+  if (!downAt) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y), dt = performance.now() - downAt.t;
+  downAt = null;
+  if (moved > 6 || dt > 600) return;
+  const hit = pickAt(e.clientX, e.clientY);
+  if (!hit) { closePop(); return; }
+  if (hit.pin) openPinPop(hit.pin);
+  else openSpotPop({ lat: hit.lat, lon: hit.lon, ci: hit.ci });
+});
+
+/* ---------------- popovers ---------------- */
+let popState = null;
+function showPop(html, lat, lon, ctx) {
+  pop.innerHTML = `<button class="x" data-act="close" aria-label="Close">${icon('x', 15)}</button>` + html;
+  popState = { anchor: toVec(lat, lon, 1.01), ...ctx };
+  pop.classList.add('open');
+  clearTimeout(idleTimer); controls.autoRotate = false;
+}
+function closePop() { pop.classList.remove('open'); popState = null; scheduleAutoRotate(); }
+function visitorChips(ci) {
+  if (ci < 0 || state.profiles.length < 2) return '';
+  const who = state.profiles.filter(p => p.countries.includes(COUNTRIES[ci].key));
+  if (!who.length) return '';
+  return `<div class="visitors">${who.map(p => `<span class="vchip" style="--c:${p.color}"><i></i>${esc(p.name)}</span>`).join('')}</div>`;
+}
+function openSpotPop(spot) {
+  const { lat, lon, ci, title } = spot, c = ci >= 0 ? COUNTRIES[ci] : null;
+  const has = c && active().countries.includes(c.key);
+  const kicker = c ? `<span class="flag">${flagOf(c.iso2)}</span>${esc(title ? c.name : c.cont || 'Territory')} · ${fmtLL(lat, lon)}` : `${icon('globe', 13)} Open water · ${fmtLL(lat, lon)}`;
+  showPop(`
+    <div class="pk">${kicker}</div>
+    <h3>${esc(title || c?.name || 'Somewhere at sea')}</h3>
+    ${visitorChips(ci)}
+    <div class="acts">
+      ${c ? `<button class="btn grow ${has ? 'on' : 'primary'}" data-act="toggle">${icon(has ? 'check' : 'plus', 15)}${has ? 'Visited' : 'Mark visited'}</button>` : ''}
+      <button class="btn ${c ? '' : 'grow'}" data-act="add" title="Pin a place here">${icon('pin', 15)}${c ? '' : 'Pin a place here'}</button>
+      <button class="btn sq" data-act="home" title="Set as home">${icon('home', 15)}</button>
+    </div>`, lat, lon, { kind: 'spot', spot });
+}
+function openPinPop(pin) {
+  const { place, profile, isHome } = pin, ci = countryNear(place.lat, place.lon), c = ci >= 0 ? COUNTRIES[ci] : null;
+  const mine = profile.id === active().id;
+  const fromHome = !isHome && profile.home ? `${nf(km(profile.home, place))} km from home` : '';
+  const meta = [fmtDate(place.date), fromHome].filter(Boolean).join(' · ');
+  showPop(`
+    <div class="pk">${c ? `<span class="flag">${flagOf(c.iso2)}</span>${esc(c.name)}` : icon('globe', 13) + ' Open water'}${state.compare ? ` · <span style="color:${profile.color}">${esc(profile.name)}</span>` : ''}</div>
+    <h3>${isHome ? 'Home' : esc(place.name)}</h3>
+    <div class="psub">${isHome ? esc(place.name) : esc(meta) || fmtLL(place.lat, place.lon)}</div>
+    ${place.note ? `<div class="pnote">“${esc(place.note)}”</div>` : ''}
+    ${mine ? `<div class="acts">
+      ${isHome ? '' : `<button class="btn grow" data-act="sethome">${icon('home', 15)}Make home</button>`}
+      <button class="btn danger ${isHome ? 'grow' : 'sq'}" data-act="remove" title="Remove">${icon('trash', 15)}${isHome ? 'Remove home' : ''}</button>
+    </div>` : ''}`, place.lat, place.lon, { kind: 'pin', pin });
+}
+pop.addEventListener('click', e => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (!act || !popState) return;
+  const p = active();
+  if (act === 'close') return closePop();
+  if (popState.kind === 'spot') {
+    const { spot } = popState, c = spot.ci >= 0 ? COUNTRIES[spot.ci] : null;
+    if (act === 'toggle' && c) { toggleCountry(c); openSpotPop(spot); }
+    if (act === 'add') { closePop(); openModal(spot); }
+    if (act === 'home') {
+      const prev = p.home;
+      p.home = { lat: spot.lat, lon: spot.lon, name: spot.title || c?.name || 'Home' };
+      if (c && !p.countries.includes(c.key)) p.countries.push(c.key);
+      commit(); closePop();
+      toast(`Home set to ${p.home.name}`, () => { p.home = prev; commit(); });
+      if (!spot.title) reverseName(spot.lat, spot.lon).then(n => { if (n && p.home && p.home.lat === spot.lat) { p.home.name = n; commit(); } });
+    }
+  } else {
+    const { pin } = popState;
+    if (act === 'remove') {
+      if (pin.isHome) { const prev = p.home; p.home = null; commit(); toast('Home removed', () => { p.home = prev; commit(); }); }
+      else { const idx = p.places.indexOf(pin.place); p.places.splice(idx, 1); commit(); toast(`Removed ${pin.place.name}`, () => { p.places.splice(idx, 0, pin.place); commit(); }); }
+      closePop();
+    }
+    if (act === 'sethome') {
+      const prev = p.home; p.home = { lat: pin.place.lat, lon: pin.place.lon, name: pin.place.name };
+      commit(); closePop(); toast(`Home set to ${pin.place.name}`, () => { p.home = prev; commit(); });
+    }
+  }
+});
+
+function toggleCountry(c) {
+  const p = active(), i = p.countries.indexOf(c.key);
+  if (i >= 0) { p.countries.splice(i, 1); commit(); toast(`${c.name} unmarked`, () => { p.countries.push(c.key); commit(); }); }
+  else { p.countries.push(c.key); commit(); burst(c); toast(`${flagOf(c.iso2)}  ${c.name} added — ${p.countries.length} ${p.countries.length === 1 ? 'country' : 'countries'}`); }
+}
+// Brief sparkle on a freshly visited country
+function burst(c) {
+  const t0 = performance.now(), js = c.dots;
+  const step = () => {
+    const k = (performance.now() - t0) / 700;
+    if (k >= 1 || !visitors[c.i].length) { paintCountry(c.i); flushDots(); return; }
+    const amp = 1 + Math.sin(k * Math.PI) * 1.4;
+    for (const j of js) { paintDot(j); dotMesh.getColorAt(j, tmpC); dotMesh.setColorAt(j, tmpC.multiplyScalar(amp)); }
+    flushDots(); requestAnimationFrame(step);
+  };
+  step();
+}
+
+/* ---------------- modal ---------------- */
+let modalSpot = null;
+const modal = $('#modal');
+function openModal(spot) {
+  modalSpot = spot;
+  const c = spot.ci >= 0 ? COUNTRIES[spot.ci] : null, p = active();
+  $('#msub').innerHTML = `${c ? flagOf(c.iso2) + ' ' + esc(c.name) + ' · ' : ''}${fmtLL(spot.lat, spot.lon)} · for <b style="color:${p.color}">${esc(p.name)}</b>`;
+  $('#mname').value = spot.title || '';
+  $('#mdate').value = '';
+  $('#mnote').value = '';
+  $('#mcheckwrap').style.display = c && !p.countries.includes(c.key) ? '' : 'none';
+  $('#mchecklbl').textContent = c ? `Also mark ${c.name} as visited` : '';
+  $('#mcheck').checked = true;
+  modal.classList.add('open');
+  setTimeout(() => $('#mname').focus(), 60);
+  if (!spot.title) {
+    $('#mname').placeholder = 'Finding the nearest town…';
+    reverseName(spot.lat, spot.lon).then(n => {
+      $('#mname').placeholder = 'Kyoto, a mountain hut, that café…';
+      if (n && modalSpot === spot && !$('#mname').value) $('#mname').value = n;
+    });
+  }
+}
+const closeModal = () => { modal.classList.remove('open'); modalSpot = null; };
+$('#mcancel').onclick = closeModal;
+modal.addEventListener('pointerdown', e => { if (e.target === modal) closeModal(); });
+$('#mform').addEventListener('submit', e => {
+  e.preventDefault();
+  const s = modalSpot, p = active(), c = s.ci >= 0 ? COUNTRIES[s.ci] : null;
+  const place = { id: uid(), name: $('#mname').value.trim() || c?.name || 'Somewhere', lat: +s.lat.toFixed(4), lon: +s.lon.toFixed(4), date: $('#mdate').value || '', note: $('#mnote').value.trim() };
+  p.places.push(place);
+  const addCountry = c && !p.countries.includes(c.key) && $('#mcheck').checked;
+  if (addCountry) p.countries.push(c.key);
+  closeModal(); commit();
+  if (addCountry) burst(c);
+  toast(`📍 ${place.name} pinned`, () => { p.places.splice(p.places.indexOf(place), 1); if (addCountry) p.countries.splice(p.countries.indexOf(c.key), 1); commit(); });
+});
+
+async function reverseName(lat, lon) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&lat=${lat}&lon=${lon}`, { headers: { 'Accept-Language': navigator.language || 'en' } });
+    const d = await r.json(), a = d.address || {};
+    return a.city || a.town || a.village || a.municipality || a.county || a.state || d.name || '';
+  } catch { return ''; }
+}
+
+/* ---------------- toast ---------------- */
+let toastTimer = 0, undoFn = null;
+function toast(msg, undo) {
+  $('#tmsg').textContent = msg; undoFn = undo || null;
+  $('#tundo').style.display = undo ? '' : 'none';
+  $('#toast').classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('on'), 4200);
+}
+$('#tundo').onclick = () => { undoFn?.(); undoFn = null; $('#toast').classList.remove('on'); };
+
+/* ---------------- panel ---------------- */
+let tab = 'places';
+const animNums = new WeakMap();
+function countTo(el, to, suffix = '') {
+  const from = animNums.get(el) ?? 0, t0 = performance.now();
+  animNums.set(el, to);
+  const step = () => { const k = Math.min(1, (performance.now() - t0) / 700), v = from + (to - from) * ease(k); el.firstChild.nodeValue = (Number.isInteger(to) ? nf(v) : v.toFixed(1)); if (k < 1) requestAnimationFrame(step); };
+  step();
+}
+function profileStats(p) {
+  const cs = p.countries.map(k => byKey.get(k)).filter(Boolean);
+  const land = cs.reduce((s, c) => s + c.count, 0) / dotCountry.length * 100;
+  const conts = new Set(cs.map(c => c.cont).filter(Boolean));
+  let dist = 0;
+  if (p.home) for (const pl of p.places) dist += km(p.home, pl);
+  else { const ch = [...p.places].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999')); for (let i = 1; i < ch.length; i++) dist += km(ch[i - 1], ch[i]); }
+  return { n: cs.filter(c => c.un).length, all: cs.length, land, conts, dist };
+}
+function renderPanel() {
+  const p = active();
+  document.documentElement.style.setProperty('--accent', p.color);
+  $('#chips').innerHTML = state.profiles.map(q => `<button class="chip ${q.id === p.id ? 'on' : ''}" style="--c:${q.color}" data-pid="${q.id}" title="${esc(q.name)}">${esc((q.name.trim()[0] || '?').toUpperCase())}<span class="n">${q.countries.length}</span></button>`).join('') + `<button class="chip add" id="addp" title="New traveller">${icon('plus', 16)}</button>`;
+  if (document.activeElement !== $('#pname')) $('#pname').value = p.name;
+  $('#pdel').style.visibility = state.profiles.length > 1 ? '' : 'hidden';
+  $('#swatches').innerHTML = PALETTE.map(c => `<button class="sw ${c === p.color ? 'on' : ''}" style="--c:${c}" data-color="${c}" aria-label="Colour"></button>`).join('');
+  $('#homeline').innerHTML = p.home ? `${icon('home', 14)}<span>Home · <b>${esc(p.home.name)}</b></span>` : `${icon('home', 14)}<span>Click the globe and tap ⌂ to set home</span>`;
+
+  const s = profileStats(p);
+  const statsEl = $('#stats');
+  if (!statsEl.children.length) statsEl.innerHTML = ['Countries', 'Continents', 'Places', 'Kilometres'].map(k => `<div class="stat"><div class="v">0<small></small></div><div class="k">${k}</div></div>`).join('');
+  const vs = statsEl.querySelectorAll('.v');
+  countTo(vs[0], s.all); vs[0].querySelector('small').textContent = `/ ${UN_TOTAL}`;
+  countTo(vs[1], s.conts.size); vs[1].querySelector('small').textContent = '/ 7';
+  countTo(vs[2], p.places.length);
+  countTo(vs[3], Math.round(s.dist));
+  $('#landbar').style.width = Math.min(100, s.land) + '%';
+  $('#landcap').textContent = `${s.land.toFixed(1)}% of the world's land · ${Math.round(s.n / UN_TOTAL * 100)}% of nations`;
+  if (state.compare && state.profiles.length > 1) {
+    const shared = state.profiles.map(q => new Set(q.countries)).reduce((a, b) => new Set([...a].filter(x => b.has(x))));
+    $('#sharedcap').textContent = `${shared.size} shared`;
+  } else $('#sharedcap').textContent = '';
+  $('#conts').innerHTML = CONTINENTS.map(c => `<span class="cont ${s.conts.has(c) ? 'on' : ''}">${c}</span>`).join('');
+
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  $('#list').innerHTML = tab === 'places' ? placesList(p) : countriesList(p);
+
+  $('#compare').innerHTML = `${icon('users', 15)}${state.compare ? 'Showing all' : 'Compare'}`;
+  $('#compare').classList.toggle('on', state.compare);
+  $('#compare').style.display = state.profiles.length > 1 ? '' : 'none';
+  $('#export').innerHTML = `${icon('down', 15)}Export`;
+  $('#import').innerHTML = `${icon('up', 15)}Import`;
+}
+function placesList(p) {
+  if (!p.places.length && !p.home) return `<div class="empty"><div class="big">Where have you been?</div>Click a country to light it up, or search for a city and pin it.</div>`;
+  const items = [...p.places].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const row = (pl, home) => {
+    const ci = countryNear(pl.lat, pl.lon), c = ci >= 0 ? COUNTRIES[ci] : null;
+    const sub = home ? 'Home' : [c?.name, fmtDate(pl.date)].filter(Boolean).join(' · ') || fmtLL(pl.lat, pl.lon);
+    return `<div class="item" data-place="${home ? 'home' : pl.id}" style="--c:${home ? HOME_COLOR : p.color}">
+      <span class="flag">${c ? flagOf(c.iso2) : '🌊'}</span>
+      <div class="t"><b>${esc(pl.name)}</b><span>${esc(sub)}</span></div>
+      ${!home && p.home ? `<span class="km">${nf(km(p.home, pl))} km</span>` : ''}
+      <button class="del" data-del-place="${home ? 'home' : pl.id}" title="Remove">${icon('x', 14)}</button></div>`;
+  };
+  return (p.home ? row(p.home, true) : '') + items.map(pl => row(pl, false)).join('');
+}
+function countriesList(p) {
+  const cs = p.countries.map(k => byKey.get(k)).filter(Boolean);
+  if (!cs.length) return `<div class="empty"><div class="big">A blank map.</div>Click any country on the globe to mark it visited.</div>`;
+  const groups = {};
+  for (const c of cs) (groups[c.cont || 'Elsewhere'] ||= []).push(c);
+  return Object.keys(groups).sort().map(g => `<div class="group-h">${g} · ${groups[g].length}</div>` + groups[g].sort((a, b) => a.name.localeCompare(b.name)).map(c => `
+    <div class="item" data-country="${esc(c.key)}"><span class="flag">${flagOf(c.iso2)}</span><div class="t"><b>${esc(c.name)}</b></div>
+    <button class="del" data-del-country="${esc(c.key)}" title="Unmark">${icon('x', 14)}</button></div>`).join('')).join('');
+}
+
+$('#panel').addEventListener('click', e => {
+  const t = e.target, p = active();
+  const chip = t.closest('[data-pid]');
+  if (chip) {
+    if (chip.dataset.pid === state.activeId && MOBILE) return $('#panel').classList.toggle('collapsed');
+    state.activeId = chip.dataset.pid; commit(); closePop();
+    const np = active(), at = np.home || np.places[0];
+    if (at) flyTo(at.lat, at.lon);
+    return;
+  }
+  if (t.closest('#addp')) {
+    const used = new Set(state.profiles.map(q => q.color));
+    const np = newProfile(`Traveller ${state.profiles.length + 1}`, PALETTE.find(c => !used.has(c)) || PALETTE[state.profiles.length % PALETTE.length]);
+    state.profiles.push(np); state.activeId = np.id; commit();
+    $('#panel').classList.remove('collapsed');
+    setTimeout(() => { $('#pname').focus(); $('#pname').select(); }, 30);
+    return;
+  }
+  const sw = t.closest('[data-color]');
+  if (sw) { p.color = sw.dataset.color; commit(); return; }
+  const tb = t.closest('[data-tab]');
+  if (tb) { tab = tb.dataset.tab; renderPanel(); return; }
+  const dp = t.closest('[data-del-place]');
+  if (dp) {
+    e.stopPropagation();
+    if (dp.dataset.delPlace === 'home') { const prev = p.home; p.home = null; commit(); toast('Home removed', () => { p.home = prev; commit(); }); }
+    else { const idx = p.places.findIndex(x => x.id === dp.dataset.delPlace), pl = p.places[idx]; p.places.splice(idx, 1); commit(); toast(`Removed ${pl.name}`, () => { p.places.splice(idx, 0, pl); commit(); }); }
+    return;
+  }
+  const dc = t.closest('[data-del-country]');
+  if (dc) { e.stopPropagation(); const c = byKey.get(dc.dataset.delCountry); if (c) toggleCountry(c); return; }
+  const it = t.closest('[data-place]');
+  if (it) {
+    const pl = it.dataset.place === 'home' ? p.home : p.places.find(x => x.id === it.dataset.place);
+    if (!pl) return;
+    flyTo(pl.lat, pl.lon, 2.2);
+    const pin = pins.find(x => x.place === pl);
+    if (pin) setTimeout(() => openPinPop(pin), 300);
+    return;
+  }
+  const ic = t.closest('[data-country]');
+  if (ic) { const c = byKey.get(ic.dataset.country); flyTo(c.lat, c.lon); setTimeout(() => openSpotPop({ lat: c.lat, lon: c.lon, ci: c.i }), 300); }
+});
+$('#handle').onclick = () => $('#panel').classList.toggle('collapsed');
+$('#pname').addEventListener('input', e => { active().name = e.target.value || 'Unnamed'; save(); renderChipsOnly(); });
+$('#pname').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+function renderChipsOnly() { const p = active(), chip = document.querySelector(`[data-pid="${p.id}"]`); if (chip) { chip.firstChild.nodeValue = (p.name.trim()[0] || '?').toUpperCase(); chip.title = p.name; } }
+$('#pdel').innerHTML = icon('trash', 16);
+$('#pdel').onclick = () => {
+  const p = active();
+  if (state.profiles.length < 2 || !confirm(`Delete ${p.name} and their ${p.countries.length} countries and ${p.places.length} places?`)) return;
+  const idx = state.profiles.indexOf(p);
+  state.profiles.splice(idx, 1); state.activeId = state.profiles[0].id;
+  if (state.profiles.length < 2) state.compare = false;
+  commit(); toast(`Deleted ${p.name}`, () => { state.profiles.splice(idx, 0, p); state.activeId = p.id; commit(); });
+};
+$('#compare').onclick = () => { state.compare = !state.compare; commit(); };
+$('#export').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: 'wanderglobe', version: 1, ...state }, null, 2)], { type: 'application/json' }));
+  a.download = `wanderglobe-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('#import').onclick = () => $('#file').click();
+$('#file').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    const incoming = (d.profiles || []).filter(p => p && typeof p.name === 'string');
+    if (!incoming.length) throw new Error('No profiles');
+    for (const p of incoming) state.profiles.push({ id: uid(), name: p.name, color: PALETTE.includes(p.color) ? p.color : PALETTE[0], countries: (p.countries || []).filter(k => byKey.has(k)), places: (p.places || []).filter(x => isFinite(x.lat) && isFinite(x.lon)).map(x => ({ id: uid(), name: String(x.name || 'Place'), lat: +x.lat, lon: +x.lon, date: x.date || '', note: x.note || '' })), home: p.home && isFinite(p.home.lat) ? { lat: +p.home.lat, lon: +p.home.lon, name: String(p.home.name || 'Home') } : null });
+    commit(); toast(`Imported ${incoming.length} traveller${incoming.length > 1 ? 's' : ''}`);
+  } catch { toast("That file doesn't look like a Wanderglobe export"); }
+};
+
+function commit() { save(); refreshWorld(); renderPanel(); if (popState?.kind === 'spot') openSpotPop(popState.spot); }
+
+/* ---------------- search ---------------- */
+const q = $('#q'), results = $('#results');
+$('#sico').innerHTML = icon('search', 17);
+const isoName = new Map();
+let items = [], sel = 0, geoTimer = 0, geoSeq = 0;
+function searchIndex() {
+  if (!isoName.size) for (const c of COUNTRIES) if (c.iso2) isoName.set(c.iso2, c);
+  return [
+    ...COUNTRIES.filter(c => c.key !== 'Siachen Glacier').map(c => ({ kind: 'country', label: c.name, alt: c.key, sub: c.cont, flag: flagOf(c.iso2), lat: c.lat, lon: c.lon, ci: c.i })),
+    ...CITIES.map(([n, iso, lat, lon]) => { const c = isoName.get(iso); return { kind: 'city', label: n, sub: c?.name || '', flag: flagOf(iso), lat, lon, ci: -1 }; }),
+  ];
+}
+let INDEX = null;
+function runSearch() {
+  INDEX ||= searchIndex();
+  const s = q.value.trim().toLowerCase();
+  if (!s) { results.classList.remove('open'); return; }
+  const norm = x => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const ns = norm(s);
+  const scored = [];
+  for (const it of INDEX) {
+    const l = norm(it.label), a = it.alt ? norm(it.alt) : '';
+    const sc = l.startsWith(ns) ? 0 : a.startsWith(ns) ? 1 : l.includes(' ' + ns) ? 2 : l.includes(ns) ? 3 : -1;
+    if (sc >= 0) scored.push([sc + (it.kind === 'city' ? 0.5 : 0), it]);
+  }
+  items = scored.sort((a, b) => a[0] - b[0] || a[1].label.localeCompare(b[1].label)).slice(0, 7).map(x => x[1]);
+  sel = 0; drawResults(true);
+  clearTimeout(geoTimer);
+  if (s.length >= 3) geoTimer = setTimeout(() => geocode(s), 450);
+}
+async function geocode(s) {
+  const seq = ++geoSeq;
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(s)}`, { headers: { 'Accept-Language': navigator.language || 'en' } });
+    const d = await r.json();
+    if (seq !== geoSeq || q.value.trim().toLowerCase() !== s) return;
+    const extra = d.map(x => { const lat = +x.lat, lon = +x.lon, ci = countryNear(lat, lon), c = ci >= 0 ? COUNTRIES[ci] : null; return { kind: 'geo', label: x.name || x.display_name.split(',')[0], sub: x.display_name.split(',').slice(1, 3).join(',').trim(), flag: c ? flagOf(c.iso2) : '📍', lat, lon, ci: -1 }; })
+      .filter(x => !items.some(i => i.label.toLowerCase() === x.label.toLowerCase() && Math.abs(i.lat - x.lat) < 0.5));
+    items = [...items, ...extra];
+    drawResults(false);
+  } catch {}
+}
+function drawResults(pending) {
+  if (!items.length && !pending) { results.innerHTML = `<div class="res-h">No matches</div>`; results.classList.add('open'); return; }
+  let html = '', lastKind = '';
+  items.forEach((it, i) => {
+    const grp = it.kind === 'geo' ? 'Anywhere on Earth' : '';
+    if (grp && grp !== lastKind) html += `<div class="res-h">${grp}</div>`;
+    lastKind = grp || lastKind;
+    const visited = it.kind === 'country' && active().countries.includes(COUNTRIES[it.ci].key);
+    html += `<div class="res ${i === sel ? 'sel' : ''}" data-i="${i}"><span class="ico">${it.flag}</span><b>${esc(it.label)}</b>${visited ? `<span style="color:var(--accent)">${icon('check', 14)}</span>` : ''}<span>${esc(it.sub)}</span></div>`;
+  });
+  results.innerHTML = html;
+  results.classList.toggle('open', !!items.length);
+}
+function choose(it) {
+  results.classList.remove('open'); q.value = ''; q.blur();
+  const ci = it.kind === 'country' ? it.ci : countryNear(it.lat, it.lon);
+  flyTo(it.lat, it.lon, it.kind === 'country' ? undefined : 2.1);
+  setTimeout(() => openSpotPop({ lat: it.lat, lon: it.lon, ci, title: it.kind === 'country' ? '' : it.label }), 350);
+}
+q.addEventListener('input', runSearch);
+q.addEventListener('focus', () => { if (q.value) runSearch(); });
+q.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { sel = Math.min(items.length - 1, sel + 1); drawResults(false); e.preventDefault(); }
+  if (e.key === 'ArrowUp') { sel = Math.max(0, sel - 1); drawResults(false); e.preventDefault(); }
+  if (e.key === 'Enter' && items[sel]) choose(items[sel]);
+  if (e.key === 'Escape') { q.value = ''; results.classList.remove('open'); q.blur(); }
+});
+results.addEventListener('pointerdown', e => { const r = e.target.closest('[data-i]'); if (r) { e.preventDefault(); choose(items[+r.dataset.i]); } });
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') { e.preventDefault(); q.focus(); }
+  if (e.key === 'Escape') { if (modal.classList.contains('open')) closeModal(); else closePop(); }
+});
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); bloom.setSize(innerWidth, innerHeight);
+});
+try {
+  const topo = await fetch(ATLAS).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  buildWorld(topo);
+} catch (e) {
+  console.error(e);
+  $('#loadmsg').textContent = "Couldn't load the map. Check your connection and refresh.";
+  throw e;
+}
+window.__wg = { state, COUNTRIES, flyTo, camera, countryAt };
+</script>
+</body>
