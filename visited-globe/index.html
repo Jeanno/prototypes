@@ -147,6 +147,7 @@ body.loading #search{opacity:0}
 /* Labels */
 #labels{position:fixed;inset:0;pointer-events:none;z-index:3}
 .lbl{position:absolute;left:0;top:0;font-size:11px;font-weight:500;padding:3px 8px 3px 7px;border-radius:7px;background:rgba(6,10,22,.62);border-left:2px solid var(--c);white-space:nowrap;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .25s;will-change:transform}
+.lbl.country{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;background:rgba(6,10,22,.78);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);border-left-width:2px}
 .lbl.home{font:italic 400 14px/1.1 var(--serif);border-left:0;padding:3px 9px;background:rgba(255,231,163,.14);color:#ffe7a3}
 .lbl.hot{background:rgba(6,10,22,.9);z-index:2}
 
@@ -608,10 +609,10 @@ function outlineGeo(ci) {
 }
 
 /* ---------------- world refresh ---------------- */
-const tmpM = new THREE.Matrix4(), tmpP = new THREE.Vector3(), tmpQ = new THREE.Quaternion(), tmpS = new THREE.Vector3(), tmpC = new THREE.Color();
+const tmpM = new THREE.Matrix4(), tmpP = new THREE.Vector3(), tmpQ = new THREE.Quaternion(), tmpS = new THREE.Vector3(), tmpC = new THREE.Color(), tmpC2 = new THREE.Color();
 function computeVisitors() {
   visitors = COUNTRIES.map(() => []);
-  for (const p of shown()) for (const k of p.countries) { const c = byKey.get(k); if (c) visitors[c.i].push(p.color); }
+  for (const p of shown()) for (const k of touched(p)) visitors[byKey.get(k).i].push(p.color);
   placeGlow = glowFor(shown());
 }
 // Lights dots within ~110 km of each pinned place, fading with distance.
@@ -643,8 +644,8 @@ function paintDot(j) {
   const ci = dotCountry[j], vis = visitors[ci], hot = ci === hoverCi;
   let s;
   const g = placeGlow.s ? placeGlow.s[j] : 0;
-  if (vis.length) { tmpC.set(vis[j % vis.length]); tmpC.multiplyScalar(glow(tmpC) * (hot ? 1.4 : 1)); s = hot ? 1.2 : 1.12; }
-  else if (g > 0) { tmpC.set(placeGlow.col[j]); tmpC.multiplyScalar(glow(tmpC) * (0.3 + 0.7 * g) * (hot ? 1.4 : 1)); s = 0.92 + 0.2 * g; }
+  if (g > 0) { tmpC.set(placeGlow.col[j]); tmpC.multiplyScalar(glow(tmpC) * (0.3 + 0.7 * g) * (hot ? 1.4 : 1)); s = 0.92 + 0.2 * g; }
+  else if (vis.length) { tmpC2.set(vis[j % vis.length]); tmpC.copy(BASE).multiplyScalar(dotJitter[j]).lerp(tmpC2, 0.3).multiplyScalar(hot ? 1.8 : 1); s = hot ? 1.05 : 0.95; }
   else { tmpC.copy(BASE).multiplyScalar(dotJitter[j] * (hot ? 2.1 : 1)); s = hot ? 1.05 : 0.9; }
   dotMesh.setColorAt(j, tmpC);
   tmpP.fromArray(dotPos, j * 3); tmpQ.fromArray(dotQuat, j * 4); tmpS.setScalar(s);
@@ -665,9 +666,9 @@ function refreshWorld() {
   ctx.clearRect(0, 0, 2048, 1024);
   ctx.globalCompositeOperation = 'lighter';
   for (const p of shown()) {
-    ctx.fillStyle = p.color; ctx.globalAlpha = (state.compare ? 0.12 : 0.18) * Math.min(1, glow(new THREE.Color(p.color)));
-    const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(p.color).multiplyScalar(1.3), transparent: true, opacity: 0.75, depthWrite: false });
-    for (const k of p.countries) {
+    ctx.fillStyle = p.color; ctx.globalAlpha = (state.compare ? 0.06 : 0.08) * Math.min(1, glow(new THREE.Color(p.color)));
+    const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(p.color).multiplyScalar(1.3), transparent: true, opacity: 0.6, depthWrite: false });
+    for (const k of touched(p)) {
       const c = byKey.get(k); if (!c) continue;
       ctx.beginPath(); fillPath(c.feature); ctx.fill();
       borderGroup.add(new THREE.LineSegments(outlineGeo(c.i), mat));
@@ -690,14 +691,16 @@ function setHover(ci) {
 let pins = [];
 const seenPins = new Set(), seenArcs = new Set();
 const pinGeo = { beam: new THREE.CylinderGeometry(0.0011, 0.0011, 1, 6).translate(0, 0.5, 0), head: new THREE.SphereGeometry(1, 20, 14), ring: new THREE.RingGeometry(0.75, 1, 48).rotateX(-Math.PI / 2), hit: new THREE.SphereGeometry(0.028, 8, 6) };
-function makePin(place, color, profile, isHome) {
+function makePin(place, color, profile, kind) {
+  const isHome = kind === 'home', isCountry = kind === 'country';
   const g = new THREE.Group(), n = toVec(place.lat, place.lon).normalize();
   g.position.copy(n);
   g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
-  const h = isHome ? 0.065 : 0.045, hr = isHome ? 0.0085 : 0.0065;
+  const h = isCountry ? 0.085 : isHome ? 0.065 : 0.04, hr = isCountry ? 0.011 : isHome ? 0.0085 : 0.0055;
   const c = new THREE.Color(color);
   const beam = new THREE.Mesh(pinGeo.beam, new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.2), transparent: true, opacity: 0.75, depthWrite: false }));
-  beam.scale.set(isHome ? 1.6 : 1, h, isHome ? 1.6 : 1);
+  const bw = isCountry ? 2.4 : isHome ? 1.6 : 1;
+  beam.scale.set(bw, h, bw);
   const head = new THREE.Mesh(pinGeo.head, new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(2.2) }));
   head.scale.setScalar(hr); head.position.y = h;
   const ring = new THREE.Mesh(pinGeo.ring, new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.6), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
@@ -705,15 +708,21 @@ function makePin(place, color, profile, isHome) {
   const hit = new THREE.Mesh(pinGeo.hit, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }));
   hit.position.y = h * 0.6;
   g.add(beam, head, ring, hit);
-  const key = (isHome ? 'home:' : '') + profile.id + ':' + (place.id || 'h');
+  if (isCountry) {
+    const halo = new THREE.Mesh(pinGeo.head, new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(0.9), transparent: true, opacity: 0.25, depthWrite: false, blending: THREE.AdditiveBlending }));
+    halo.scale.setScalar(hr * 2.2); halo.position.y = h;
+    hit.scale.setScalar(1.4);
+    g.add(halo);
+  }
+  const key = kind + ':' + profile.id + ':' + (place.id || place.key || 'h');
   const born = seenPins.has(key) ? -10 : performance.now() / 1000;
   seenPins.add(key);
   const lbl = document.createElement('div');
-  lbl.className = 'lbl' + (isHome ? ' home' : '');
+  lbl.className = 'lbl ' + kind;
   lbl.style.setProperty('--c', color);
-  lbl.textContent = isHome ? '⌂ ' + (place.name || 'Home') : place.name;
+  lbl.textContent = isHome ? '⌂ ' + (place.name || 'Home') : isCountry ? flagOf(byKey.get(place.key)?.iso2) + ' ' + place.name : place.name;
   labelsEl.appendChild(lbl);
-  const pin = { place, profile, isHome, group: g, ring, hit, lbl, tip: n.clone().multiplyScalar(1 + h + 0.012), born, phase: Math.random() * 2 };
+  const pin = { place, profile, kind, isHome, isCountry, group: g, ring, hit, lbl, tip: n.clone().multiplyScalar(1 + h + 0.012), born, phase: Math.random() * 2 };
   hit.userData.pin = pin;
   pinsGroup.add(g);
   return pin;
@@ -722,8 +731,9 @@ function rebuildPins() {
   for (const p of pins) { p.lbl.remove(); p.group.traverse(o => o.material?.dispose()); }
   pinsGroup.clear(); pins = [];
   for (const prof of shown()) {
-    for (const pl of prof.places) pins.push(makePin(pl, prof.color, prof, false));
-    if (prof.home) pins.push(makePin(prof.home, state.compare ? prof.color : HOME_COLOR, prof, true));
+    for (const k of prof.countries) { const c = byKey.get(k); if (c) pins.push(makePin({ key: k, name: c.name, lat: c.lat, lon: c.lon }, prof.color, prof, 'country')); }
+    for (const pl of prof.places) pins.push(makePin(pl, prof.color, prof, 'city'));
+    if (prof.home) pins.push(makePin(prof.home, state.compare ? prof.color : HOME_COLOR, prof, 'home'));
   }
 }
 
@@ -745,17 +755,24 @@ function arcGeo(a, b) {
   for (let i = 0; i <= 64; i++) { const t = i / 64; pts.push(slerpVec(va, vb, t).multiplyScalar(1.002 + Math.sin(Math.PI * t) * h)); }
   return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 120, 0.0019, 6, false);
 }
+function legsFor(prof) {
+  const legs = [];
+  if (prof.home) {
+    for (const pl of prof.places) legs.push([prof.home, pl, prof.id + ':h>' + pl.id + ':' + pl.lat + ',' + pl.lon + ':' + prof.home.lat]);
+    const withCity = new Set(prof.places.map(pl => countryNear(pl.lat, pl.lon)));
+    const homeCi = countryNear(prof.home.lat, prof.home.lon);
+    for (const k of prof.countries) { const c = byKey.get(k); if (c && !withCity.has(c.i) && c.i !== homeCi) legs.push([prof.home, c, prof.id + ':h>c:' + k + ':' + prof.home.lat]); }
+  } else {
+    const chain = [...prof.places].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
+    for (let i = 1; i < chain.length; i++) legs.push([chain[i - 1], chain[i], prof.id + ':' + chain[i - 1].id + '>' + chain[i].id]);
+  }
+  return legs;
+}
 function rebuildArcs() {
   for (const a of arcs) { a.mesh.geometry.dispose(); a.mesh.material.dispose(); }
   arcsGroup.clear(); arcs = [];
   for (const prof of shown()) {
-    const legs = [];
-    if (prof.home) for (const pl of prof.places) legs.push([prof.home, pl, prof.id + ':h>' + pl.id + ':' + pl.lat + ',' + pl.lon + ':' + prof.home.lat]);
-    else {
-      const chain = [...prof.places].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
-      for (let i = 1; i < chain.length; i++) legs.push([chain[i - 1], chain[i], prof.id + ':' + chain[i - 1].id + '>' + chain[i].id]);
-    }
-    for (const [a, b, key] of legs) {
+    for (const [a, b, key] of legsFor(prof)) {
       if (km(a, b) < 30) continue;
       const mat = new THREE.ShaderMaterial({ ...arcMatBase, uniforms: { uTime: U.uTime, uProg: { value: seenArcs.has(key) ? 1 : 0 }, uOff: { value: Math.random() }, uC: { value: new THREE.Color(prof.color) } } });
       const mesh = new THREE.Mesh(arcGeo(a, b), mat);
@@ -803,12 +820,12 @@ function loop(now) {
     const age = t - p.born, grow = THREE.MathUtils.clamp(age / 0.6, 0, 1);
     p.group.scale.setScalar(grow < 1 ? 1 + 2.7 * Math.pow(grow - 1, 3) + 1.7 * Math.pow(grow - 1, 2) : 1);
     const r = ((t + p.phase) % 2.4) / 2.4;
-    p.ring.scale.setScalar((p.isHome ? 0.012 : 0.008) + r * (p.isHome ? 0.05 : 0.032));
+    p.ring.scale.setScalar(p.isCountry ? 0.016 + r * 0.07 : (p.isHome ? 0.012 : 0.007) + r * (p.isHome ? 0.05 : 0.026));
     p.ring.material.opacity = (1 - r) * 0.8;
     const facing = p.group.position.dot(camDir);
     proj.copy(p.tip).project(camera);
     const x = (proj.x * .5 + .5) * innerWidth, y = (-proj.y * .5 + .5) * innerHeight;
-    const vis = facing > 0.25 && (showAll || p.isHome || p.lbl.classList.contains('hot'));
+    const vis = facing > 0.25 && (p.isHome || p.lbl.classList.contains('hot') || (p.isCountry ? dist < 3.6 : showAll));
     p.lbl.style.opacity = vis ? Math.min(1, (facing - 0.25) * 4) : 0;
     p.lbl.style.transform = `translate(${x + 9}px,${y}px) translate(0,-50%)`;
   }
@@ -900,7 +917,8 @@ function openSpotPop(spot) {
   const has = c && active().countries.includes(c.key);
   const pinLabel = title ? `Pin ${title.length > 18 ? 'this place' : esc(title)}` : 'Pin this spot';
   const pinBtn = `<button class="btn grow ${whole ? '' : 'primary'}" data-act="add">${icon('pin', 15)}${pinLabel}</button>`;
-  const allBtn = c ? `<button class="btn grow ${has ? 'on' : whole ? 'primary' : ''}" data-act="toggle" title="${has ? 'Unmark' : 'Mark'} the whole country">${icon(has ? 'check' : 'globe', 15)}All of ${esc(c.name.length > 16 ? 'country' : c.name)}</button>` : '';
+  const cn = esc(c && c.name.length > 15 ? 'country' : c?.name);
+  const allBtn = c ? `<button class="btn grow ${has ? 'on' : whole ? 'primary' : ''}" data-act="toggle" title="Country-level pin, for when you don't want to name exact places">${has ? icon('check', 15) + cn + ' pinned' : flagOf(c.iso2) + ' Pin ' + cn}</button>` : '';
   const kicker = c ? `<span class="flag">${flagOf(c.iso2)}</span>${esc(title ? c.name : c.cont || 'Territory')} · ${fmtLL(lat, lon)}` : `${icon('globe', 13)} Open water · ${fmtLL(lat, lon)}`;
   showPop(`
     <div class="pk">${kicker}</div>
@@ -914,6 +932,15 @@ function openSpotPop(spot) {
 function openPinPop(pin) {
   const { place, profile, isHome } = pin, ci = countryNear(place.lat, place.lon), c = ci >= 0 ? COUNTRIES[ci] : null;
   const mine = profile.id === active().id;
+  if (pin.isCountry) {
+    const cc = byKey.get(place.key), cities = profile.places.filter(pl => countryNear(pl.lat, pl.lon) === cc.i).map(pl => pl.name);
+    return showPop(`
+      <div class="pk"><span class="flag">${flagOf(cc.iso2)}</span>Country pin · ${esc(cc.cont)}${state.compare ? ` · <span style="color:${profile.color}">${esc(profile.name)}</span>` : ''}</div>
+      <h3>${esc(cc.name)}</h3>
+      <div class="psub">${cities.length ? esc(cities.join(' · ')) : 'No specific places pinned'}</div>
+      ${mine ? `<div class="acts"><button class="btn grow" data-act="addin">${icon('pin', 15)}Pin a place</button><button class="btn danger sq" data-act="remove" title="Remove country pin">${icon('trash', 15)}</button></div>` : ''}`,
+      place.lat, place.lon, { kind: 'pin', pin });
+  }
   const fromHome = !isHome && profile.home ? `${nf(km(profile.home, place))} km from home` : '';
   const meta = [fmtDate(place.date), fromHome].filter(Boolean).join(' · ');
   showPop(`
@@ -945,6 +972,12 @@ pop.addEventListener('click', e => {
     }
   } else {
     const { pin } = popState;
+    if (pin.isCountry) {
+      const c = byKey.get(pin.place.key);
+      if (act === 'remove') { closePop(); toggleCountry(c); }
+      if (act === 'addin') { closePop(); openModal({ lat: c.lat, lon: c.lon, ci: c.i }); }
+      return;
+    }
     if (act === 'remove') {
       if (pin.isHome) { const prev = p.home; p.home = null; commit(); toast('Home removed', () => { p.home = prev; commit(); }); }
       else { const idx = p.places.indexOf(pin.place); p.places.splice(idx, 1); commit(); toast(`Removed ${pin.place.name}`, () => { p.places.splice(idx, 0, pin.place); commit(); }); }
@@ -959,8 +992,8 @@ pop.addEventListener('click', e => {
 
 function toggleCountry(c) {
   const p = active(), i = p.countries.indexOf(c.key);
-  if (i >= 0) { p.countries.splice(i, 1); commit(); toast(`${c.name} unmarked`, () => { p.countries.push(c.key); commit(); }); }
-  else { p.countries.push(c.key); commit(); burst(c); toast(`${flagOf(c.iso2)}  All of ${c.name} lit up`, () => { p.countries.splice(p.countries.indexOf(c.key), 1); commit(); }); }
+  if (i >= 0) { p.countries.splice(i, 1); commit(); toast(`${c.name} country pin removed`, () => { p.countries.push(c.key); commit(); }); }
+  else { p.countries.push(c.key); commit(); burst(c); toast(`${flagOf(c.iso2)}  ${c.name} pinned`, () => { p.countries.splice(p.countries.indexOf(c.key), 1); commit(); }); }
 }
 // Brief sparkle on a freshly visited country
 function burst(c) {
@@ -986,7 +1019,7 @@ function openModal(spot) {
   $('#mdate').value = '';
   $('#mnote').value = '';
   $('#mcheckwrap').style.display = c && !p.countries.includes(c.key) ? '' : 'none';
-  $('#mchecklbl').textContent = c ? `Also light up all of ${c.name}` : '';
+  $('#mchecklbl').textContent = c ? `Also add a country pin for ${c.name}` : '';
   $('#mcheck').checked = false;
   modal.classList.add('open');
   setTimeout(() => $('#mname').focus(), 60);
@@ -1042,15 +1075,9 @@ function countTo(el, to, suffix = '') {
 }
 function profileStats(p) {
   const cs = [...touched(p)].map(k => byKey.get(k));
-  const marked = new Set(p.countries), g = glowFor([p]).s;
-  let lit = 0;
-  for (let j = 0; j < g.length; j++) if (marked.has(COUNTRIES[dotCountry[j]].key) || g[j] > 0) lit++;
-  const land = lit / dotCountry.length * 100;
   const conts = new Set(cs.map(c => c.cont).filter(Boolean));
-  let dist = 0;
-  if (p.home) for (const pl of p.places) dist += km(p.home, pl);
-  else { const ch = [...p.places].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999')); for (let i = 1; i < ch.length; i++) dist += km(ch[i - 1], ch[i]); }
-  return { n: cs.filter(c => c.un).length, all: cs.length, land, conts, dist };
+  const dist = legsFor(p).reduce((d, [a, b]) => d + km(a, b), 0);
+  return { n: cs.filter(c => c.un).length, all: cs.length, conts, dist };
 }
 function renderPanel() {
   const p = active();
@@ -1069,8 +1096,8 @@ function renderPanel() {
   countTo(vs[1], s.conts.size); vs[1].querySelector('small').textContent = '/ 7';
   countTo(vs[2], p.places.length);
   countTo(vs[3], Math.round(s.dist));
-  $('#landbar').style.width = Math.min(100, s.land) + '%';
-  $('#landcap').textContent = `${s.land.toFixed(1)}% of the world's land · ${Math.round(s.n / UN_TOTAL * 100)}% of nations`;
+  $('#landbar').style.width = Math.min(100, s.all / UN_TOTAL * 100) + '%';
+  $('#landcap').textContent = `${Math.round(s.all / UN_TOTAL * 100)}% of the world · ${p.countries.length} country ${p.countries.length === 1 ? 'pin' : 'pins'} · ${p.places.length} ${p.places.length === 1 ? 'place' : 'places'}`;
   if (state.compare && state.profiles.length > 1) {
     const shared = state.profiles.map(q => new Set(q.countries)).reduce((a, b) => new Set([...a].filter(x => b.has(x))));
     $('#sharedcap').textContent = `${shared.size} shared`;
@@ -1102,13 +1129,13 @@ function placesList(p) {
 }
 function countriesList(p) {
   const cs = [...touched(p)].map(k => byKey.get(k));
-  if (!cs.length) return `<div class="empty"><div class="big">A blank map.</div>Pin a city, or light up a whole country from its popover.</div>`;
+  if (!cs.length) return `<div class="empty"><div class="big">A blank map.</div>Pin a city, or drop a country pin when you'd rather not name places.</div>`;
   const inC = c => p.places.filter(pl => countryNear(pl.lat, pl.lon) === c.i).map(pl => pl.name);
   const groups = {};
   for (const c of cs) (groups[c.cont || 'Elsewhere'] ||= []).push(c);
   return Object.keys(groups).sort().map(g => `<div class="group-h">${g} · ${groups[g].length}</div>` + groups[g].sort((a, b) => a.name.localeCompare(b.name)).map(c => `
-    <div class="item" data-country="${esc(c.key)}"><span class="flag">${flagOf(c.iso2)}</span><div class="t"><b>${esc(c.name)}</b><span>${p.countries.includes(c.key) ? 'Whole country' : esc(inC(c).join(' · ') || 'Home')}</span></div>
-    ${p.countries.includes(c.key) ? `<button class="del" data-del-country="${esc(c.key)}" title="Unmark whole country">${icon('x', 14)}</button>` : ''}</div>`).join('')).join('');
+    <div class="item" data-country="${esc(c.key)}"><span class="flag">${flagOf(c.iso2)}</span><div class="t"><b>${esc(c.name)}</b><span>${esc([p.countries.includes(c.key) ? 'Country pin' : '', ...inC(c)].filter(Boolean).join(' · ') || 'Home')}</span></div>
+    ${p.countries.includes(c.key) ? `<button class="del" data-del-country="${esc(c.key)}" title="Remove country pin">${icon('x', 14)}</button>` : ''}</div>`).join('')).join('');
 }
 
 $('#panel').addEventListener('click', e => {
@@ -1152,7 +1179,7 @@ $('#panel').addEventListener('click', e => {
     return;
   }
   const ic = t.closest('[data-country]');
-  if (ic) { const c = byKey.get(ic.dataset.country); flyTo(c.lat, c.lon); setTimeout(() => openSpotPop({ lat: c.lat, lon: c.lon, ci: c.i, whole: true }), 300); }
+  if (ic) { const c = byKey.get(ic.dataset.country), cp = pins.find(x => x.isCountry && x.place.key === c.key && x.profile === p); flyTo(c.lat, c.lon); setTimeout(() => cp ? openPinPop(cp) : openSpotPop({ lat: c.lat, lon: c.lon, ci: c.i, whole: true }), 300); }
 });
 $('#handle').onclick = () => $('#panel').classList.toggle('collapsed');
 $('#pname').addEventListener('input', e => { active().name = e.target.value || 'Unnamed'; save(); renderChipsOnly(); });
