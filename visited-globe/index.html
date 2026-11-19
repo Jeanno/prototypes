@@ -117,6 +117,13 @@ body.loading #search{opacity:0}
 .res .ico{width:20px;text-align:center;flex:none;color:var(--muted)}
 .res-h{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:8px 10px 4px}
 
+/* View switch */
+#views{position:fixed;top:16px;right:16px;z-index:6;display:flex;padding:4px;border-radius:14px;height:48px;align-items:center;transition:opacity .6s .3s}
+body.loading #views{opacity:0}
+#views button{position:relative;z-index:1;height:38px;padding:0 16px;border-radius:10px;color:var(--muted);font-size:12.5px;font-weight:500;transition:color .25s}
+#views button.on{color:#0b1020}
+.vthumb{position:absolute;top:4px;bottom:4px;left:4px;border-radius:10px;background:var(--accent);box-shadow:0 6px 18px -6px var(--accent);transition:transform .35s cubic-bezier(.2,.8,.2,1),width .35s}
+
 /* Popover */
 #pop{position:fixed;left:0;top:0;width:280px;border-radius:18px;padding:16px;z-index:7;opacity:0;pointer-events:none;transform-origin:0 0;transition:opacity .2s;background:var(--glass-strong)}
 #pop.open{opacity:1;pointer-events:auto}
@@ -144,10 +151,29 @@ body.loading #search{opacity:0}
 .x{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:var(--muted)}
 .x:hover{background:rgba(255,255,255,.07);color:var(--text)}
 
+/* City menu */
+#pop.wide{width:310px}
+.cm-head{display:flex;align-items:center;gap:6px;margin:-4px 0 10px -6px;padding-right:28px}
+.cm-head b{font:400 23px/1.1 var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cm-sub{font-size:11px;color:var(--muted);margin:-8px 0 10px 28px}
+.cm-q{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:8px 11px;outline:0;margin-bottom:6px;transition:border-color .2s}
+.cm-q:focus{border-color:color-mix(in srgb,var(--accent) 70%,transparent)}
+.cm-list{max-height:min(300px,42vh);overflow:auto;margin:0 -8px;padding:0 2px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
+.cm-row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;cursor:pointer;font-size:13px;user-select:none}
+.cm-row:hover{background:rgba(255,255,255,.06)}
+.cb{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--line-strong);display:grid;place-items:center;flex:none;color:transparent;transition:all .15s}
+.cb svg{width:12px;height:12px;stroke-width:2.6}
+.cm-row.on .cb{background:var(--accent);border-color:var(--accent);color:#0b1020}
+.cm-row .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cm-row .nm i{font-style:normal;font-size:9.5px;color:var(--faint);margin-left:7px;text-transform:uppercase;letter-spacing:.1em}
+.cm-row .pp{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.cm-empty{padding:14px 8px;color:var(--muted);font-size:12.5px}
+
 /* Labels */
 #labels{position:fixed;inset:0;pointer-events:none;z-index:3}
 .lbl{position:absolute;left:0;top:0;font-size:11px;font-weight:500;padding:3px 8px 3px 7px;border-radius:7px;background:rgba(6,10,22,.62);border-left:2px solid var(--c);white-space:nowrap;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .25s;will-change:transform}
 .lbl.country{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;background:rgba(6,10,22,.78);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);border-left-width:2px}
+.lbl .cnt{margin-left:7px;padding:0 5px;border-radius:5px;background:var(--c);color:#0b1020;font-size:9.5px;letter-spacing:0}
 .lbl.home{font:italic 400 14px/1.1 var(--serif);border-left:0;padding:3px 9px;background:rgba(255,231,163,.14);color:#ffe7a3}
 .lbl.hot{background:rgba(6,10,22,.9);z-index:2}
 
@@ -206,6 +232,8 @@ input[type=file]{display:none}
   .bar,.barcap,.conts,.swatches,.homeline{display:none}
   #panel:not(.collapsed) .swatches,#panel:not(.collapsed) .homeline{display:flex}
   #hint{display:none}
+  #views{top:calc(max(12px,env(safe-area-inset-top)) + 56px);right:12px;height:40px}
+  #views button{height:32px;padding:0 12px}
   #pop{width:min(280px,calc(100vw - 24px))}
 }
 </style>
@@ -257,6 +285,7 @@ input[type=file]{display:none}
   <div class="results glass" id="results"></div>
 </div>
 
+<div id="views" class="glass" role="tablist"><span class="vthumb"></span><button data-view="countries" role="tab">Countries</button><button data-view="cities" role="tab">Cities</button></div>
 <div id="pop" class="glass"></div>
 
 <div id="modal"><form class="mcard glass" id="mform">
@@ -314,6 +343,8 @@ const ICONS = {
   down:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
   up:'<path d="M12 15V4M7 9l5-5 5 5M5 20h14"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  list:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01" stroke-width="2.6"/>',
+  back:'<path d="m15 6-6 6 6 6"/>',
   plane:'<path d="M10.5 13.5 3 11l1.5-1.5 8 1L17 6a2 2 0 0 1 3 3l-4.5 4.5 1 8L15 23l-2.5-7.5L9 19v3l-1.5 1-1-3.5L3 18.5 4 17h3l3.5-3.5z"/>',
 };
 const icon = (n, s = 16) => `<svg class="i" viewBox="0 0 24 24" style="width:${s}px;height:${s}px">${ICONS[n]}</svg>`;
@@ -335,6 +366,7 @@ function load() {
   return { profiles: [p], activeId: p.id, compare: false };
 }
 const state = load();
+state.view ||= 'countries';
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
 const active = () => state.profiles.find(p => p.id === state.activeId) || state.profiles[0];
 const shown = () => state.compare ? state.profiles : [active()];
@@ -583,6 +615,7 @@ function buildWorld(topo) {
   refreshWorld();
   renderPanel();
   startIntro();
+  setTimeout(loadCities, 1500);
 }
 
 const BASE = new THREE.Color('#33446e');
@@ -613,7 +646,7 @@ const tmpM = new THREE.Matrix4(), tmpP = new THREE.Vector3(), tmpQ = new THREE.Q
 function computeVisitors() {
   visitors = COUNTRIES.map(() => []);
   for (const p of shown()) for (const k of touched(p)) visitors[byKey.get(k).i].push(p.color);
-  placeGlow = glowFor(shown());
+  placeGlow = state.view === 'cities' ? glowFor(shown()) : { s: null, col: [] };
 }
 // Lights dots within ~110 km of each pinned place, fading with distance.
 const GLOW_RAD = 1.0;
@@ -645,7 +678,7 @@ function paintDot(j) {
   let s;
   const g = placeGlow.s ? placeGlow.s[j] : 0;
   if (g > 0) { tmpC.set(placeGlow.col[j]); tmpC.multiplyScalar(glow(tmpC) * (0.3 + 0.7 * g) * (hot ? 1.4 : 1)); s = 0.92 + 0.2 * g; }
-  else if (vis.length) { tmpC2.set(vis[j % vis.length]); tmpC.copy(BASE).multiplyScalar(dotJitter[j]).lerp(tmpC2, 0.3).multiplyScalar(hot ? 1.8 : 1); s = hot ? 1.05 : 0.95; }
+  else if (vis.length) { tmpC2.set(vis[j % vis.length]); tmpC.copy(BASE).multiplyScalar(dotJitter[j]).lerp(tmpC2, state.view === 'cities' ? 0.16 : 0.36).multiplyScalar(hot ? 1.8 : 1); s = hot ? 1.05 : 0.95; }
   else { tmpC.copy(BASE).multiplyScalar(dotJitter[j] * (hot ? 2.1 : 1)); s = hot ? 1.05 : 0.9; }
   dotMesh.setColorAt(j, tmpC);
   tmpP.fromArray(dotPos, j * 3); tmpQ.fromArray(dotQuat, j * 4); tmpS.setScalar(s);
@@ -666,8 +699,8 @@ function refreshWorld() {
   ctx.clearRect(0, 0, 2048, 1024);
   ctx.globalCompositeOperation = 'lighter';
   for (const p of shown()) {
-    ctx.fillStyle = p.color; ctx.globalAlpha = (state.compare ? 0.06 : 0.08) * Math.min(1, glow(new THREE.Color(p.color)));
-    const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(p.color).multiplyScalar(1.3), transparent: true, opacity: 0.6, depthWrite: false });
+    ctx.fillStyle = p.color; ctx.globalAlpha = (state.compare ? 0.06 : 0.08) * (state.view === 'cities' ? 0.45 : 1) * Math.min(1, glow(new THREE.Color(p.color)));
+    const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(p.color).multiplyScalar(1.3), transparent: true, opacity: state.view === 'cities' ? 0.22 : 0.6, depthWrite: false });
     for (const k of touched(p)) {
       const c = byKey.get(k); if (!c) continue;
       ctx.beginPath(); fillPath(c.feature); ctx.fill();
@@ -720,7 +753,8 @@ function makePin(place, color, profile, kind) {
   const lbl = document.createElement('div');
   lbl.className = 'lbl ' + kind;
   lbl.style.setProperty('--c', color);
-  lbl.textContent = isHome ? '⌂ ' + (place.name || 'Home') : isCountry ? flagOf(byKey.get(place.key)?.iso2) + ' ' + place.name : place.name;
+  if (isCountry) lbl.innerHTML = `${flagOf(byKey.get(place.key)?.iso2)} ${esc(place.name)}${place.n ? `<span class="cnt">${place.n}</span>` : ''}`;
+  else lbl.textContent = isHome ? '⌂ ' + (place.name || 'Home') : place.name;
   labelsEl.appendChild(lbl);
   const pin = { place, profile, kind, isHome, isCountry, group: g, ring, hit, lbl, tip: n.clone().multiplyScalar(1 + h + 0.012), born, phase: Math.random() * 2 };
   hit.userData.pin = pin;
@@ -731,8 +765,15 @@ function rebuildPins() {
   for (const p of pins) { p.lbl.remove(); p.group.traverse(o => o.material?.dispose()); }
   pinsGroup.clear(); pins = [];
   for (const prof of shown()) {
-    for (const k of prof.countries) { const c = byKey.get(k); if (c) pins.push(makePin({ key: k, name: c.name, lat: c.lat, lon: c.lon }, prof.color, prof, 'country')); }
-    for (const pl of prof.places) pins.push(makePin(pl, prof.color, prof, 'city'));
+    if (state.view === 'countries') {
+      const hc = prof.home ? countryNear(prof.home.lat, prof.home.lon) : -1;
+      for (const k of touched(prof)) {
+        const c = byKey.get(k);
+        if (c.i === hc && !prof.countries.includes(k)) continue;
+        const n = prof.places.filter(pl => countryNear(pl.lat, pl.lon) === c.i).length;
+        pins.push(makePin({ key: k, name: c.name, lat: c.lat, lon: c.lon, n }, prof.color, prof, 'country'));
+      }
+    } else for (const pl of prof.places) pins.push(makePin(pl, prof.color, prof, 'city'));
     if (prof.home) pins.push(makePin(prof.home, state.compare ? prof.color : HOME_COLOR, prof, 'home'));
   }
 }
@@ -755,14 +796,20 @@ function arcGeo(a, b) {
   for (let i = 0; i <= 64; i++) { const t = i / 64; pts.push(slerpVec(va, vb, t).multiplyScalar(1.002 + Math.sin(Math.PI * t) * h)); }
   return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 120, 0.0019, 6, false);
 }
-function legsFor(prof) {
+// mode: 'countries' = home to each visited country, 'cities' = home to each city, 'all' = cities plus country-only pins (for distance)
+function legsFor(prof, mode = 'all') {
   const legs = [];
   if (prof.home) {
-    for (const pl of prof.places) legs.push([prof.home, pl, prof.id + ':h>' + pl.id + ':' + pl.lat + ',' + pl.lon + ':' + prof.home.lat]);
-    const withCity = new Set(prof.places.map(pl => countryNear(pl.lat, pl.lon)));
     const homeCi = countryNear(prof.home.lat, prof.home.lon);
+    if (mode === 'countries') {
+      for (const k of touched(prof)) { const c = byKey.get(k); if (c.i !== homeCi) legs.push([prof.home, c, prof.id + ':h>c:' + k + ':' + prof.home.lat]); }
+      return legs;
+    }
+    for (const pl of prof.places) legs.push([prof.home, pl, prof.id + ':h>' + pl.id + ':' + pl.lat + ',' + pl.lon + ':' + prof.home.lat]);
+    if (mode === 'cities') return legs;
+    const withCity = new Set(prof.places.map(pl => countryNear(pl.lat, pl.lon)));
     for (const k of prof.countries) { const c = byKey.get(k); if (c && !withCity.has(c.i) && c.i !== homeCi) legs.push([prof.home, c, prof.id + ':h>c:' + k + ':' + prof.home.lat]); }
-  } else {
+  } else if (mode !== 'countries') {
     const chain = [...prof.places].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
     for (let i = 1; i < chain.length; i++) legs.push([chain[i - 1], chain[i], prof.id + ':' + chain[i - 1].id + '>' + chain[i].id]);
   }
@@ -772,7 +819,7 @@ function rebuildArcs() {
   for (const a of arcs) { a.mesh.geometry.dispose(); a.mesh.material.dispose(); }
   arcsGroup.clear(); arcs = [];
   for (const prof of shown()) {
-    for (const [a, b, key] of legsFor(prof)) {
+    for (const [a, b, key] of legsFor(prof, state.view)) {
       if (km(a, b) < 30) continue;
       const mat = new THREE.ShaderMaterial({ ...arcMatBase, uniforms: { uTime: U.uTime, uProg: { value: seenArcs.has(key) ? 1 : 0 }, uOff: { value: Math.random() }, uC: { value: new THREE.Color(prof.color) } } });
       const mesh = new THREE.Mesh(arcGeo(a, b), mat);
@@ -901,6 +948,7 @@ canvas.addEventListener('pointerup', e => {
 let popState = null;
 function showPop(html, lat, lon, ctx) {
   pop.innerHTML = `<button class="x" data-act="close" aria-label="Close">${icon('x', 15)}</button>` + html;
+  pop.classList.remove('wide');
   popState = { anchor: toVec(lat, lon, 1.01), ...ctx };
   pop.classList.add('open');
   clearTimeout(idleTimer); controls.autoRotate = false;
@@ -927,7 +975,8 @@ function openSpotPop(spot) {
     <div class="acts wrap">
       ${whole ? allBtn + pinBtn : pinBtn + allBtn}
       <button class="btn sq" data-act="home" title="Set as home">${icon('home', 15)}</button>
-    </div>`, lat, lon, { kind: 'spot', spot });
+    </div>
+    ${c ? `<div class="acts" style="margin-top:6px"><button class="btn grow" data-act="cities">${icon('list', 15)}Choose cities in ${cn}</button></div>` : ''}`, lat, lon, { kind: 'spot', spot });
 }
 function openPinPop(pin) {
   const { place, profile, isHome } = pin, ci = countryNear(place.lat, place.lon), c = ci >= 0 ? COUNTRIES[ci] : null;
@@ -935,10 +984,10 @@ function openPinPop(pin) {
   if (pin.isCountry) {
     const cc = byKey.get(place.key), cities = profile.places.filter(pl => countryNear(pl.lat, pl.lon) === cc.i).map(pl => pl.name);
     return showPop(`
-      <div class="pk"><span class="flag">${flagOf(cc.iso2)}</span>Country pin · ${esc(cc.cont)}${state.compare ? ` · <span style="color:${profile.color}">${esc(profile.name)}</span>` : ''}</div>
+      <div class="pk"><span class="flag">${flagOf(cc.iso2)}</span>${profile.countries.includes(cc.key) ? 'Country pin' : 'Visited'} · ${esc(cc.cont)}${state.compare ? ` · <span style="color:${profile.color}">${esc(profile.name)}</span>` : ''}</div>
       <h3>${esc(cc.name)}</h3>
       <div class="psub">${cities.length ? esc(cities.join(' · ')) : 'No specific places pinned'}</div>
-      ${mine ? `<div class="acts"><button class="btn grow" data-act="addin">${icon('pin', 15)}Pin a place</button><button class="btn danger sq" data-act="remove" title="Remove country pin">${icon('trash', 15)}</button></div>` : ''}`,
+      ${mine ? `<div class="acts"><button class="btn grow" data-act="cities">${icon('list', 15)}Choose cities</button>${profile.countries.includes(cc.key) ? `<button class="btn danger sq" data-act="remove" title="Remove country pin">${icon('trash', 15)}</button>` : ''}</div>` : ''}`,
       place.lat, place.lon, { kind: 'pin', pin });
   }
   const fromHome = !isHome && profile.home ? `${nf(km(profile.home, place))} km from home` : '';
@@ -958,9 +1007,17 @@ pop.addEventListener('click', e => {
   if (!act || !popState) return;
   const p = active();
   if (act === 'close') return closePop();
+  if (popState.kind === 'menu') {
+    const { c } = popState;
+    if (act === 'cmback') popState.back();
+    if (act === 'cmtoggle') toggleCity(popState.rows[+e.target.closest('[data-i]').dataset.i]);
+    if (act === 'cmcustom') { closePop(); openModal({ lat: c.lat, lon: c.lon, ci: c.i }); }
+    return;
+  }
   if (popState.kind === 'spot') {
     const { spot } = popState, c = spot.ci >= 0 ? COUNTRIES[spot.ci] : null;
     if (act === 'toggle' && c) { toggleCountry(c); openSpotPop(spot); }
+    if (act === 'cities' && c) openCityMenu(c, () => openSpotPop(spot));
     if (act === 'add') { closePop(); openModal(spot); }
     if (act === 'home') {
       const prev = p.home;
@@ -975,7 +1032,7 @@ pop.addEventListener('click', e => {
     if (pin.isCountry) {
       const c = byKey.get(pin.place.key);
       if (act === 'remove') { closePop(); toggleCountry(c); }
-      if (act === 'addin') { closePop(); openModal({ lat: c.lat, lon: c.lon, ci: c.i }); }
+      if (act === 'cities') openCityMenu(c, () => { const np = pins.find(x => x.isCountry && x.place.key === c.key && x.profile.id === p.id); np ? openPinPop(np) : openSpotPop({ lat: c.lat, lon: c.lon, ci: c.i, whole: true }); });
       return;
     }
     if (act === 'remove') {
@@ -1039,6 +1096,7 @@ $('#mform').addEventListener('submit', e => {
   const s = modalSpot, p = active(), c = s.ci >= 0 ? COUNTRIES[s.ci] : null;
   const place = { id: uid(), name: $('#mname').value.trim() || c?.name || 'Somewhere', lat: +s.lat.toFixed(4), lon: +s.lon.toFixed(4), date: $('#mdate').value || '', note: $('#mnote').value.trim() };
   p.places.push(place);
+  state.view = 'cities';
   const addCountry = c && !p.countries.includes(c.key) && $('#mcheck').checked;
   if (addCountry) p.countries.push(c.key);
   closeModal(); commit();
@@ -1052,6 +1110,60 @@ async function reverseName(lat, lon) {
     const d = await r.json(), a = d.address || {};
     return a.city || a.town || a.village || a.municipality || a.county || a.state || d.name || '';
   } catch { return ''; }
+}
+
+/* ---------------- city data ---------------- */
+// Top cities per ISO2 country, built from GeoNames cities15000: [name, lat, lon, population in k, capital]
+let CITY_DB = null, cityDbP = null;
+function loadCities() {
+  return cityDbP ||= fetch('cities.json').then(r => r.ok ? r.json() : {}).catch(() => ({})).then(d => { CITY_DB = d; INDEX = null; return d; });
+}
+function citiesOf(c) {
+  const list = (CITY_DB?.[c.iso2] || []).map(([name, lat, lon, pop, cap]) => ({ name, lat, lon, pop, cap }));
+  for (const [name, iso, lat, lon] of CITIES) if (iso === c.iso2 && !list.some(x => x.name === name)) list.push({ name, lat, lon, pop: 0, cap: 0 });
+  return list;
+}
+const sameCity = (a, b) => a.name.toLowerCase() === b.name.toLowerCase() && km(a, b) < 40;
+const fmtPop = k => !k ? '' : k >= 1000 ? (k / 1000).toFixed(k >= 10000 ? 0 : 1) + 'M' : k + 'k';
+
+/* ---------------- city menu ---------------- */
+function openCityMenu(c, back) {
+  loadCities().then(() => {
+    showPop(`
+      <div class="cm-head"><button class="iconbtn" data-act="cmback" title="Back">${icon('back', 16)}</button><span class="flag">${flagOf(c.iso2)}</span><b>${esc(c.name)}</b></div>
+      <div class="cm-sub" id="cmsub"></div>
+      <input class="cm-q" id="cmq" placeholder="Filter cities…" autocomplete="off" spellcheck="false">
+      <div class="cm-list" id="cmlist"></div>
+      <div class="acts"><button class="btn grow" data-act="cmcustom">${icon('plus', 15)}Pin a place not listed</button></div>`,
+      c.lat, c.lon, { kind: 'menu', c, back, rows: [] });
+    pop.classList.add('wide');
+    drawCityRows();
+    if (!MOBILE) setTimeout(() => $('#cmq')?.focus(), 50);
+  });
+}
+function drawCityRows() {
+  const { c } = popState, p = active(), all = citiesOf(c);
+  const mine = p.places.filter(pl => countryNear(pl.lat, pl.lon) === c.i);
+  const custom = mine.filter(pl => !all.some(x => sameCity(pl, x))).map(pl => ({ name: pl.name, lat: pl.lat, lon: pl.lon, pop: 0, cap: 0, custom: true }));
+  const f = ($('#cmq')?.value || '').trim().toLowerCase();
+  const norm = x => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const rows = popState.rows = [...custom, ...all].filter(r => !f || norm(r.name).includes(norm(f)));
+  $('#cmsub').textContent = `${mine.length} pinned · ${all.length + custom.length} cities`;
+  $('#cmlist').innerHTML = rows.length ? rows.map((r, i) => {
+    const on = mine.some(pl => sameCity(pl, r));
+    return `<div class="cm-row ${on ? 'on' : ''}" data-act="cmtoggle" data-i="${i}"><span class="cb">${icon('check', 12)}</span><span class="nm">${esc(r.name)}${r.cap ? '<i>capital</i>' : r.custom ? '<i>yours</i>' : ''}</span><span class="pp">${fmtPop(r.pop)}</span></div>`;
+  }).join('') : `<div class="cm-empty">No cities match. Pin it as a place below.</div>`;
+}
+pop.addEventListener('input', e => { if (e.target.id === 'cmq' && popState?.kind === 'menu') drawCityRows(); });
+pop.addEventListener('keydown', e => { if (e.target.id === 'cmq' && e.key === 'Escape') { e.stopPropagation(); popState.back(); } });
+function toggleCity(r) {
+  const p = active(), i = p.places.findIndex(pl => sameCity(pl, r));
+  if (i >= 0) p.places.splice(i, 1);
+  else { state.view = 'cities'; p.places.push({ id: uid(), name: r.name, lat: r.lat, lon: r.lon, date: '', note: '' }); }
+  commit();
+  const st = $('#cmlist').scrollTop;
+  drawCityRows();
+  $('#cmlist').scrollTop = st;
 }
 
 /* ---------------- toast ---------------- */
@@ -1107,12 +1219,26 @@ function renderPanel() {
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   $('#list').innerHTML = tab === 'places' ? placesList(p) : countriesList(p);
 
+  renderViews();
   $('#compare').innerHTML = `${icon('users', 15)}${state.compare ? 'Showing all' : 'Compare'}`;
   $('#compare').classList.toggle('on', state.compare);
   $('#compare').style.display = state.profiles.length > 1 ? '' : 'none';
   $('#export').innerHTML = `${icon('down', 15)}Export`;
   $('#import').innerHTML = `${icon('up', 15)}Import`;
 }
+function renderViews() {
+  const btns = [...document.querySelectorAll('#views button')], on = btns.find(b => b.dataset.view === state.view);
+  btns.forEach(b => b.classList.toggle('on', b === on));
+  const th = $('.vthumb');
+  th.style.width = on.offsetWidth + 'px';
+  th.style.transform = `translateX(${on.offsetLeft - 4}px)`;
+}
+$('#views').addEventListener('click', e => {
+  const v = e.target.closest('[data-view]')?.dataset.view;
+  if (!v || v === state.view) return;
+  state.view = v; closePop(); commit();
+});
+addEventListener('resize', () => renderViews());
 function placesList(p) {
   if (!p.places.length && !p.home) return `<div class="empty"><div class="big">Where have you been?</div>Search for a city or click the globe to pin where you've been.</div>`;
   const items = [...p.places].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -1173,6 +1299,7 @@ $('#panel').addEventListener('click', e => {
   if (it) {
     const pl = it.dataset.place === 'home' ? p.home : p.places.find(x => x.id === it.dataset.place);
     if (!pl) return;
+    if (state.view !== 'cities' && it.dataset.place !== 'home') { state.view = 'cities'; commit(); }
     flyTo(pl.lat, pl.lon, 2.2);
     const pin = pins.find(x => x.place === pl);
     if (pin) setTimeout(() => openPinPop(pin), 300);
@@ -1225,7 +1352,8 @@ function searchIndex() {
   if (!isoName.size) for (const c of COUNTRIES) if (c.iso2) isoName.set(c.iso2, c);
   return [
     ...COUNTRIES.filter(c => c.key !== 'Siachen Glacier').map(c => ({ kind: 'country', label: c.name, alt: c.key, sub: c.cont, flag: flagOf(c.iso2), lat: c.lat, lon: c.lon, ci: c.i })),
-    ...CITIES.map(([n, iso, lat, lon]) => { const c = isoName.get(iso); return { kind: 'city', label: n, sub: c?.name || '', flag: flagOf(iso), lat, lon, ci: -1 }; }),
+    ...CITIES.map(([n, iso, lat, lon]) => { const c = isoName.get(iso); return { kind: 'city', label: n, sub: c?.name || '', flag: flagOf(iso), lat, lon, ci: -1, pop: 2000 }; }),
+    ...Object.entries(CITY_DB || {}).flatMap(([iso, list]) => { const c = isoName.get(iso), have = new Set(CITIES.filter(x => x[1] === iso).map(x => x[0])); return list.filter(x => !have.has(x[0])).map(([n, lat, lon, pop]) => ({ kind: 'city', label: n, sub: c?.name || iso, flag: flagOf(iso), lat, lon, ci: -1, pop })); }),
   ];
 }
 let INDEX = null;
@@ -1241,7 +1369,7 @@ function runSearch() {
     const sc = l.startsWith(ns) ? 0 : a.startsWith(ns) ? 1 : l.includes(' ' + ns) ? 2 : l.includes(ns) ? 3 : -1;
     if (sc >= 0) scored.push([sc + (it.kind === 'city' ? 0.5 : 0), it]);
   }
-  items = scored.sort((a, b) => a[0] - b[0] || a[1].label.localeCompare(b[1].label)).slice(0, 7).map(x => x[1]);
+  items = scored.sort((a, b) => a[0] - b[0] || (b[1].pop || 0) - (a[1].pop || 0) || a[1].label.localeCompare(b[1].label)).slice(0, 8).map(x => x[1]);
   sel = 0; drawResults(true);
   clearTimeout(geoTimer);
   if (s.length >= 3) geoTimer = setTimeout(() => geocode(s), 450);
