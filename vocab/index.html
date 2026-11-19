@@ -1,0 +1,1030 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wordhoard</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Wordhoard">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f5f0e6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15130f" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f5f0e6; --surface:#fffdf8; --sunk:#ede6d8; --ink:#1f1b16; --muted:#6e665a; --rule:#e2d9c8;
+  --accent:#b4441f; --accent-ink:#fff;
+  --again:#b3261e; --hard:#9a6a0b; --good:#2f7a4c; --easy:#2a5f9e;
+  --f-display:"Fraunces",Georgia,"Times New Roman",serif;
+  --f-ui:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --radius:14px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#15130f; --surface:#1f1c17; --sunk:#29251e; --ink:#efe8da; --muted:#a2998a; --rule:#37312a;
+    --accent:#e37c52; --accent-ink:#1a120d;
+    --again:#ef6b61; --hard:#e0a63a; --good:#5fbf86; --easy:#73a6e8;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15130f; --surface:#1f1c17; --sunk:#29251e; --ink:#efe8da; --muted:#a2998a; --rule:#37312a;
+  --accent:#e37c52; --accent-ink:#1a120d;
+  --again:#ef6b61; --hard:#e0a63a; --good:#5fbf86; --easy:#73a6e8;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-ui);font-size:16px;line-height:1.5;-webkit-tap-highlight-color:transparent;
+  padding:0 max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:640px;margin:0 auto}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:10px 12px;padding:max(18px,env(safe-area-inset-top)) 0 12px;flex-wrap:wrap}
+.brand{font-family:var(--f-display);font-weight:600;font-size:26px;letter-spacing:-.01em;margin:0}
+.brand span{color:var(--accent)}
+nav{display:flex;background:var(--sunk);border-radius:999px;padding:3px}
+nav button{border:0;background:none;padding:7px 12px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:500;font-size:14px;display:flex;align-items:center;gap:6px}
+nav button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0/.08)}
+@media (max-width:400px){nav{width:100%}nav button{flex:1;justify-content:center;padding:7px 4px}}
+.badge{background:var(--accent);color:var(--accent-ink);border-radius:999px;font-size:11px;font-weight:600;padding:1px 7px;min-width:20px;text-align:center}
+
+.stats{display:flex;gap:6px 18px;color:var(--muted);font-size:13px;margin:4px 0 14px;flex-wrap:wrap}
+.stats b{color:var(--ink);font-weight:600}
+
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:26px 22px;box-shadow:0 1px 0 var(--rule),0 8px 24px -16px rgb(0 0 0/.25)}
+.word{font-family:var(--f-display);font-size:clamp(34px,9vw,48px);font-weight:600;line-height:1.1;margin:0;letter-spacing:-.015em;overflow-wrap:anywhere}
+.phon{color:var(--muted);font-size:15px;display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.pos{font-style:italic;color:var(--accent);font-family:var(--f-display)}
+.speak{border:1px solid var(--rule);background:var(--bg);border-radius:999px;width:32px;height:32px;display:inline-grid;place-items:center;cursor:pointer;padding:0;color:var(--ink)}
+.speak svg{width:16px;height:16px}
+.kind{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.def{font-family:var(--f-display);font-size:20px;line-height:1.4;margin:16px 0 0}
+.ex{margin:12px 0 0;padding-left:12px;border-left:3px solid var(--rule);color:var(--muted);font-style:italic;font-family:var(--f-display);font-size:17px}
+.ex b{color:var(--ink);font-weight:600}
+.ex::before{content:"“"}.ex::after{content:"”"}
+.note{margin:14px 0 0;padding:10px 12px;background:var(--sunk);border-radius:10px;font-size:14px}
+.note::before{content:"Your note · ";font-weight:600;color:var(--muted)}
+.syn{margin:12px 0 0;font-size:13px;color:var(--muted)}
+.blank{display:inline-block;min-width:3.2em;border-bottom:2px solid var(--accent);height:1em;vertical-align:-.1em}
+hr.split{border:0;border-top:1px dashed var(--rule);margin:22px 0 4px}
+
+.opts{display:flex;flex-direction:column;gap:8px;margin-top:20px}
+.opt{display:flex;gap:12px;align-items:baseline;text-align:left;border:1px solid var(--rule);background:var(--bg);border-radius:12px;padding:12px 14px;cursor:pointer;font-size:15px;line-height:1.4;width:100%}
+.opt .k{flex:none;font-size:12px;font-weight:600;color:var(--muted);width:14px}
+.opt:disabled{cursor:default}
+.opt.right{border-color:var(--good);box-shadow:inset 0 0 0 1px var(--good);background:color-mix(in srgb,var(--good) 10%,var(--bg))}
+.opt.wrong{border-color:var(--again);box-shadow:inset 0 0 0 1px var(--again);background:color-mix(in srgb,var(--again) 10%,var(--bg))}
+.opt.dim{opacity:.55}
+.opt.unsure{justify-content:center;color:var(--muted);border-style:dashed}
+
+.recall{display:flex;gap:8px;margin-top:20px}
+.recall input{flex:1;min-width:0}
+.verdict{margin-top:14px;font-weight:600;font-size:15px}
+.verdict.ok{color:var(--good)}.verdict.near{color:var(--hard)}.verdict.no{color:var(--again)}
+
+.actions{margin-top:16px}
+.wide{width:100%;padding:16px;border-radius:12px;border:0;background:var(--ink);color:var(--bg);font-weight:600;cursor:pointer;font-size:16px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pair .btn{padding:14px;border-radius:12px;font-size:16px}
+.grades{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.grades button{border:1px solid var(--rule);background:var(--surface);border-radius:12px;padding:10px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:600;font-size:15px}
+.grades button small{font-weight:400;color:var(--muted);font-size:12px}
+.grades button[data-g="0"]{color:var(--again)}.grades button[data-g="1"]{color:var(--hard)}
+.grades button[data-g="2"]{color:var(--good)}.grades button[data-g="3"]{color:var(--easy)}
+.grades button.hint{border-color:currentColor;box-shadow:inset 0 0 0 1px currentColor}
+.keys{text-align:center;color:var(--muted);font-size:12px;margin-top:10px}
+@media (hover:none){.keys{display:none}}
+kbd{font-family:inherit;border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:11px}
+
+.progress{height:4px;background:var(--sunk);border-radius:4px;overflow:hidden;margin-bottom:14px}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
+
+.empty{text-align:center;padding:40px 22px}
+.empty h2{font-family:var(--f-display);font-weight:600;font-size:28px;margin:0 0 6px}
+.empty p{color:var(--muted);margin:0 0 20px}
+.empty .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.lvl{font-family:var(--f-display);font-size:64px;font-weight:600;color:var(--accent);line-height:1;margin:8px 0}
+.chip{display:inline-flex;gap:6px;align-items:center;background:var(--sunk);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted)}
+
+.level .big{font-family:var(--f-display);font-size:44px;font-weight:600;line-height:1.1;margin:2px 0 14px}
+.level .big small{font-size:18px;color:var(--muted);font-weight:400}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
+.metrics div{background:var(--sunk);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column}
+.metrics b{font-family:var(--f-display);font-size:24px;font-weight:600;color:var(--accent)}
+.metrics span{font-size:12px;color:var(--muted);line-height:1.3}
+.scale{position:relative;height:52px;margin:16px 6px 10px}
+.scale .track{position:absolute;top:20px;left:0;right:0;height:8px;background:var(--sunk);border-radius:8px;overflow:hidden}
+.scale .track i{display:block;height:100%;background:var(--accent);border-radius:8px}
+.scale .mk{position:absolute;top:34px;transform:translateX(-50%);font-size:11px;color:var(--muted);white-space:nowrap}
+.scale .mk::before{content:"";position:absolute;top:-14px;left:50%;width:1px;height:8px;background:var(--muted)}
+.scale .you{position:absolute;top:0;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--accent)}
+.fine{font-size:12px;color:var(--muted);margin:10px 0 0}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:16px 0 6px}
+input[type=text],input[type=search],input[type=number],textarea,select{width:100%;padding:11px 13px;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+textarea{resize:vertical;min-height:64px}
+.row{display:flex;gap:8px}
+.row input{flex:1;min-width:0}
+.btn{border:1px solid var(--rule);background:var(--surface);padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+.btn.danger{color:var(--again)}
+.btn:disabled{opacity:.5;cursor:default}
+.muted{color:var(--muted);font-size:14px}
+
+.senses{display:flex;flex-direction:column;gap:6px;margin-top:6px;max-height:280px;overflow:auto}
+.sense{display:flex;gap:10px;align-items:flex-start;text-align:left;border:1px solid var(--rule);background:var(--surface);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:14px;width:100%}
+.sense[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.sense .pos{flex:none;width:64px}
+.fixrow{margin-top:14px;text-align:right}
+.link{background:none;border:0;padding:4px 0;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.card.fix{padding:18px}
+
+.toolbar{display:flex;gap:8px;margin-bottom:12px}
+.toolbar input{flex:1;min-width:0}
+.toolbar select{width:auto}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden}
+.item{border-bottom:1px solid var(--rule)}
+.item:last-child{border-bottom:0}
+.item>button{display:grid;grid-template-columns:1fr auto;gap:2px 12px;width:100%;text-align:left;background:none;border:0;padding:12px 16px;cursor:pointer}
+.item .w{font-family:var(--f-display);font-weight:600;font-size:18px}
+.item .d{grid-column:1;color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .s{grid-row:1/3;grid-column:2;align-self:center;text-align:right;font-size:12px;color:var(--muted)}
+.tag{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;margin-bottom:2px}
+.tag.new{background:var(--sunk);color:var(--muted)}
+.tag.learning{background:color-mix(in srgb,var(--hard) 16%,transparent);color:var(--hard)}
+.tag.mature{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.edit{padding:0 16px 16px}
+.edit .row{margin-top:14px;justify-content:space-between;flex-wrap:wrap}
+
+details.settings{margin-top:32px;color:var(--muted);font-size:14px}
+details.settings summary{cursor:pointer;padding:8px 0}
+.settings .grid{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.settings input[type=number]{width:80px;padding:7px 10px}
+.settings select{width:auto;padding:7px 10px}
+
+.toast{position:fixed;left:50%;top:max(16px,env(safe-area-inset-top));transform:translate(-50%,-20px);z-index:10;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+[hidden]{display:none!important}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1 class="brand">Word<span>hoard</span></h1>
+    <nav role="tablist">
+      <button role="tab" data-tab="review" aria-selected="true">Review <span class="badge" id="dueBadge" hidden></span></button>
+      <button role="tab" data-tab="discover">Discover</button>
+      <button role="tab" data-tab="add">Add</button>
+      <button role="tab" data-tab="words">Words</button>
+    </nav>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <main>
+    <section id="review"></section>
+    <section id="discover" hidden></section>
+
+    <section id="add" hidden>
+      <form id="lookupForm" class="row" autocomplete="off">
+        <input type="text" id="newWord" placeholder="Type a word you just met…" autocapitalize="off" spellcheck="false" required>
+        <button class="btn primary" id="lookupBtn">Look up</button>
+      </form>
+      <p class="muted" id="lookupStatus">Checks the built-in word list, then an online dictionary. You can edit anything before saving.</p>
+
+      <form id="addForm" hidden>
+        <div class="card" style="padding:20px">
+          <p class="word" id="addWordTitle" style="font-size:32px"></p>
+          <div class="phon" id="addPhon"></div>
+          <div id="sensesWrap" hidden>
+            <label>Which meaning did you see?</label>
+            <div class="senses" id="senses"></div>
+          </div>
+          <label for="fPos">Part of speech</label>
+          <input type="text" id="fPos" placeholder="noun, verb, adjective…">
+          <label for="fDef">Definition</label>
+          <textarea id="fDef" required></textarea>
+          <label for="fEx">Usage example</label>
+          <textarea id="fEx" placeholder="No example found. Paste the sentence where you saw it."></textarea>
+          <label for="fNote">Your note</label>
+          <textarea id="fNote" placeholder="A translation, where you saw it, a memory hook…"></textarea>
+          <div class="row" style="margin-top:18px;justify-content:flex-end">
+            <button type="button" class="btn ghost" id="cancelAdd">Cancel</button>
+            <button class="btn primary">Save word</button>
+          </div>
+        </div>
+      </form>
+
+      <details class="settings">
+        <summary>Add many at once</summary>
+        <p>Paste one word per line. Each gets its most common meaning; edit later in Words.</p>
+        <textarea id="bulkText" rows="6" placeholder="ubiquitous&#10;candid&#10;meticulous"></textarea>
+        <div class="row" style="margin-top:8px;justify-content:flex-end"><button class="btn" id="bulkBtn">Add all</button></div>
+      </details>
+    </section>
+
+    <section id="words" hidden>
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="Search words">
+        <select id="filter" aria-label="Filter">
+          <option value="all">All</option>
+          <option value="new">New</option>
+          <option value="learning">Learning</option>
+          <option value="mature">Mastered</option>
+          <option value="tricky">Tricky</option>
+        </select>
+      </div>
+      <div id="list"></div>
+    </section>
+  </main>
+
+  <details class="settings">
+    <summary>Settings &amp; backup</summary>
+    <div class="grid">
+      <span>Your level</span><select id="levelSel"></select><span id="sizeNote"></span>
+      <button class="btn ghost" data-place>Retake level test</button>
+    </div>
+    <div class="grid">
+      <span>New words per day</span><input type="number" id="newPerDay" min="0" max="100">
+    </div>
+    <div class="grid">
+      <button class="btn" id="exportBtn">Export backup</button>
+      <button class="btn" id="importBtn">Import backup</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <select id="theme" aria-label="Theme">
+        <option value="">Auto theme</option><option value="light">Light</option><option value="dark">Dark</option>
+      </select>
+    </div>
+    <p>Words are stored in this browser only. Export a backup now and then.</p>
+    <p>Word list from <a href="https://wordnet.princeton.edu/">WordNet</a> and <a href="https://github.com/rspeer/wordfreq">wordfreq</a> (CC BY-SA 4.0). Online lookups via <a href="https://dictionaryapi.dev/">Free Dictionary API</a>.</p>
+  </details>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="words.js"></script>
+<script>
+const KEY = 'wordhoard.v1';
+const MIN = 60e3, DAY = 864e5;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const todayKey = () => new Date().toLocaleDateString('en-CA');
+const startOfDay = (t = Date.now()) => { const d = new Date(t); d.setHours(0,0,0,0); return d.getTime(); };
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const SPEAK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+
+// ---------- Word database ----------
+const DICT = new Map((window.WORDS || []).map(([word, pos, z, rank, definition, example, synonyms]) => [word, { word, pos, z, rank, definition, example, synonyms }]));
+const BY_RANK = [...DICT.values()].sort((a, b) => a.rank - b.rank);
+const MAX_RANK = BY_RANK.at(-1)?.rank || 25000;
+const lowerBound = r => { let lo = 0, hi = BY_RANK.length; while (lo < hi) { const m = lo + hi >> 1; BY_RANK[m].rank < r ? lo = m + 1 : hi = m; } return lo; };
+
+// Vocabulary size (base words known) → CEFR/IELTS. Rough, after Milton (2010) and the official IELTS–CEFR mapping.
+const LEVELS = [
+  { id: 'A1', min: 0, ielts: [2, 3], name: 'Beginner' },
+  { id: 'A2', min: 1000, ielts: [3, 3.5], name: 'Elementary' },
+  { id: 'B1', min: 2000, ielts: [4, 5], name: 'Intermediate' },
+  { id: 'B2', min: 3500, ielts: [5.5, 6.5], name: 'Upper intermediate' },
+  { id: 'C1', min: 6000, ielts: [7, 8], name: 'Advanced' },
+  { id: 'C2', min: 9000, ielts: [8.5, 9], name: 'Proficient' },
+  { id: 'C2+', min: 13000, ielts: [9, 9], name: 'Native-like' },
+];
+const NATIVE = 18000;
+const levelIdx = n => LEVELS.findLastIndex(l => n >= l.min);
+const levelOf = n => LEVELS[levelIdx(n)];
+function ieltsOf(n) {
+  const i = levelIdx(n), L = LEVELS[i], hi = LEVELS[i + 1]?.min ?? MAX_RANK;
+  const f = Math.min(1, (n - L.min) / (hi - L.min));
+  return (Math.round((L.ielts[0] + f * (L.ielts[1] - L.ielts[0])) * 2) / 2).toFixed(1);
+}
+const fmtN = n => n.toLocaleString('en-US');
+
+// Option text style varies by source, so normalise to avoid giving the answer away.
+const tidy = s => { s = String(s).trim().replace(/[.;]+$/, ''); return s.charAt(0).toUpperCase() + s.slice(1); };
+
+// Distractors come from words of similar frequency so the right answer doesn't stand out.
+function distractors(word, pos, def, rank) {
+  const i = lowerBound(rank), near = BY_RANK.slice(Math.max(0, i - 400), i + 400), w = word.toLowerCase(), want = tidy(def).toLowerCase();
+  let pool = near.filter(e => e.pos === pos && e.word !== w);
+  if (pool.length < 10) pool = near.filter(e => e.word !== w);
+  const out = new Set();
+  for (let tries = 0; out.size < 3 && tries < 50; tries++) {
+    const d = tidy(pool[Math.random() * pool.length | 0].definition);
+    if (d.toLowerCase() !== want) out.add(d);
+  }
+  return [...out];
+}
+function makeChoice(word, pos, def, rank) {
+  const right = tidy(def), opts = shuffle([right, ...distractors(word, pos, def, rank)]);
+  return { opts, answer: opts.indexOf(right) };
+}
+const rankOf = w => DICT.get(w.toLowerCase())?.rank ?? db.profile.size ?? 4000;
+
+// ---------- Storage ----------
+let db = load();
+function load() {
+  const base = { cards: [], settings: { newPerDay: 10, theme: '' }, days: {}, newLog: {}, profile: { size: null, top10k: null, tests: [], known: {}, skipped: {}, hist: [] } };
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if (d && Array.isArray(d.cards)) return { ...base, ...d, settings: { ...base.settings, ...d.settings }, profile: { ...base.profile, ...d.profile } };
+  } catch {}
+  return base;
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(db)); }
+  catch { toast('Could not save: browser storage is unavailable'); }
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ---------- Spaced repetition (SM-2 variant, day-aligned) ----------
+const status = c => c.last == null ? 'new' : c.interval >= 21 ? 'mature' : 'learning';
+
+function nextState(c, g, fuzz = true) {
+  const n = { ...c, last: Date.now() };
+  if (g === 0) {
+    n.lapses = c.lapses + (c.reps > 0 ? 1 : 0);
+    n.reps = 0; n.interval = 0;
+    n.ease = Math.max(1.3, c.ease - 0.2);
+    n.due = Date.now() + 10 * MIN;
+    return n;
+  }
+  let iv;
+  if (c.reps === 0) iv = [0, 1, 1, 4][g];
+  else if (c.reps === 1) iv = [0, 2, 3, 6][g];
+  else iv = c.interval * [0, 1.2, c.ease, c.ease * 1.3][g];
+  if (g >= 2) iv = Math.max(iv, c.interval + 1);
+  if (fuzz && iv > 3) iv *= 0.95 + Math.random() * 0.1;
+  iv = Math.max(1, Math.round(iv));
+  n.ease = Math.max(1.3, c.ease + [0, -0.15, 0, 0.15][g]);
+  n.reps = c.reps + 1; n.interval = iv;
+  n.due = startOfDay() + iv * DAY;
+  return n;
+}
+const fmtDays = d => d < 30 ? d + 'd' : d < 365 ? Math.round(d / 30) + 'mo' : (d / 365).toFixed(1).replace('.0', '') + 'y';
+const fmtIv = (c, g) => g === 0 ? '10m' : fmtDays(nextState(c, g, false).interval);
+function fmtDue(t) {
+  if (t <= Date.now()) return 'due now';
+  const days = Math.round((startOfDay(t) - startOfDay()) / DAY);
+  return days <= 0 ? 'later today' : days === 1 ? 'tomorrow' : 'in ' + fmtDays(days);
+}
+
+function dueReviews() { const now = Date.now(); return db.cards.filter(c => c.last != null && c.due <= now).sort((a, b) => a.due - b.due); }
+function newQuota() { return Math.max(0, db.settings.newPerDay - (db.newLog[todayKey()] || 0)); }
+function newCards() { return db.cards.filter(c => c.last == null).sort((a, b) => a.added - b.added).slice(0, newQuota()); }
+
+function streak() {
+  let n = 0; const d = new Date();
+  if (!db.days[todayKey()]) d.setDate(d.getDate() - 1);
+  while (db.days[d.toLocaleDateString('en-CA')]) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+
+// ---------- Text helpers ----------
+function wordRe(word) {
+  const stem = word.length > 4 ? word.replace(/(e|y)$/i, '') : word;
+  return new RegExp(`\\b${stem.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[a-z]*`, 'gi');
+}
+function markWord(text, word, wrap) {
+  if (!text) return '';
+  let out = '', last = 0;
+  for (const m of text.matchAll(wordRe(word))) { out += esc(text.slice(last, m.index)) + wrap(esc(m[0])); last = m.index + m[0].length; }
+  return out + esc(text.slice(last));
+}
+const bold = (t, w) => markWord(t, w, s => `<b>${s}</b>`);
+const cloze = (t, w) => markWord(t, w, () => '<span class="blank"></span>');
+
+function lev(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+
+const headHtml = c => `<div class="word">${esc(c.word)}</div><div class="phon">${c.pos ? `<span class="pos">${esc(c.pos)}</span>` : ''}${c.phonetic ? `<span>${esc(c.phonetic)}</span>` : ''}<button class="speak" data-speak="${esc(c.word)}" aria-label="Pronounce">${SPEAK_SVG}</button></div>`;
+const exHtml = c => c.example ? `<p class="ex">${bold(c.example, c.word)}</p>` : '';
+const synHtml = c => c.synonyms?.length ? `<p class="syn">Similar: ${esc(c.synonyms.join(', '))}</p>` : '';
+const noteHtml = c => c.note ? `<p class="note">${esc(c.note)}</p>` : '';
+const optsHtml = (q, picked, done) => `<div class="opts">${q.opts.map((o, i) => {
+  const cls = !done ? '' : i === q.answer ? 'right' : i === picked ? 'wrong' : 'dim';
+  return `<button class="opt ${cls}" data-opt="${i}" ${done ? 'disabled' : ''}><span class="k">${i + 1}</span><span>${esc(o)}</span></button>`;
+}).join('')}${done ? '' : `<button class="opt unsure" data-opt="-1">I don't know</button>`}</div>`;
+
+// ---------- Review session ----------
+let session = null;
+
+function buildSession() {
+  const rev = dueReviews().map(c => c.id), fresh = newCards().map(c => c.id), q = [];
+  // One new word after every three reviews.
+  while (rev.length || fresh.length) {
+    for (let i = 0; i < 3 && rev.length; i++) q.push(rev.shift());
+    if (fresh.length) q.push(fresh.shift());
+  }
+  session = { queue: q, total: q.length, done: 0, cur: null };
+  advance();
+}
+
+// New words are shown in full first; learning words are tested by multiple choice, then typed recall once they stick.
+function pickMode(c) {
+  if (c.last == null || !c.definition) return 'learn';
+  if (c.reps < 3) return 'choice';
+  const r = Math.random();
+  return r < 0.45 ? 'choice' : r < 0.85 ? 'recall' : 'recognize';
+}
+
+function advance() {
+  fix = null;
+  const id = session.queue.shift(), c = db.cards.find(x => x.id === id);
+  if (!c) { session.cur = null; renderReview(); return; }
+  const mode = pickMode(c);
+  session.cur = { id, mode, revealed: mode === 'learn', verdict: null, typed: '', picked: null,
+    q: mode === 'choice' ? makeChoice(c.word, c.pos, c.definition, rankOf(c.word)) : null };
+  renderReview();
+}
+
+function grade(g) {
+  const s = session?.cur; if (!s || !s.revealed) return;
+  const i = db.cards.findIndex(x => x.id === s.id), c = db.cards[i];
+  if (c.last == null) db.newLog[todayKey()] = (db.newLog[todayKey()] || 0) + 1;
+  db.cards[i] = nextState(c, g);
+  db.days[todayKey()] = (db.days[todayKey()] || 0) + 1;
+  if (g === 0) { session.queue.splice(Math.min(session.queue.length, 4), 0, s.id); session.total++; }
+  session.done++;
+  save(); refreshChrome(); advance();
+}
+
+function reveal() {
+  const s = session?.cur; if (!s || s.revealed) return;
+  if (s.mode === 'recall') {
+    const c = db.cards.find(x => x.id === s.id);
+    s.typed = ($('#recallInput')?.value || '').trim();
+    const a = s.typed.toLowerCase(), w = c.word.toLowerCase();
+    s.verdict = !a ? 'no' : a === w ? 'ok' : lev(a, w) <= (w.length > 6 ? 2 : 1) ? 'near' : 'no';
+  }
+  s.revealed = true; renderReview();
+}
+
+function choose(i) {
+  const s = session?.cur; if (!s || s.mode !== 'choice' || s.revealed) return;
+  s.picked = i; s.verdict = i === s.q.answer ? 'ok' : 'no'; s.revealed = true; renderReview();
+}
+
+const hintGrade = s => s.verdict === 'no' ? 0 : s.verdict === 'near' ? 1 : 2;
+
+function renderReview() {
+  const el = $('#review');
+  if (!db.cards.length) {
+    el.innerHTML = `<div class="empty card"><h2>Start your hoard</h2>
+      <p>Take a 2-minute level test and Wordhoard will suggest the most useful words for you, or add words you meet while reading.</p>
+      <div class="btns">${db.profile.size == null ? `<button class="btn primary" data-place>Find my level</button>` : `<button class="btn primary" data-go="discover">Get suggestions</button>`}<button class="btn" data-go="add">Add my own word</button></div></div>`;
+    return;
+  }
+  if (!session || !session.cur) {
+    if (dueReviews().length || newCards().length) { buildSession(); return; }
+    const upcoming = db.cards.filter(c => c.last != null).sort((a, b) => a.due - b.due)[0];
+    const waitingNew = db.cards.filter(c => c.last == null).length, did = session?.done;
+    let sub = upcoming ? `Next review ${fmtDue(upcoming.due)}.` : '';
+    if (waitingNew && !newQuota()) sub += ` ${plural(waitingNew, 'new word')} wait for tomorrow.`;
+    el.innerHTML = `<div class="empty card"><h2>${did ? 'Session done' : 'All caught up'}</h2>
+      <p>${did ? `You reviewed ${plural(did, 'card')}. ` : ''}${esc(sub.trim()) || 'Nothing due.'}</p>
+      <div class="btns"><button class="btn primary" data-go="discover">Discover new words</button></div></div>`;
+    return;
+  }
+  const s = session.cur, c = db.cards.find(x => x.id === s.id);
+  const pct = Math.round(session.done / Math.max(1, session.total) * 100);
+  let body;
+  if (s.mode === 'learn') {
+    body = `<div class="kind"><span>New word</span></div>${headHtml(c)}${c.definition ? `<p class="def">${esc(c.definition)}</p>` : ''}${exHtml(c)}${synHtml(c)}${noteHtml(c)}`;
+  } else if (s.mode === 'recognize') {
+    body = `<div class="kind"><span>Do you remember?</span></div>${headHtml(c)}${s.revealed ? `<hr class="split"><p class="def">${esc(c.definition)}</p>${exHtml(c)}${synHtml(c)}${noteHtml(c)}` : ''}`;
+  } else if (s.mode === 'choice') {
+    body = `<div class="kind"><span>Pick the meaning</span></div>${headHtml(c)}${optsHtml(s.q, s.picked, s.revealed)}
+      ${s.revealed ? `<div class="verdict ${s.verdict}">${s.verdict === 'ok' ? 'Correct' : s.picked === -1 ? 'Now you know' : 'Not quite'}</div>${exHtml(c)}${synHtml(c)}${noteHtml(c)}` : ''}`;
+  } else {
+    const msg = { ok: 'Correct', near: `Close: you typed “${esc(s.typed)}”`, no: s.typed ? `You typed “${esc(s.typed)}”` : 'No answer' }[s.verdict];
+    body = `<div class="kind"><span>Which word fits?</span></div>
+      ${c.pos ? `<div class="phon"><span class="pos">${esc(c.pos)}</span></div>` : ''}
+      <p class="def" style="margin-top:4px">${cloze(c.definition, c.word)}</p>
+      ${c.example ? `<p class="ex">${cloze(c.example, c.word)}</p>` : ''}
+      ${s.revealed
+        ? `<div class="verdict ${s.verdict}">${msg}</div><hr class="split">${headHtml(c)}${exHtml(c)}${noteHtml(c)}`
+        : `<form class="recall" id="recallForm" autocomplete="off"><input type="text" id="recallInput" placeholder="Type the word" autocapitalize="off" spellcheck="false" autocorrect="off"><button class="btn primary">Check</button></form>`}`;
+  }
+  let actions = '';
+  if (s.mode === 'learn') {
+    actions = `<div class="pair"><button class="btn" data-g="0">Show again soon</button><button class="btn primary" data-g="2">Got it</button></div><div class="keys"><kbd>Space</kbd> got it</div>`;
+  } else if (s.revealed) {
+    const hint = s.verdict ? hintGrade(s) : -1;
+    actions = `<div class="grades">${['Again', 'Hard', 'Good', 'Easy'].map((l, g) => `<button data-g="${g}" class="${g === hint ? 'hint' : ''}">${l}<small>${fmtIv(c, g)}</small></button>`).join('')}</div>
+      <div class="keys">${s.verdict ? '<kbd>Space</kbd> accept · ' : ''}<kbd>1</kbd>–<kbd>4</kbd> to grade</div>`;
+  } else if (s.mode === 'recognize') {
+    actions = `<button class="wide" data-reveal>Show meaning</button><div class="keys"><kbd>Space</kbd> to reveal</div>`;
+  } else if (s.mode === 'choice') {
+    actions = `<div class="keys"><kbd>1</kbd>–<kbd>4</kbd> to choose</div>`;
+  }
+  const fixable = s.revealed && c.definition;
+  if (fix?.target === 'review') actions = fixPanel();
+  el.innerHTML = `<div class="progress"><i style="width:${pct}%"></i></div><div class="card">${body}${fixable && !fix ? fixLink : ''}</div><div class="actions">${actions}</div>`;
+  if (s.mode === 'recall' && !s.revealed) $('#recallInput').focus({ preventScroll: true });
+}
+
+// ---------- "Wrong meaning?": swap a word's sense for another dictionary sense ----------
+let fix = null;
+const fixLink = `<div class="fixrow"><button class="link" data-fix>Wrong meaning?</button></div>`;
+
+async function startFix(target) {
+  const word = target === 'review' ? db.cards.find(x => x.id === session.cur.id).word : sug.e.word;
+  fix = { target, word, loading: true, list: [] };
+  rerender();
+  const r = await senses(word);
+  if (fix?.word !== word) return;
+  Object.assign(fix, { loading: false, list: r.list, offline: r.failed || r.list.length < 2 && !navigator.onLine });
+  rerender();
+}
+function current() { return fix.target === 'review' ? db.cards.find(x => x.id === session.cur.id) : sug.e; }
+function pickFix(i) {
+  const s = fix.list[i], c = current();
+  // Keep the old example only if the new sense has none.
+  const upd = { pos: s.pos, definition: s.definition, example: s.example || c.example, synonyms: s.synonyms || [] };
+  if (fix.target === 'review') Object.assign(c, upd); else sug.e = { ...sug.e, ...upd };
+  save(); fix = null; toast('Meaning updated'); rerender();
+}
+function fixPanel() {
+  if (fix.loading) return `<div class="card fix"><p class="muted" style="margin:0">Looking up other meanings…</p></div>`;
+  const cur = tidy(current().definition);
+  const others = fix.list.map((s, i) => [s, i]).filter(([s]) => tidy(s.definition) !== cur);
+  return `<div class="card fix"><div class="kind"><span>Pick the meaning you want to learn</span></div>
+    ${others.length ? `<div class="senses">${others.map(([s, i]) => `<button type="button" class="sense" data-fix-pick="${i}"><span class="pos">${esc(s.pos)}</span><span>${esc(s.definition)}${s.example ? `<br><i class="muted">“${esc(s.example)}”</i>` : ''}</span></button>`).join('')}</div>`
+      : `<p class="muted">${fix.offline ? "Can't reach the online dictionary." : 'No other meanings found.'} You can edit this word by hand in Words.</p>`}
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn ghost" data-fix-edit>${fix.target === 'sug' && !findCard(fix.word) ? 'Learn &amp; edit by hand' : 'Edit by hand'}</button><button class="btn" data-fix-cancel>Cancel</button></div></div>`;
+}
+function rerender() { tab === 'review' ? renderReview() : renderDiscover(); }
+
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-fix]')) startFix(tab === 'review' ? 'review' : 'sug');
+  const p = e.target.closest('[data-fix-pick]'); if (p && fix) pickFix(+p.dataset.fixPick);
+  if (e.target.closest('[data-fix-cancel]')) { fix = null; rerender(); }
+  if (e.target.closest('[data-fix-edit]') && fix) {
+    const w = fix.word; fix = null;
+    if (!findCard(w)) decide('learn');
+    openId = findCard(w).id; $('#search').value = w; show('words');
+  }
+});
+
+// ---------- Level test: estimates vocabulary size by sampling each frequency band ----------
+const TEST_BANDS = [[1, 1000, 3], [1000, 2500, 3], [2500, 4000, 4], [4000, 6000, 4], [6000, 9000, 4], [9000, 13000, 4], [13000, 18000, 4], [18000, MAX_RANK + 1, 4]];
+const TEST_MAX = TEST_BANDS.reduce((a, b) => a + b[2], 0);
+let place = null, showLevel = false;
+
+function startPlacement() {
+  place = { b: 0, i: 0, step: 0, right: 0, wrong: 0, p: [], known: [], items: testItems(0), picked: null };
+  show('discover');
+}
+function testItems(b) {
+  const [lo, hi, n] = TEST_BANDS[b];
+  return shuffle(BY_RANK.slice(lowerBound(lo), lowerBound(hi))).slice(0, n)
+    .map(e => ({ e, q: makeChoice(e.word, e.pos, e.definition, e.rank) }));
+}
+function answerPlacement(i) {
+  if (!place || place.done || place.picked != null) return;
+  const it = place.items[place.i], ok = i === it.q.answer;
+  place.picked = i;
+  if (ok) { place.right++; place.known.push(it.e.word); } else if (i >= 0) place.wrong++;
+  renderDiscover();
+  setTimeout(() => {
+    place.picked = null; place.i++; place.step++;
+    if (place.i < place.items.length) return renderDiscover();
+    // Guessing correction: with 4 options, every 3 wrong guesses imply about 1 lucky right one.
+    const p = Math.max(0, Math.min(1, (place.right - place.wrong / 3) / place.items.length));
+    place.p.push(p);
+    if (p > 0.25 && place.b < TEST_BANDS.length - 1) {
+      Object.assign(place, { b: place.b + 1, i: 0, right: 0, wrong: 0, items: testItems(place.b + 1) });
+      return renderDiscover();
+    }
+    finishPlacement();
+  }, ok ? 450 : 1100);
+}
+function finishPlacement() {
+  let size = 0, top = 0;
+  place.p.forEach((p, b) => { const [lo, hi] = TEST_BANDS[b]; size += (hi - lo) * p; top += Math.max(0, Math.min(hi, 10001) - lo) * p; });
+  const pr = db.profile;
+  pr.size = Math.round(size / 50) * 50; pr.top10k = top / 10000;
+  pr.tests = [...pr.tests, { at: Date.now(), size: pr.size }].slice(-20);
+  for (const w of place.known) pr.known[w] = 1;
+  pr.hist = []; sug = null;
+  place = { done: true };
+  save(); syncLevelSel(); refreshChrome(); renderDiscover();
+}
+
+function compareText(S) {
+  const pct = Math.round(Math.min(1, S / NATIVE) * 100);
+  const use = S < 2000 ? 'Enough for simple everyday conversations.'
+    : S < 3500 ? 'Enough for most everyday conversations; news articles will still be hard.'
+    : S < 6000 ? 'Comfortable in conversation; news and TV still have regular gaps.'
+    : S < 9000 ? 'You can follow most news and TV; novels still have gaps.'
+    : 'Enough to read novels and newspapers with ease (research puts that at 8,000–9,000 words).';
+  return `${use} That's about ${pct}% of a typical native adult's vocabulary (≈${fmtN(NATIVE)} words on this list).`;
+}
+function levelCard() {
+  const pr = db.profile, S = pr.size, L = levelOf(S), prev = pr.tests.at(-2)?.size;
+  const x = n => Math.min(100, Math.sqrt(n / (NATIVE * 1.15)) * 100);
+  const marks = [['B1', 2000], ['B2', 3500], ['C1', 6000], ['C2', 9000], ['Native', NATIVE]];
+  return `<div class="card level">
+    <div class="kind"><span>Your vocabulary</span>${prev != null && pr.top10k != null ? `<span>${S >= prev ? '+' : ''}${fmtN(S - prev)} since last test</span>` : ''}</div>
+    <div class="big">≈${fmtN(S)}<small> words</small></div>
+    <div class="metrics">
+      <div><b>${L.id}</b><span>CEFR · ${L.name}</span></div>
+      <div><b>${ieltsOf(S)}</b><span>IELTS-equivalent</span></div>
+      ${pr.top10k != null ? `<div><b>${Math.round(pr.top10k * 100)}%</b><span>of the 10,000 most common words</span></div>` : ''}
+    </div>
+    <div class="scale" aria-hidden="true"><div class="track"><i style="width:${x(S)}%"></i></div>
+      ${marks.map(([l, n]) => `<span class="mk" style="left:${x(n)}%">${l}</span>`).join('')}
+      <span class="you" style="left:${Math.max(4, Math.min(96, x(S)))}%">You</span></div>
+    <p class="muted" style="margin:0">${compareText(S)}</p>
+    <p class="fine">${pr.top10k != null ? 'Estimated from how many words you recognised at each frequency level.' : 'Based on the level you chose. Take the test for a measured estimate.'} This measures vocabulary only. An IELTS score also covers grammar, listening, speaking and writing.</p>
+  </div>`;
+}
+
+// ---------- Suggestions: most frequent words just past what you know ----------
+let sug = null;
+const SKIP_DAYS = 30;
+
+function nextSuggestion() {
+  const S = db.profile.size, now = Date.now(), seen = new Set(sug?.recent || []);
+  const hoard = new Set(db.cards.map(c => c.word.toLowerCase()));
+  const ok = e => !db.profile.known[e.word] && !hoard.has(e.word) && !seen.has(e.word) && !(db.profile.skipped[e.word] > now - SKIP_DAYS * DAY);
+  // Start a bit below the estimated frontier (gaps are common there); every fourth word stretches above it.
+  const stretch = (sug?.count || 0) % 4 === 3;
+  const from = lowerBound(Math.round(S * (stretch ? 1.25 : 0.75)));
+  for (let i = from; i < BY_RANK.length; i++) if (ok(BY_RANK[i])) return BY_RANK[i];
+  for (let i = from - 1; i >= 0; i--) if (ok(BY_RANK[i])) return BY_RANK[i];
+  return null;
+}
+function newSuggestion() {
+  fix = null;
+  const e = nextSuggestion();
+  sug = { e, revealed: false, count: (sug?.count || 0) + 1, recent: [...(sug?.recent || []), e?.word].slice(-50) };
+  renderDiscover();
+}
+function decide(kind) {
+  if (!sug?.e) return;
+  const e = sug.e, pr = db.profile;
+  if (kind === 'know') pr.known[e.word] = 1;
+  if (kind === 'skip') pr.skipped[e.word] = Date.now();
+  if (kind === 'learn') {
+    db.cards.push(makeCard({ word: e.word, pos: e.pos, definition: e.definition, example: e.example, synonyms: e.synonyms }));
+    toast(`Added “${e.word}” to your reviews`);
+  }
+  // Recalibrate if suggestions are clearly too easy or too hard.
+  const h = pr.hist = [...pr.hist, kind === 'know' ? 1 : 0].slice(-12);
+  if (h.length === 12) {
+    const k = h.reduce((a, b) => a + b);
+    if (k >= 10) { pr.size = Math.min(MAX_RANK, Math.round(pr.size * 1.15 / 50) * 50); pr.hist = []; toast(`You know most of these. Raising your estimate to ≈${fmtN(pr.size)} words.`); }
+    else if (k <= 1 && pr.size > 1000) { pr.size = Math.round(pr.size * 0.9 / 50) * 50; pr.hist = []; toast('Suggesting more common words first.'); }
+    syncLevelSel(); refreshChrome();
+  }
+  save(); refreshChrome(); newSuggestion();
+}
+
+function renderDiscover() {
+  const el = $('#discover');
+  if (place && !place.done) {
+    const it = place.items[place.i];
+    el.innerHTML = `<div class="progress"><i style="width:${Math.round(place.step / TEST_MAX * 100)}%"></i></div>
+      <div class="card"><div class="kind"><span>Level test · question ${place.step + 1}</span><span class="chip">${levelOf(it.e.rank).id} word</span></div>
+      ${headHtml(it.e)}${optsHtml(it.q, place.picked, place.picked != null)}</div>
+      <div class="actions"><div class="keys"><kbd>1</kbd>–<kbd>4</kbd> to choose</div>
+      <p class="muted" style="text-align:center;margin:8px 0 0">Choose “I don't know” rather than guessing. The test gets harder until it finds your edge.</p>
+      <div style="text-align:center;margin-top:4px"><button class="btn ghost" data-cancel-place>Cancel test</button></div></div>`;
+    return;
+  }
+  if (place?.done) {
+    el.innerHTML = `${levelCard()}<div class="actions"><button class="wide" data-start-sug>See my suggested words</button></div>`;
+    return;
+  }
+  if (db.profile.size == null) {
+    el.innerHTML = `<div class="empty card"><h2>How big is your vocabulary?</h2>
+      <p>A quick test (2–4 minutes) estimates how many English words you know, with CEFR and IELTS equivalents. Wordhoard then suggests the most useful words just beyond your level.</p>
+      <div class="btns"><button class="btn primary" data-place>Take the level test</button></div>
+      <p class="muted" style="margin:18px 0 0">Or choose a level: ${LEVELS.slice(0, 6).map((l, i) => `<button class="btn ghost" data-setlevel="${i}">${l.id}</button>`).join('')}</p></div>`;
+    return;
+  }
+  if (!sug) return newSuggestion();
+  const e = sug.e, S = db.profile.size, L = levelOf(S);
+  const summary = `<div class="row" style="align-items:center;justify-content:space-between;margin:0 0 10px">
+    <span class="muted">≈${fmtN(S)} words · ${L.id} · IELTS ≈${ieltsOf(S)}</span>
+    <button class="btn ghost" data-toggle-level style="padding:4px 8px">${showLevel ? 'Hide' : 'My level'}</button></div>
+    ${showLevel ? levelCard() + '<div style="height:14px"></div>' : ''}`;
+  if (!e) { el.innerHTML = summary + `<div class="empty card"><h2>You've seen every word</h2><p>Add your own words from what you read.</p></div>`; return; }
+  const kind = e.rank > S * 1.15 ? 'Stretch word' : e.rank < S * 0.6 ? 'Common word you may have missed' : 'Useful at your level';
+  el.innerHTML = `${summary}
+    <div class="card"><div class="kind"><span>${kind}</span><span class="chip">${levelOf(e.rank).id} · #${fmtN(e.rank)}</span></div>
+    ${headHtml(e)}${exHtml(e)}${sug.revealed ? `<hr class="split"><p class="def">${esc(e.definition)}</p>${synHtml(e)}${fix ? '' : fixLink}` : ''}</div>
+    <div class="actions">${fix?.target === 'sug' ? fixPanel() : sug.revealed
+      ? `<div class="pair"><button class="btn" data-decide="skip">Not now</button><button class="btn primary" data-decide="learn">Learn this word</button></div>
+         <div style="text-align:center;margin-top:6px"><button class="btn ghost" data-decide="know">Actually, I know it</button></div><div class="keys"><kbd>Enter</kbd> learn · <kbd>S</kbd> not now</div>`
+      : `<div class="pair"><button class="btn" data-decide="know">I know it</button><button class="btn primary" data-sug-reveal>Show meaning</button></div><div class="keys"><kbd>K</kbd> know it · <kbd>Space</kbd> show meaning</div>`}</div>`;
+}
+
+$('#discover').addEventListener('click', e => {
+  const o = e.target.closest('[data-opt]'); if (o && place && !place.done) return answerPlacement(+o.dataset.opt);
+  if (e.target.closest('[data-cancel-place]')) { place = null; renderDiscover(); }
+  if (e.target.closest('[data-start-sug]')) { place = null; sug = null; renderDiscover(); }
+  if (e.target.closest('[data-toggle-level]')) { showLevel = !showLevel; renderDiscover(); }
+  const sl = e.target.closest('[data-setlevel]'); if (sl) setLevel(+sl.dataset.setlevel);
+  if (e.target.closest('[data-sug-reveal]')) { sug.revealed = true; renderDiscover(); }
+  const d = e.target.closest('[data-decide]'); if (d) decide(d.dataset.decide);
+});
+
+function setLevel(i) {
+  const pr = db.profile;
+  pr.size = LEVELS[i + 1] ? Math.round((LEVELS[i].min + LEVELS[i + 1].min) / 2) : 16000;
+  pr.top10k = null; pr.hist = []; sug = null;
+  save(); syncLevelSel(); refreshChrome(); if (tab === 'discover') renderDiscover();
+}
+function syncLevelSel() {
+  const S = db.profile.size;
+  $('#levelSel').innerHTML = (S == null ? '<option value="">Not set</option>' : '') + LEVELS.map((l, i) => `<option value="${i}">${l.id} · ${l.name}</option>`).join('');
+  $('#levelSel').value = S == null ? '' : levelIdx(S);
+  $('#sizeNote').textContent = S == null ? '' : `≈${fmtN(S)} words`;
+}
+$('#levelSel').addEventListener('change', e => { if (e.target.value !== '') setLevel(+e.target.value); });
+
+// ---------- Pronunciation ----------
+let voice;
+function pickVoice() {
+  const vs = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang));
+  voice = vs.find(v => /en[-_](GB|US)/i.test(v.lang) && v.localService) || vs[0];
+}
+if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(word) {
+  const audio = db.cards.find(c => c.word === word)?.audio || (draft?.word === word && draft.audio);
+  if (audio) { new Audio(audio).play().catch(() => tts(word)); return; }
+  tts(word);
+}
+function tts(text) {
+  if (!('speechSynthesis' in window)) return toast('Speech is not supported in this browser');
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text); if (voice) u.voice = voice; u.lang = voice?.lang || 'en-US'; u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+document.addEventListener('click', e => { const s = e.target.closest('[data-speak]'); if (s) speak(s.dataset.speak); });
+
+// ---------- Adding words ----------
+async function lookup(word) {
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 6000);
+  try {
+    const r = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(word), { signal: ctl.signal });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error('lookup failed');
+    // The API sometimes includes related headwords (e.g. "buff" for "buffer").
+    const all = await r.json(), same = all.filter(e => e.word?.toLowerCase() === word.toLowerCase()), data = same.length ? same : all;
+    return {
+      phonetic: data.map(e => e.phonetic || e.phonetics?.find(p => p.text)?.text).find(Boolean) || '',
+      audio: data.flatMap(e => e.phonetics || []).map(p => p.audio).find(Boolean) || '',
+      senses: data.flatMap(e => e.meanings.flatMap(m => m.definitions.map(d => ({
+        pos: m.partOfSpeech, definition: d.definition, example: d.example || '',
+        synonyms: [...new Set([...(d.synonyms || []), ...(m.synonyms || [])])].slice(0, 5),
+      })))),
+    };
+  } finally { clearTimeout(timer); }
+}
+// Built-in entry first (always has an example), then online senses.
+async function senses(word) {
+  const local = DICT.get(word.toLowerCase());
+  let res = null, failed = false;
+  try { res = await lookup(word); } catch { failed = true; }
+  const list = [...(local ? [local] : []), ...(res?.senses || []).filter(s => !local || tidy(s.definition) !== tidy(local.definition))];
+  return { list, phonetic: res?.phonetic || '', audio: res?.audio || '', failed: failed && !local };
+}
+
+let draft = null;
+const findCard = w => db.cards.find(c => c.word.toLowerCase() === w.toLowerCase());
+function makeCard(f) {
+  return { id: crypto.randomUUID?.() || String(Date.now() + Math.random()), added: Date.now(),
+    due: Date.now(), interval: 0, ease: 2.5, reps: 0, lapses: 0, last: null, note: '', example: '', pos: '', definition: '', synonyms: [], ...f };
+}
+
+$('#lookupForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const w = $('#newWord').value.trim().replace(/\s+/g, ' ');
+  if (!w) return;
+  const dup = findCard(w);
+  if (dup) { $('#lookupStatus').textContent = `“${dup.word}” is already in your hoard.`; return; }
+  $('#lookupBtn').disabled = true; $('#lookupStatus').textContent = 'Looking up…';
+  const r = await senses(w);
+  $('#lookupBtn').disabled = false;
+  const firstWithEx = r.list.findIndex(s => s.example);
+  draft = { word: w, phonetic: r.phonetic, audio: r.audio, senses: r.list, pick: Math.max(0, firstWithEx), synonyms: [] };
+  $('#lookupStatus').textContent = r.failed ? 'Dictionary unreachable. Fill in the meaning yourself.'
+    : !r.list.length ? 'Not found. Fill in the meaning yourself.'
+    : `${plural(r.list.length, 'meaning')} found.`;
+  showDraft();
+});
+
+function showDraft() {
+  $('#addForm').hidden = false;
+  $('#addWordTitle').textContent = draft.word;
+  $('#addPhon').innerHTML = `${draft.phonetic ? `<span>${esc(draft.phonetic)}</span>` : ''}<button type="button" class="speak" data-speak="${esc(draft.word)}" aria-label="Pronounce">${SPEAK_SVG}</button>`;
+  $('#sensesWrap').hidden = draft.senses.length < 2;
+  $('#senses').innerHTML = draft.senses.map((s, i) => `<button type="button" class="sense" data-sense="${i}"><span class="pos">${esc(s.pos)}</span><span>${esc(s.definition)}${s.example ? `<br><i class="muted">“${esc(s.example)}”</i>` : ''}</span></button>`).join('');
+  $('#fNote').value = '';
+  applySense(draft.pick);
+  if (!draft.senses.length) $('#fDef').focus();
+}
+function applySense(i) {
+  draft.pick = i;
+  const s = draft.senses[i] || { pos: '', definition: '', example: '', synonyms: [] };
+  $('#fPos').value = s.pos; $('#fDef').value = s.definition; $('#fEx').value = s.example; draft.synonyms = s.synonyms || [];
+  document.querySelectorAll('.sense').forEach(b => b.setAttribute('aria-pressed', b.dataset.sense == i));
+}
+$('#senses').addEventListener('click', e => { const b = e.target.closest('[data-sense]'); if (b) applySense(+b.dataset.sense); });
+
+$('#addForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if (findCard(draft.word)) return toast('Already in your hoard');
+  db.cards.push(makeCard({ word: draft.word, phonetic: draft.phonetic, audio: draft.audio, synonyms: draft.synonyms,
+    pos: $('#fPos').value.trim(), definition: $('#fDef').value.trim(), example: $('#fEx').value.trim(), note: $('#fNote').value.trim() }));
+  save(); toast(`Saved “${draft.word}”`);
+  draft = null; $('#addForm').hidden = true; $('#newWord').value = ''; $('#lookupStatus').textContent = 'Added. Look up the next one.';
+  refreshChrome(); $('#newWord').focus();
+});
+$('#cancelAdd').addEventListener('click', () => { draft = null; $('#addForm').hidden = true; $('#lookupStatus').textContent = ''; $('#newWord').focus(); });
+
+$('#bulkBtn').addEventListener('click', async () => {
+  const words = [...new Set($('#bulkText').value.split(/\n|,/).map(s => s.trim()).filter(Boolean))].filter(w => !findCard(w));
+  if (!words.length) return toast('Nothing new to add');
+  const btn = $('#bulkBtn'); btn.disabled = true;
+  const missing = [];
+  for (const [i, w] of words.entries()) {
+    btn.textContent = `Adding ${i + 1}/${words.length}…`;
+    const r = await senses(w), s = r.list.find(x => x.example) || r.list[0];
+    if (!s) missing.push(w);
+    db.cards.push(makeCard({ word: w, phonetic: r.phonetic, audio: r.audio, pos: s?.pos || '',
+      definition: s?.definition || '', example: s?.example || '', synonyms: s?.synonyms || [] }));
+    save();
+  }
+  btn.disabled = false; btn.textContent = 'Add all'; $('#bulkText').value = '';
+  toast(missing.length ? `Added ${words.length}. No meaning found for: ${missing.join(', ')}` : `Added ${plural(words.length, 'word')}`);
+  refreshChrome();
+});
+
+// ---------- Word list ----------
+let openId = null;
+function renderList() {
+  const q = $('#search').value.trim().toLowerCase(), f = $('#filter').value;
+  const cards = db.cards.filter(c => (f === 'all' || (f === 'tricky' ? c.lapses >= 2 : status(c) === f))
+    && (!q || [c.word, c.definition, c.note, c.example].some(t => (t || '').toLowerCase().includes(q))))
+    .sort((a, b) => b.added - a.added);
+  if (!db.cards.length) { $('#list').innerHTML = `<p class="muted">No words yet. Find some in Discover.</p>`; return; }
+  if (!cards.length) { $('#list').innerHTML = `<p class="muted">No matches.</p>`; return; }
+  const label = { new: 'new', learning: 'learning', mature: 'mastered' };
+  $('#list').innerHTML = `<div class="list">${cards.map(c => {
+    const st = status(c);
+    return `<div class="item" data-id="${c.id}"><button data-open aria-expanded="${openId === c.id}">
+      <span class="w">${esc(c.word)}</span>
+      <span class="s"><span class="tag ${st}">${label[st]}</span><br>${st === 'new' ? 'not studied' : fmtDue(c.due)}</span>
+      <span class="d">${c.pos ? `<i>${esc(c.pos)}</i> · ` : ''}${esc(c.definition) || '<em>no definition</em>'}</span>
+    </button>${openId === c.id ? editForm(c) : ''}</div>`;
+  }).join('')}</div><p class="muted" style="margin-top:10px">${cards.length} of ${plural(db.cards.length, 'word')}</p>`;
+}
+function editForm(c) {
+  return `<form class="edit" data-edit="${c.id}">
+    ${exHtml(c)}
+    <label>Part of speech</label><input type="text" name="pos" value="${esc(c.pos)}">
+    <label>Definition</label><textarea name="definition">${esc(c.definition)}</textarea>
+    <label>Usage example</label><textarea name="example">${esc(c.example)}</textarea>
+    <label>Your note</label><textarea name="note">${esc(c.note)}</textarea>
+    <p class="muted">${c.reps ? `Remembered ${c.reps}× in a row` : 'Not remembered yet'} · forgotten ${c.lapses}×${c.last ? ` · next ${fmtDue(c.due)}` : ''}</p>
+    <div class="row"><span><button type="button" class="btn danger" data-del>Delete</button> <button type="button" class="btn ghost" data-reset>Reset progress</button></span>
+    <span><button type="button" class="btn ghost" data-speak="${esc(c.word)}" aria-label="Pronounce">${SPEAK_SVG}</button> <button class="btn primary">Save</button></span></div>
+  </form>`;
+}
+$('#search').addEventListener('input', renderList);
+$('#filter').addEventListener('change', renderList);
+$('#list').addEventListener('click', e => {
+  const item = e.target.closest('.item'); if (!item) return;
+  const id = item.dataset.id, c = db.cards.find(x => x.id === id);
+  if (e.target.closest('[data-open]')) { openId = openId === id ? null : id; renderList(); return; }
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    if (del.dataset.armed) { db.cards = db.cards.filter(x => x.id !== id); openId = null; save(); toast(`Deleted “${c.word}”`); refreshChrome(); renderList(); }
+    else { del.dataset.armed = 1; del.textContent = 'Tap again to delete'; }
+  }
+  if (e.target.closest('[data-reset]')) {
+    Object.assign(c, { due: Date.now(), interval: 0, ease: 2.5, reps: 0, lapses: 0, last: null });
+    save(); toast('Progress reset'); refreshChrome(); renderList();
+  }
+});
+$('#list').addEventListener('submit', e => {
+  e.preventDefault();
+  const form = e.target, c = db.cards.find(x => x.id === form.dataset.edit);
+  for (const k of ['pos', 'definition', 'example', 'note']) c[k] = form.elements[k].value.trim();
+  openId = null; save(); toast('Saved'); renderList();
+});
+
+// ---------- Chrome, tabs, keys ----------
+function refreshChrome() {
+  const due = dueReviews().length, fresh = newCards().length, total = due + fresh;
+  const b = $('#dueBadge'); b.hidden = !total; b.textContent = total;
+  const mature = db.cards.filter(c => status(c) === 'mature').length, st = streak();
+  $('#stats').innerHTML = db.cards.length
+    ? `${db.profile.size != null ? `<span><b>${levelOf(db.profile.size).id}</b> · IELTS ≈<b>${ieltsOf(db.profile.size)}</b></span>` : ''}<span><b>${db.cards.length}</b> words</span><span><b>${mature}</b> mastered</span><span><b>${due}</b> due · <b>${fresh}</b> new</span><span><b>${st}</b> day streak${st ? ' 🔥' : ''}</span>`
+    : '';
+}
+
+let tab = 'review';
+function show(t) {
+  tab = t; fix = null;
+  document.querySelectorAll('[role=tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+  for (const id of ['review', 'discover', 'add', 'words']) $('#' + id).hidden = id !== t;
+  if (t === 'review') { if (!session?.cur) session = null; renderReview(); }
+  if (t === 'discover') renderDiscover();
+  if (t === 'add') $('#newWord').focus();
+  if (t === 'words') renderList();
+  window.scrollTo({ top: 0 });
+}
+document.querySelector('nav').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) show(b.dataset.tab); });
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-go]'); if (g) show(g.dataset.go);
+  if (e.target.closest('[data-place]')) startPlacement();
+});
+
+$('#review').addEventListener('click', e => {
+  if (e.target.closest('[data-reveal]')) reveal();
+  const o = e.target.closest('[data-opt]'); if (o) choose(+o.dataset.opt);
+  const g = e.target.closest('[data-g]'); if (g) grade(+g.dataset.g);
+});
+$('#review').addEventListener('submit', e => { if (e.target.id === 'recallForm') { e.preventDefault(); reveal(); } });
+
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.matches('input,textarea,select') || e.repeat) return;
+  if (fix) { if (e.key === 'Escape') { fix = null; rerender(); } return; }
+  const k = e.key, space = k === ' ' || k === 'Enter';
+  if (tab === 'review' && session?.cur) {
+    const s = session.cur;
+    if (s.mode === 'learn' && space) { e.preventDefault(); grade(2); }
+    else if (!s.revealed && s.mode === 'choice' && /^[1-4]$/.test(k)) choose(+k - 1);
+    else if (!s.revealed && s.mode === 'recognize' && space) { e.preventDefault(); reveal(); }
+    else if (s.revealed && s.mode !== 'learn' && /^[1-4]$/.test(k)) grade(+k - 1);
+    else if (s.revealed && s.mode !== 'learn' && space) { e.preventDefault(); grade(s.verdict ? hintGrade(s) : 2); }
+  } else if (tab === 'discover') {
+    if (place && !place.done && /^[1-4]$/.test(k)) answerPlacement(+k - 1);
+    else if (sug?.e && !place) {
+      if (!sug.revealed && k.toLowerCase() === 'k') decide('know');
+      else if (!sug.revealed && space) { e.preventDefault(); sug.revealed = true; renderDiscover(); }
+      else if (sug.revealed && k === 'Enter') decide('learn');
+      else if (sug.revealed && k.toLowerCase() === 's') decide('skip');
+    }
+  }
+});
+
+// ---------- Settings ----------
+$('#newPerDay').value = db.settings.newPerDay;
+$('#newPerDay').addEventListener('change', e => {
+  db.settings.newPerDay = Math.max(0, Math.min(100, +e.target.value || 0)); e.target.value = db.settings.newPerDay;
+  save(); refreshChrome(); if (tab === 'review' && !session?.cur) { session = null; renderReview(); }
+});
+function applyTheme() { if (db.settings.theme) document.documentElement.dataset.theme = db.settings.theme; else delete document.documentElement.dataset.theme; }
+$('#theme').value = db.settings.theme; applyTheme();
+$('#theme').addEventListener('change', e => { db.settings.theme = e.target.value; applyTheme(); save(); });
+
+$('#exportBtn').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' }));
+  a.download = `wordhoard-${todayKey()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+$('#importBtn').addEventListener('click', () => $('#importFile').click());
+$('#importFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  try {
+    const d = JSON.parse(await file.text());
+    if (!Array.isArray(d.cards)) throw 0;
+    const byWord = new Map(db.cards.map(c => [c.word.toLowerCase(), c]));
+    for (const c of d.cards) if (c?.word) byWord.set(c.word.toLowerCase(), makeCard(c));
+    db.cards = [...byWord.values()];
+    db.days = { ...db.days, ...d.days };
+    if (d.profile) db.profile = { ...db.profile, ...d.profile, known: { ...db.profile.known, ...d.profile.known } };
+    save(); session = null; sug = null; syncLevelSel(); refreshChrome(); show(tab); toast(`Imported ${plural(d.cards.length, 'word')}`);
+  } catch { toast('That file is not a Wordhoard backup'); }
+});
+
+syncLevelSel();
+refreshChrome();
+show('review');
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+// Ask the browser not to evict progress under storage pressure.
+navigator.storage?.persist?.().catch(() => {});
+</script>
