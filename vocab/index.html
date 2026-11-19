@@ -110,7 +110,7 @@ kbd{font-family:inherit;border:1px solid var(--rule);border-bottom-width:2px;bor
 .empty p{color:var(--muted);margin:0 0 20px}
 .empty .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .lvl{font-family:var(--f-display);font-size:64px;font-weight:600;color:var(--accent);line-height:1;margin:8px 0}
-.chip{display:inline-flex;gap:6px;align-items:center;background:var(--sunk);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted)}
+.chip{white-space:nowrap;flex:none;display:inline-flex;gap:6px;align-items:center;background:var(--sunk);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted)}
 
 .level .big{font-family:var(--f-display);font-size:44px;font-weight:600;line-height:1.1;margin:2px 0 14px}
 .level .big small{font-size:18px;color:var(--muted);font-weight:400}
@@ -144,6 +144,8 @@ textarea{resize:vertical;min-height:64px}
 .fixrow{margin-top:14px;text-align:right}
 .link{background:none;border:0;padding:4px 0;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .card.fix{padding:18px}
+.picked{margin:14px 0 0;font-size:14px;color:var(--muted)}
+.picked s{color:var(--again);text-decoration-thickness:1px}
 
 .toolbar{display:flex;gap:8px;margin-bottom:12px}
 .toolbar input{flex:1;min-width:0}
@@ -430,16 +432,14 @@ function buildSession() {
     for (let i = 0; i < 3 && rev.length; i++) q.push(rev.shift());
     if (fresh.length) q.push(fresh.shift());
   }
-  session = { queue: q, total: q.length, done: 0, cur: null };
+  session = { queue: q, total: q.length, done: 0, right: 0, missed: 0, cur: null };
   advance();
 }
 
-// New words are shown in full first; learning words are tested by multiple choice, then typed recall once they stick.
+// Multiple choice by default; well-known words sometimes switch to typed recall to keep them honest.
 function pickMode(c) {
-  if (c.last == null || !c.definition) return 'learn';
-  if (c.reps < 3) return 'choice';
-  const r = Math.random();
-  return r < 0.45 ? 'choice' : r < 0.85 ? 'recall' : 'recognize';
+  if (!c.definition) return 'recognize';
+  return c.interval >= 21 && Math.random() < 0.2 ? 'recall' : 'choice';
 }
 
 function advance() {
@@ -447,20 +447,28 @@ function advance() {
   const id = session.queue.shift(), c = db.cards.find(x => x.id === id);
   if (!c) { session.cur = null; renderReview(); return; }
   const mode = pickMode(c);
-  session.cur = { id, mode, revealed: mode === 'learn', verdict: null, typed: '', picked: null,
+  session.cur = { id, mode, revealed: false, verdict: null, typed: '', picked: null,
     q: mode === 'choice' ? makeChoice(c.word, c.pos, c.definition, rankOf(c.word)) : null };
   renderReview();
 }
 
 function grade(g) {
   const s = session?.cur; if (!s || !s.revealed) return;
+  clearTimeout(s.timer);
   const i = db.cards.findIndex(x => x.id === s.id), c = db.cards[i];
   if (c.last == null) db.newLog[todayKey()] = (db.newLog[todayKey()] || 0) + 1;
   db.cards[i] = nextState(c, g);
   db.days[todayKey()] = (db.days[todayKey()] || 0) + 1;
   if (g === 0) { session.queue.splice(Math.min(session.queue.length, 4), 0, s.id); session.total++; }
   session.done++;
+  if (s.verdict) session[s.verdict === 'ok' ? 'right' : 'missed']++;
   save(); refreshChrome(); advance();
+}
+
+// Correct answers flash green and move on; misses stay on screen with the full details.
+function settle(s) {
+  s.revealed = true; renderReview();
+  if (s.verdict === 'ok') s.timer = setTimeout(() => session?.cur === s && grade(2), 700);
 }
 
 function reveal() {
@@ -471,15 +479,21 @@ function reveal() {
     const a = s.typed.toLowerCase(), w = c.word.toLowerCase();
     s.verdict = !a ? 'no' : a === w ? 'ok' : lev(a, w) <= (w.length > 6 ? 2 : 1) ? 'near' : 'no';
   }
-  s.revealed = true; renderReview();
+  settle(s);
 }
 
 function choose(i) {
   const s = session?.cur; if (!s || s.mode !== 'choice' || s.revealed) return;
-  s.picked = i; s.verdict = i === s.q.answer ? 'ok' : 'no'; s.revealed = true; renderReview();
+  s.picked = i; s.verdict = i === s.q.answer ? 'ok' : 'no';
+  settle(s);
 }
 
 const hintGrade = s => s.verdict === 'no' ? 0 : s.verdict === 'near' ? 1 : 2;
+const missed = s => s.revealed && s.verdict && s.verdict !== 'ok';
+
+function detailHtml(c) {
+  return `${headHtml(c)}<p class="def">${esc(c.definition)}</p>${exHtml(c)}${synHtml(c)}${noteHtml(c)}`;
+}
 
 function renderReview() {
   const el = $('#review');
@@ -495,46 +509,42 @@ function renderReview() {
     const waitingNew = db.cards.filter(c => c.last == null).length, did = session?.done;
     let sub = upcoming ? `Next review ${fmtDue(upcoming.due)}.` : '';
     if (waitingNew && !newQuota()) sub += ` ${plural(waitingNew, 'new word')} wait for tomorrow.`;
+    const score = did ? `You answered ${session.right} of ${session.right + session.missed} right. ` : '';
     el.innerHTML = `<div class="empty card"><h2>${did ? 'Session done' : 'All caught up'}</h2>
-      <p>${did ? `You reviewed ${plural(did, 'card')}. ` : ''}${esc(sub.trim()) || 'Nothing due.'}</p>
+      <p>${score}${esc(sub.trim()) || 'Nothing due.'}</p>
       <div class="btns"><button class="btn primary" data-go="discover">Discover new words</button></div></div>`;
     return;
   }
   const s = session.cur, c = db.cards.find(x => x.id === s.id);
   const pct = Math.round(session.done / Math.max(1, session.total) * 100);
-  let body;
-  if (s.mode === 'learn') {
-    body = `<div class="kind"><span>New word</span></div>${headHtml(c)}${c.definition ? `<p class="def">${esc(c.definition)}</p>` : ''}${exHtml(c)}${synHtml(c)}${noteHtml(c)}`;
-  } else if (s.mode === 'recognize') {
-    body = `<div class="kind"><span>Do you remember?</span></div>${headHtml(c)}${s.revealed ? `<hr class="split"><p class="def">${esc(c.definition)}</p>${exHtml(c)}${synHtml(c)}${noteHtml(c)}` : ''}`;
+  let body, actions = '';
+  if (missed(s)) {
+    const head = s.mode === 'recall'
+      ? (s.verdict === 'near' ? `Close: you typed “${esc(s.typed)}”` : s.typed ? `You typed “${esc(s.typed)}”` : 'Here’s the word')
+      : s.picked === -1 ? 'Here’s the meaning' : 'Not quite. Here’s the meaning';
+    const chose = s.mode === 'choice' && s.picked >= 0 ? `<p class="picked">You chose: <s>${esc(s.q.opts[s.picked])}</s></p>` : '';
+    body = `<div class="kind"><span class="verdict ${s.verdict}" style="margin:0">${head}</span></div>${detailHtml(c)}${chose}${fix ? '' : fixLink}`;
+    actions = `<button class="wide" data-continue>Continue</button><div class="keys"><kbd>Space</kbd> continue · ${s.verdict === 'near' ? 'it comes back in a few days' : 'you’ll see it again soon'}</div>`;
   } else if (s.mode === 'choice') {
-    body = `<div class="kind"><span>Pick the meaning</span></div>${headHtml(c)}${optsHtml(s.q, s.picked, s.revealed)}
-      ${s.revealed ? `<div class="verdict ${s.verdict}">${s.verdict === 'ok' ? 'Correct' : s.picked === -1 ? 'Now you know' : 'Not quite'}</div>${exHtml(c)}${synHtml(c)}${noteHtml(c)}` : ''}`;
-  } else {
-    const msg = { ok: 'Correct', near: `Close: you typed “${esc(s.typed)}”`, no: s.typed ? `You typed “${esc(s.typed)}”` : 'No answer' }[s.verdict];
+    body = `<div class="kind"><span>Pick the meaning</span>${c.last == null ? '<span class="chip">New</span>' : ''}</div>${headHtml(c)}${optsHtml(s.q, s.picked, s.revealed)}
+      ${s.revealed ? `<div class="verdict ok">Correct</div>` : ''}`;
+    if (!s.revealed) actions = `<div class="keys"><kbd>1</kbd>–<kbd>4</kbd> choose · <kbd>0</kbd> don't know</div>`;
+  } else if (s.mode === 'recall') {
     body = `<div class="kind"><span>Which word fits?</span></div>
       ${c.pos ? `<div class="phon"><span class="pos">${esc(c.pos)}</span></div>` : ''}
       <p class="def" style="margin-top:4px">${cloze(c.definition, c.word)}</p>
       ${c.example ? `<p class="ex">${cloze(c.example, c.word)}</p>` : ''}
-      ${s.revealed
-        ? `<div class="verdict ${s.verdict}">${msg}</div><hr class="split">${headHtml(c)}${exHtml(c)}${noteHtml(c)}`
+      ${s.revealed ? `<div class="verdict ok">Correct: ${esc(c.word)}</div>`
         : `<form class="recall" id="recallForm" autocomplete="off"><input type="text" id="recallInput" placeholder="Type the word" autocapitalize="off" spellcheck="false" autocorrect="off"><button class="btn primary">Check</button></form>`}`;
+  } else {
+    // Only for words saved without a definition.
+    body = `<div class="kind"><span>Do you remember?</span></div>${headHtml(c)}${s.revealed ? `<hr class="split">${exHtml(c)}${noteHtml(c)}` : ''}`;
+    actions = s.revealed
+      ? `<div class="grades">${['Again', 'Hard', 'Good', 'Easy'].map((l, g) => `<button data-g="${g}">${l}<small>${fmtIv(c, g)}</small></button>`).join('')}</div>`
+      : `<button class="wide" data-reveal>Show</button>`;
   }
-  let actions = '';
-  if (s.mode === 'learn') {
-    actions = `<div class="pair"><button class="btn" data-g="0">Show again soon</button><button class="btn primary" data-g="2">Got it</button></div><div class="keys"><kbd>Space</kbd> got it</div>`;
-  } else if (s.revealed) {
-    const hint = s.verdict ? hintGrade(s) : -1;
-    actions = `<div class="grades">${['Again', 'Hard', 'Good', 'Easy'].map((l, g) => `<button data-g="${g}" class="${g === hint ? 'hint' : ''}">${l}<small>${fmtIv(c, g)}</small></button>`).join('')}</div>
-      <div class="keys">${s.verdict ? '<kbd>Space</kbd> accept · ' : ''}<kbd>1</kbd>–<kbd>4</kbd> to grade</div>`;
-  } else if (s.mode === 'recognize') {
-    actions = `<button class="wide" data-reveal>Show meaning</button><div class="keys"><kbd>Space</kbd> to reveal</div>`;
-  } else if (s.mode === 'choice') {
-    actions = `<div class="keys"><kbd>1</kbd>–<kbd>4</kbd> to choose</div>`;
-  }
-  const fixable = s.revealed && c.definition;
   if (fix?.target === 'review') actions = fixPanel();
-  el.innerHTML = `<div class="progress"><i style="width:${pct}%"></i></div><div class="card">${body}${fixable && !fix ? fixLink : ''}</div><div class="actions">${actions}</div>`;
+  el.innerHTML = `<div class="progress"><i style="width:${pct}%"></i></div><div class="card">${body}</div><div class="actions">${actions}</div>`;
   if (s.mode === 'recall' && !s.revealed) $('#recallInput').focus({ preventScroll: true });
 }
 
@@ -674,7 +684,14 @@ function nextSuggestion() {
 function newSuggestion() {
   fix = null;
   const e = nextSuggestion();
-  sug = { e, revealed: false, count: (sug?.count || 0) + 1, recent: [...(sug?.recent || []), e?.word].slice(-50) };
+  sug = { e, revealed: false, picked: null, verdict: null, q: e && makeChoice(e.word, e.pos, e.definition, e.rank),
+    count: (sug?.count || 0) + 1, recent: [...(sug?.recent || []), e?.word].slice(-50) };
+  renderDiscover();
+}
+// Picking the right meaning counts as knowing the word; a miss shows the details and offers to learn it.
+function sugChoose(i) {
+  if (!sug?.e || sug.revealed) return;
+  sug.picked = i; sug.verdict = i === sug.q.answer ? 'ok' : 'no'; sug.revealed = true;
   renderDiscover();
 }
 function decide(kind) {
@@ -728,22 +745,35 @@ function renderDiscover() {
     ${showLevel ? levelCard() + '<div style="height:14px"></div>' : ''}`;
   if (!e) { el.innerHTML = summary + `<div class="empty card"><h2>You've seen every word</h2><p>Add your own words from what you read.</p></div>`; return; }
   const kind = e.rank > S * 1.15 ? 'Stretch word' : e.rank < S * 0.6 ? 'Common word you may have missed' : 'Useful at your level';
-  el.innerHTML = `${summary}
-    <div class="card"><div class="kind"><span>${kind}</span><span class="chip">${levelOf(e.rank).id} · #${fmtN(e.rank)}</span></div>
-    ${headHtml(e)}${exHtml(e)}${sug.revealed ? `<hr class="split"><p class="def">${esc(e.definition)}</p>${synHtml(e)}${fix ? '' : fixLink}` : ''}</div>
-    <div class="actions">${fix?.target === 'sug' ? fixPanel() : sug.revealed
-      ? `<div class="pair"><button class="btn" data-decide="skip">Not now</button><button class="btn primary" data-decide="learn">Learn this word</button></div>
-         <div style="text-align:center;margin-top:6px"><button class="btn ghost" data-decide="know">Actually, I know it</button></div><div class="keys"><kbd>Enter</kbd> learn · <kbd>S</kbd> not now</div>`
-      : `<div class="pair"><button class="btn" data-decide="know">I know it</button><button class="btn primary" data-sug-reveal>Show meaning</button></div><div class="keys"><kbd>K</kbd> know it · <kbd>Space</kbd> show meaning</div>`}</div>`;
+  const chip = `<span class="chip">${levelOf(e.rank).id} · #${fmtN(e.rank)}</span>`;
+  let body, actions;
+  if (!sug.revealed) {
+    body = `<div class="kind"><span>${kind}</span>${chip}</div>${headHtml(e)}${optsHtml(sug.q, null, false)}`;
+    actions = `<div class="keys"><kbd>1</kbd>–<kbd>4</kbd> choose · <kbd>0</kbd> don't know</div>
+      <div style="text-align:center;margin-top:4px"><button class="btn ghost" data-decide="skip">Skip this word</button></div>`;
+  } else if (sug.verdict === 'ok') {
+    body = `<div class="kind"><span>${kind}</span>${chip}</div>${headHtml(e)}${optsHtml(sug.q, sug.picked, true)}
+      <div class="verdict ok">Correct. You know this one.</div>${exHtml(e)}`;
+    actions = `<div class="pair"><button class="btn" data-decide="learn">I guessed, learn it</button><button class="btn primary" data-decide="know">Next word</button></div>
+      <div class="keys"><kbd>Space</kbd> next · <kbd>L</kbd> learn it</div>`;
+  } else {
+    const chose = sug.picked >= 0 ? `<p class="picked">You chose: <s>${esc(sug.q.opts[sug.picked])}</s></p>` : '';
+    body = `<div class="kind"><span class="verdict no" style="margin:0">${sug.picked === -1 ? 'Here’s the meaning' : 'Not quite. Here’s the meaning'}</span>${chip}</div>
+      ${detailHtml(e)}${chose}${fix ? '' : fixLink}`;
+    actions = `<div class="pair"><button class="btn" data-decide="skip">Not now</button><button class="btn primary" data-decide="learn">Learn this word</button></div>
+      <div class="keys"><kbd>Space</kbd> learn · <kbd>S</kbd> not now</div>`;
+  }
+  if (fix?.target === 'sug') actions = fixPanel();
+  el.innerHTML = `${summary}<div class="card">${body}</div><div class="actions">${actions}</div>`;
 }
 
 $('#discover').addEventListener('click', e => {
-  const o = e.target.closest('[data-opt]'); if (o && place && !place.done) return answerPlacement(+o.dataset.opt);
+  const o = e.target.closest('[data-opt]');
+  if (o) return place && !place.done ? answerPlacement(+o.dataset.opt) : sugChoose(+o.dataset.opt);
   if (e.target.closest('[data-cancel-place]')) { place = null; renderDiscover(); }
   if (e.target.closest('[data-start-sug]')) { place = null; sug = null; renderDiscover(); }
   if (e.target.closest('[data-toggle-level]')) { showLevel = !showLevel; renderDiscover(); }
   const sl = e.target.closest('[data-setlevel]'); if (sl) setLevel(+sl.dataset.setlevel);
-  if (e.target.closest('[data-sug-reveal]')) { sug.revealed = true; renderDiscover(); }
   const d = e.target.closest('[data-decide]'); if (d) decide(d.dataset.decide);
 });
 
@@ -965,6 +995,7 @@ $('#review').addEventListener('click', e => {
   if (e.target.closest('[data-reveal]')) reveal();
   const o = e.target.closest('[data-opt]'); if (o) choose(+o.dataset.opt);
   const g = e.target.closest('[data-g]'); if (g) grade(+g.dataset.g);
+  if (e.target.closest('[data-continue]')) grade(hintGrade(session.cur));
 });
 $('#review').addEventListener('submit', e => { if (e.target.id === 'recallForm') { e.preventDefault(); reveal(); } });
 
@@ -974,18 +1005,18 @@ document.addEventListener('keydown', e => {
   const k = e.key, space = k === ' ' || k === 'Enter';
   if (tab === 'review' && session?.cur) {
     const s = session.cur;
-    if (s.mode === 'learn' && space) { e.preventDefault(); grade(2); }
-    else if (!s.revealed && s.mode === 'choice' && /^[1-4]$/.test(k)) choose(+k - 1);
+    if (!s.revealed && s.mode === 'choice' && /^[0-4]$/.test(k)) choose(k === '0' ? -1 : +k - 1);
     else if (!s.revealed && s.mode === 'recognize' && space) { e.preventDefault(); reveal(); }
-    else if (s.revealed && s.mode !== 'learn' && /^[1-4]$/.test(k)) grade(+k - 1);
-    else if (s.revealed && s.mode !== 'learn' && space) { e.preventDefault(); grade(s.verdict ? hintGrade(s) : 2); }
+    else if (missed(s) && space) { e.preventDefault(); grade(hintGrade(s)); }
+    else if (s.revealed && s.mode === 'recognize' && /^[1-4]$/.test(k)) grade(+k - 1);
   } else if (tab === 'discover') {
     if (place && !place.done && /^[1-4]$/.test(k)) answerPlacement(+k - 1);
     else if (sug?.e && !place) {
-      if (!sug.revealed && k.toLowerCase() === 'k') decide('know');
-      else if (!sug.revealed && space) { e.preventDefault(); sug.revealed = true; renderDiscover(); }
-      else if (sug.revealed && k === 'Enter') decide('learn');
-      else if (sug.revealed && k.toLowerCase() === 's') decide('skip');
+      if (!sug.revealed && /^[0-4]$/.test(k)) sugChoose(k === '0' ? -1 : +k - 1);
+      else if (sug.verdict === 'ok' && space) { e.preventDefault(); decide('know'); }
+      else if (sug.verdict === 'ok' && k.toLowerCase() === 'l') decide('learn');
+      else if (sug.verdict === 'no' && space) { e.preventDefault(); decide('learn'); }
+      else if (sug.verdict === 'no' && k.toLowerCase() === 's') decide('skip');
     }
   }
 });
