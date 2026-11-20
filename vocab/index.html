@@ -171,8 +171,50 @@ details.settings summary{cursor:pointer;padding:8px 0}
 .settings input[type=number]{width:80px;padding:7px 10px}
 .settings select{width:auto;padding:7px 10px}
 
-.toast{position:fixed;left:50%;top:max(16px,env(safe-area-inset-top));transform:translate(-50%,-20px);z-index:10;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;max-width:calc(100% - 32px)}
+.toast{position:fixed;left:50%;width:max-content;top:max(16px,env(safe-area-inset-top));transform:translate(-50%,-20px);z-index:10;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;max-width:calc(100% - 32px)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
+.gamebar{display:flex;align-items:center;gap:12px;width:100%;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:10px 14px;margin:2px 0 10px;cursor:pointer;text-align:left}
+.lv{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-family:var(--f-display);font-weight:600;font-size:18px}
+.lv.big{width:64px;height:64px;font-size:34px;border-radius:16px}
+.xp{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.xpline{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap}
+.xpline b{color:var(--ink);font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis}
+.bar{display:block;height:6px;background:var(--sunk);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:6px;transition:width .4s}
+.ring{--p:0;flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--good) calc(var(--p)*1turn),var(--sunk) 0)}
+.ring span{width:26px;height:26px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-size:9px;font-weight:600;color:var(--muted)}
+.ring.done span{color:var(--good);font-size:14px}
+.flame{flex:none;font-size:15px;display:flex;align-items:center;gap:2px}.flame b{font-size:14px}
+.flame.off{filter:grayscale(1);opacity:.5}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.chip.combo{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);letter-spacing:0;text-transform:none}
+.xpfloat{position:fixed;z-index:11;font-weight:700;font-size:14px;color:var(--good);pointer-events:none;white-space:nowrap;text-shadow:0 1px 0 var(--bg);animation:rise 1.1s ease-out forwards}
+@keyframes rise{from{transform:translate(-100%,0);opacity:1}to{transform:translate(-100%,-36px);opacity:0}}
+.confetti{position:fixed;top:0;z-index:12;width:8px;height:12px;border-radius:2px;pointer-events:none;transform:translateY(-10vh);animation:fall 2s cubic-bezier(.2,.6,.4,1) both}
+@keyframes fall{to{transform:translate(var(--x),105vh) rotate(var(--r))}}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 18px}
+.summary div{background:var(--sunk);border-radius:12px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.summary b{font-family:var(--f-display);font-size:24px;font-weight:600;line-height:1.1}
+.summary span{font-size:12px;color:var(--muted)}
+.summary.grid6{margin:14px 0 0}
+#progress .card{margin-top:14px}
+.back{padding:6px 0}
+.hero{display:flex;gap:18px;align-items:center}
+.hero .who{flex:1;min-width:0}.hero h2{font-family:var(--f-display);font-weight:600;font-size:28px;margin:2px 0 10px;line-height:1.1}
+.hero p{margin:8px 0 0;font-size:13px}
+.week{position:relative;display:grid;grid-template-columns:repeat(7,1fr);gap:8px;height:130px}
+.day{display:flex;flex-direction:column;align-items:center;gap:4px}
+.day .col{flex:1;width:100%;max-width:28px;display:flex;align-items:flex-end;background:var(--sunk);border-radius:6px;overflow:hidden}
+.day .col i{display:block;width:100%;background:color-mix(in srgb,var(--accent) 55%,var(--sunk));border-radius:6px}
+.day.hit .col i{background:var(--good)}
+.day small{font-size:11px;color:var(--muted);height:14px}
+.goalline{position:absolute;left:0;right:0;border-top:1px dashed var(--muted);opacity:.5}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.bdg{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.bdg .ic{font-size:26px;line-height:1.2}.bdg b{font-size:14px}.bdg small{font-size:12px;color:var(--muted);line-height:1.35}
+.bdg .bar{margin-top:8px;height:4px}
+.bdg.locked .ic{filter:grayscale(1);opacity:.45}.bdg.locked b{color:var(--muted)}
+.check{display:flex;align-items:center;gap:6px;cursor:pointer}
 [hidden]{display:none!important}
 </style>
 
@@ -187,11 +229,13 @@ details.settings summary{cursor:pointer;padding:8px 0}
     </nav>
   </header>
 
+  <button class="gamebar" id="gamebar" data-go="progress" hidden></button>
   <div class="stats" id="stats"></div>
 
   <main>
     <section id="review"></section>
     <section id="discover" hidden></section>
+    <section id="progress" hidden></section>
 
     <section id="add" hidden>
       <form id="lookupForm" class="row" autocomplete="off">
@@ -257,6 +301,10 @@ details.settings summary{cursor:pointer;padding:8px 0}
     </div>
     <div class="grid">
       <span>New words per day</span><input type="number" id="newPerDay" min="0" max="100">
+    </div>
+    <div class="grid">
+      <span>Daily XP goal</span><select id="goalSel"><option value="50">50 · casual</option><option value="100">100 · regular</option><option value="200">200 · serious</option><option value="400">400 · intense</option></select>
+      <label class="check"><input type="checkbox" id="soundChk"> Sound effects</label>
     </div>
     <div class="grid">
       <button class="btn" id="exportBtn">Export backup</button>
@@ -352,10 +400,15 @@ const rankOf = w => DICT.get(w.toLowerCase())?.rank ?? db.profile.size ?? 4000;
 // ---------- Storage ----------
 let db = load();
 function load() {
-  const base = { cards: [], settings: { newPerDay: 10, theme: '', scale: 'cefr' }, days: {}, newLog: {}, profile: { size: null, top10k: null, tests: [], known: {}, skipped: {}, hist: [] } };
+  const base = { cards: [], settings: { newPerDay: 10, theme: '', scale: 'cefr', goal: 100, sound: true }, days: {}, newLog: {}, profile: { size: null, top10k: null, tests: [], known: {}, skipped: {}, hist: [] }, game: newGame() };
   try {
     const d = JSON.parse(localStorage.getItem(KEY));
-    if (d && Array.isArray(d.cards)) return { ...base, ...d, settings: { ...base.settings, ...d.settings }, profile: { ...base.profile, ...d.profile } };
+    if (d && Array.isArray(d.cards)) {
+      // Credit reviews done before XP existed so long-time users don't restart at level 1.
+      const game = d.game ? { ...base.game, ...d.game } : { ...base.game, xp: Object.values(d.days || {}).reduce((a, n) => a + n * 10, 0),
+        daily: Object.fromEntries(Object.entries(d.days || {}).map(([k, n]) => [k, n * 10])) };
+      return { ...base, ...d, settings: { ...base.settings, ...d.settings }, profile: { ...base.profile, ...d.profile }, game };
+    }
   } catch {}
   return base;
 }
@@ -365,9 +418,9 @@ function save() {
 }
 
 let toastTimer;
-function toast(msg) {
+function toast(msg, ms = 2600) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms);
 }
 
 // ---------- Spaced repetition (SM-2 variant, day-aligned) ----------
@@ -413,6 +466,121 @@ function streak() {
   return n;
 }
 
+function bestStreak() {
+  let best = 0, run = 0, prev = null;
+  for (const k of Object.keys(db.days).filter(k => db.days[k]).sort()) {
+    run = prev && Math.round((Date.parse(k) - Date.parse(prev)) / DAY) === 1 ? run + 1 : 1;
+    best = Math.max(best, run); prev = k;
+  }
+  return best;
+}
+
+// ---------- Game: XP, levels, combo, daily goal, badges ----------
+function newGame() { return { xp: 0, combo: 0, best: 0, answered: 0, right: 0, blanks: 0, typed: 0, perfect: 0, goals: 0, daily: {}, badges: {} }; }
+const G = () => db.game;
+const XP = { choice: 10, blank: 15, recall: 20, recognize: 8, discover: 6 };
+// Level L starts at 50·L·(L−1) XP: 100, 300, 600, 1000…
+function levelInfo(xp) {
+  const L = Math.floor((1 + Math.sqrt(1 + xp / 12.5)) / 2), from = 50 * L * (L - 1), to = 50 * (L + 1) * L;
+  return { L, from, to, pct: (xp - from) / (to - from) };
+}
+const TITLES = [[1, 'Word Seeker'], [5, 'Word Collector'], [10, 'Lexicon Builder'], [15, 'Wordsmith'], [20, 'Word Sage'], [30, 'Lexicographer'], [40, 'Word Dragon']];
+const titleOf = L => TITLES.findLast(([n]) => L >= n)[1];
+const xpToday = () => G().daily[todayKey()] || 0;
+
+const learnedN = () => db.cards.filter(c => c.last != null).length;
+const masteredN = () => db.cards.filter(c => status(c) === 'mature').length;
+const BADGES = [
+  ['first', '🌱', 'First steps', 'Learn your first word', () => [learnedN(), 1]],
+  ['w25', '📚', 'Bookworm', 'Learn 25 words', () => [learnedN(), 25]],
+  ['w100', '🏛️', 'Centurion', 'Learn 100 words', () => [learnedN(), 100]],
+  ['w500', '🐉', 'True hoarder', 'Learn 500 words', () => [learnedN(), 500]],
+  ['m10', '⭐', 'Locked in', 'Master 10 words', () => [masteredN(), 10]],
+  ['m100', '🌟', 'Long memory', 'Master 100 words', () => [masteredN(), 100]],
+  ['s3', '🔥', 'Warming up', '3-day streak', () => [streak(), 3]],
+  ['s7', '📅', 'One week', '7-day streak', () => [streak(), 7]],
+  ['s30', '🗓️', 'Habit formed', '30-day streak', () => [streak(), 30]],
+  ['c10', '⚡', 'Combo 10', '10 right in a row', () => [G().best, 10]],
+  ['c25', '💥', 'Combo 25', '25 right in a row', () => [G().best, 25]],
+  ['c50', '🌩️', 'Unstoppable', '50 right in a row', () => [G().best, 50]],
+  ['b25', '🧩', 'Context clue', 'Fill 25 blanks right', () => [G().blanks, 25]],
+  ['t10', '⌨️', 'Spelling bee', 'Type 10 words right', () => [G().typed, 10]],
+  ['p1', '💯', 'Flawless', 'A session of 10+ with no misses', () => [G().perfect, 1]],
+  ['g7', '🎯', 'Goal getter', 'Hit your daily goal 7 times', () => [G().goals, 7]],
+  ['lt', '🧭', 'Know thyself', 'Take the level test', () => [db.profile.tests.length, 1]],
+  ['lv10', '👑', 'Level 10', 'Reach level 10', () => [levelInfo(G().xp).L, 10]],
+];
+function checkBadges(quiet) {
+  const got = [];
+  for (const [id, icon, name, , test] of BADGES) {
+    if (G().badges[id]) continue;
+    const [cur, need] = test();
+    if (cur >= need) { G().badges[id] = Date.now(); got.push(`${icon} ${name}`); }
+  }
+  if (got.length && !quiet) celebrate(got.length === 1 ? `Badge unlocked: ${got[0]}` : `${got.length} badges unlocked: ${got.join(', ')}`, 'badge');
+}
+
+// Every answer goes through here: combo, XP, level-ups, daily goal, badges.
+function score(mode, ok, { keepCombo = false } = {}) {
+  const g = G();
+  g.answered++; if (ok) g.right++;
+  if (ok) { g.combo++; g.best = Math.max(g.best, g.combo); if (mode === 'blank') g.blanks++; if (mode === 'recall') g.typed++; }
+  else if (!keepCombo) g.combo = 0;
+  const bonus = ok ? Math.min(10, Math.max(0, g.combo - 2)) : 0;
+  const amt = ok ? XP[mode] + bonus : 2;
+  if (session && tab === 'review') { session.xp += amt; session.best = Math.max(session.best, g.combo); }
+  sfx(ok ? 'ok' : 'no', g.combo);
+  gain(amt, bonus ? `+${amt} XP · ${g.combo} in a row` : `+${amt} XP`);
+}
+function gain(amt, label = `+${amt} XP`) {
+  const g = G(), before = levelInfo(g.xp).L, k = todayKey(), was = g.daily[k] || 0, goal = db.settings.goal;
+  g.xp += amt; g.daily[k] = was + amt;
+  floatXp(label);
+  const after = levelInfo(g.xp).L;
+  if (after > before) celebrate(`Level ${after}${titleOf(after) !== titleOf(before) ? ` · ${titleOf(after)}` : ''}!`, 'up');
+  if (was < goal && was + amt >= goal) { g.goals++; celebrate(`Daily goal reached: ${goal} XP 🎯`, 'up'); }
+  checkBadges();
+  save(); refreshChrome();
+}
+
+let actx;
+const SFX = { ok: [[660, 0], [880, .07]], no: [[200, 0, .22, 'triangle', .09]], up: [[523, 0], [659, .1], [784, .2], [1047, .3, .3]], badge: [[784, 0], [988, .09], [1319, .18, .3]] };
+function sfx(kind, combo = 0) {
+  navigator.vibrate?.(kind === 'no' ? [25, 40, 25] : 12);
+  if (!db.settings.sound) return;
+  try {
+    actx ||= new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = actx.currentTime, lift = kind === 'ok' ? 1 + Math.min(combo, 12) * .03 : 1;
+    for (const [f, at, dur = .12, type = 'sine', vol = .12] of SFX[kind]) {
+      const o = actx.createOscillator(), v = actx.createGain();
+      o.type = type; o.frequency.value = f * lift;
+      v.gain.setValueAtTime(0, t0 + at); v.gain.linearRampToValueAtTime(vol, t0 + at + .01); v.gain.exponentialRampToValueAtTime(1e-4, t0 + at + dur);
+      o.connect(v).connect(actx.destination); o.start(t0 + at); o.stop(t0 + at + dur + .02);
+    }
+  } catch {}
+}
+const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function floatXp(text) {
+  const card = document.querySelector('main section:not([hidden]) .card'); if (!card || calm()) return;
+  const r = card.getBoundingClientRect(), el = document.createElement('div');
+  el.className = 'xpfloat'; el.textContent = text;
+  el.style.left = r.right - 12 + 'px'; el.style.top = Math.max(8, r.top + 12) + 'px';
+  document.body.append(el); setTimeout(() => el.remove(), 1200);
+}
+function confetti() {
+  if (calm()) return;
+  const colors = ['var(--accent)', 'var(--good)', 'var(--easy)', 'var(--hard)', '#e05d9a'];
+  for (let i = 0; i < 70; i++) {
+    const el = document.createElement('i'); el.className = 'confetti';
+    const dur = 1400 + Math.random() * 1200, delay = Math.random() * 300;
+    Object.assign(el.style, { background: colors[i % colors.length], left: Math.random() * 100 + 'vw', animationDuration: dur + 'ms', animationDelay: delay + 'ms' });
+    el.style.setProperty('--x', (Math.random() - .5) * 200 + 'px'); el.style.setProperty('--r', Math.random() * 720 + 'deg');
+    document.body.append(el); setTimeout(() => el.remove(), dur + delay + 100);
+  }
+}
+function celebrate(msg, kind) { sfx(kind); confetti(); toast(msg, 3600); }
+const comboChip = () => G().combo >= 3 ? `<span class="chip combo">🔥 ${G().combo} in a row</span>` : '';
+
 // ---------- Text helpers ----------
 function wordRe(word) {
   const stem = word.length > 4 ? word.replace(/(e|y)$/i, '') : word;
@@ -454,7 +622,7 @@ function buildSession() {
     for (let i = 0; i < 3 && rev.length; i++) q.push(rev.shift());
     if (fresh.length) q.push(fresh.shift());
   }
-  session = { queue: q, total: q.length, done: 0, right: 0, missed: 0, cur: null };
+  session = { queue: q, total: q.length, done: 0, right: 0, missed: 0, xp: 0, best: 0, cur: null };
   advance();
 }
 
@@ -488,12 +656,16 @@ function grade(g) {
   if (g === 0) { session.queue.splice(Math.min(session.queue.length, 4), 0, s.id); session.total++; }
   session.done++;
   if (s.verdict) session[s.verdict === 'ok' ? 'right' : 'missed']++;
-  save(); refreshChrome(); advance();
+  else { score('recognize', g >= 2); session[g >= 2 ? 'right' : 'missed']++; }
+  save(); refreshChrome();
+  if (!session.queue.length) finishSession();
+  advance();
 }
 
 // Correct answers flash green and move on; misses stay on screen with the full details.
 function settle(s) {
   s.revealed = true; renderReview();
+  score(s.mode, s.verdict === 'ok');
   if (s.verdict === 'ok') s.timer = setTimeout(() => session?.cur === s && grade(2), 700);
 }
 
@@ -512,6 +684,12 @@ function choose(i) {
   const s = session?.cur; if (!s || !s.q || s.revealed) return;
   s.picked = i; s.verdict = i === s.q.answer ? 'ok' : 'no';
   settle(s);
+}
+
+function finishSession() {
+  const n = session.right + session.missed;
+  if (n >= 10 && !session.missed) { G().perfect++; checkBadges(); save(); }
+  if (n && session.right / n >= .9) setTimeout(confetti, 150);
 }
 
 const hintGrade = s => s.verdict === 'no' ? 0 : s.verdict === 'near' ? 1 : 2;
@@ -535,9 +713,12 @@ function renderReview() {
     const waitingNew = db.cards.filter(c => c.last == null).length, did = session?.done;
     let sub = upcoming ? `Next review ${fmtDue(upcoming.due)}.` : '';
     if (waitingNew && !newQuota()) sub += ` ${plural(waitingNew, 'new word')} wait for tomorrow.`;
-    const score = did ? `You answered ${session.right} of ${session.right + session.missed} right. ` : '';
-    el.innerHTML = `<div class="empty card"><h2>${did ? 'Session done' : 'All caught up'}</h2>
-      <p>${score}${esc(sub.trim()) || 'Nothing due.'}</p>
+    const n = did ? session.right + session.missed : 0;
+    const summary = n ? `<div class="summary"><div><b>+${session.xp}</b><span>XP earned</span></div><div><b>${Math.round(session.right / n * 100)}%</b><span>${session.right} of ${n} right</span></div><div><b>${session.best}</b><span>best combo</span></div></div>` : '';
+    const goal = db.settings.goal, today = xpToday();
+    const goalLine = today >= goal ? 'Daily goal done. 🎯' : `${goal - today} XP to today's goal.`;
+    el.innerHTML = `<div class="empty card"><h2>${did ? (n >= 10 && !session.missed ? 'Flawless! 💯' : 'Session done') : 'All caught up'}</h2>
+      ${summary}<p>${esc(sub.trim()) || 'Nothing due.'} ${db.cards.length ? goalLine : ''}</p>
       <div class="btns"><button class="btn primary" data-go="discover">Discover new words</button></div></div>`;
     return;
   }
@@ -553,16 +734,16 @@ function renderReview() {
     body = `<div class="kind"><span class="verdict ${s.verdict}" style="margin:0">${head}</span></div>${detailHtml(c)}${chose}${fix ? '' : fixLink}`;
     actions = `<button class="wide" data-continue>Continue</button><div class="keys"><kbd>Space</kbd> continue · ${s.verdict === 'near' ? 'it comes back in a few days' : 'you’ll see it again soon'}</div>`;
   } else if (s.mode === 'choice') {
-    body = `<div class="kind"><span>Pick the meaning</span>${c.last == null ? '<span class="chip">New</span>' : ''}</div>${headHtml(c)}${optsHtml(s.q, s.picked, s.revealed)}
+    body = `<div class="kind"><span>Pick the meaning</span><span class="chips">${comboChip()}${c.last == null ? '<span class="chip">New</span>' : ''}</span></div>${headHtml(c)}${optsHtml(s.q, s.picked, s.revealed)}
       ${s.revealed ? `<div class="verdict ok">Correct</div>` : ''}`;
     if (!s.revealed) actions = `<div class="keys"><kbd>1</kbd>–<kbd>4</kbd> choose · <kbd>0</kbd> don't know</div>`;
   } else if (s.mode === 'blank') {
-    body = `<div class="kind"><span>Fill in the blank</span></div>
+    body = `<div class="kind"><span>Fill in the blank</span>${comboChip()}</div>
       <p class="ex cloze">${s.revealed ? bold(c.example, c.word) : cloze(c.example, c.word)}</p>${optsHtml(s.q, s.picked, s.revealed)}
       ${s.revealed ? `<div class="verdict ok">Correct</div>` : ''}`;
     if (!s.revealed) actions = `<div class="keys"><kbd>1</kbd>–<kbd>4</kbd> choose · <kbd>0</kbd> don't know</div>`;
   } else if (s.mode === 'recall') {
-    body = `<div class="kind"><span>Which word fits?</span></div>
+    body = `<div class="kind"><span>Which word fits?</span>${comboChip()}</div>
       ${c.pos ? `<div class="phon"><span class="pos">${esc(c.pos)}</span></div>` : ''}
       <p class="def" style="margin-top:4px">${cloze(c.definition, c.word)}</p>
       ${c.example ? `<p class="ex">${cloze(c.example, c.word)}</p>` : ''}
@@ -666,7 +847,7 @@ function finishPlacement() {
   for (const w of place.known) pr.known[w] = 1;
   pr.hist = []; sug = null;
   place = { done: true };
-  save(); syncLevelSel(); refreshChrome(); renderDiscover();
+  save(); syncLevelSel(); refreshChrome(); renderDiscover(); gain(50, '+50 XP · level test');
 }
 
 function compareText(S) {
@@ -725,6 +906,8 @@ function sugChoose(i) {
   if (!sug?.e || sug.revealed) return;
   sug.picked = i; sug.verdict = i === sug.q.answer ? 'ok' : 'no'; sug.revealed = true;
   renderDiscover();
+  // New words are meant to be unfamiliar, so a miss here doesn't break the combo.
+  score('discover', sug.verdict === 'ok', { keepCombo: true });
 }
 function decide(kind) {
   if (!sug?.e) return;
@@ -733,7 +916,7 @@ function decide(kind) {
   if (kind === 'skip') pr.skipped[e.word] = Date.now();
   if (kind === 'learn') {
     db.cards.push(makeCard({ word: e.word, pos: e.pos, definition: e.definition, example: e.example, synonyms: e.synonyms }));
-    toast(`Added “${e.word}” to your reviews`);
+    toast(`Added “${e.word}” to your reviews`); gain(3, '+3 XP · word added');
   }
   // Recalibrate if suggestions are clearly too easy or too hard.
   const h = pr.hist = [...pr.hist, kind === 'know' ? 1 : 0].slice(-12);
@@ -781,7 +964,7 @@ function renderDiscover() {
   const chip = `<span class="chip">${lvl(e.rank)} · #${fmtN(e.rank)}</span>`;
   let body, actions;
   if (!sug.revealed) {
-    body = `<div class="kind"><span>${kind}</span>${chip}</div>${headHtml(e)}${optsHtml(sug.q, null, false)}`;
+    body = `<div class="kind"><span>${kind}</span><span class="chips">${comboChip()}${chip}</span></div>${headHtml(e)}${optsHtml(sug.q, null, false)}`;
     actions = `<div class="keys"><kbd>1</kbd>–<kbd>4</kbd> choose · <kbd>0</kbd> don't know</div>
       <div style="text-align:center;margin-top:4px"><button class="btn ghost" data-decide="skip">Skip this word</button></div>`;
   } else if (sug.verdict === 'ok') {
@@ -1006,21 +1189,56 @@ $('#list').addEventListener('submit', e => {
   openId = null; save(); toast('Saved'); renderList();
 });
 
+// ---------- Progress ----------
+function renderProgress() {
+  const g = G(), li = levelInfo(g.xp), today = xpToday(), goal = db.settings.goal;
+  const next = TITLES.find(([n]) => n > li.L);
+  const days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); const k = d.toLocaleDateString('en-CA');
+    return { k, xp: g.daily[k] || 0, label: d.toLocaleDateString('en-US', { weekday: 'narrow' }) }; });
+  const top = Math.max(goal, ...days.map(d => d.xp));
+  const acc = g.answered ? Math.round(g.right / g.answered * 100) + '%' : '–';
+  const owned = BADGES.filter(([id]) => g.badges[id]).length;
+  $('#progress').innerHTML = `<button class="btn ghost back" data-go="review">← Back</button>
+    <div class="card hero"><div class="lv big">${li.L}</div><div class="who"><div class="kind" style="margin:0"><span>Level ${li.L}</span></div>
+      <h2>${titleOf(li.L)}</h2><div class="bar"><i style="width:${li.pct * 100}%"></i></div>
+      <p class="muted">${fmtN(li.to - g.xp)} XP to level ${li.L + 1}${next ? ` · “${next[1]}” at level ${next[0]}` : ''}</p></div></div>
+    <div class="card"><div class="kind"><span>Last 7 days</span><span>${fmtN(today)} / ${goal} XP today</span></div>
+      <div class="week">${days.map(d => `<div class="day${d.xp >= goal ? ' hit' : ''}"><span class="col"><i style="height:${Math.round(d.xp / top * 100)}%"></i></span><small>${d.label}</small></div>`).join('')}
+      <span class="goalline" style="bottom:calc(18px + ${goal / top} * (100% - 18px))"></span></div></div>
+    <div class="summary grid6">
+      <div><b>${fmtN(g.xp)}</b><span>total XP</span></div><div><b>${streak()}</b><span>streak · best ${bestStreak()}</span></div>
+      <div><b>${g.best}</b><span>best combo</span></div><div><b>${acc}</b><span>accuracy</span></div>
+      <div><b>${learnedN()}</b><span>words learned</span></div><div><b>${masteredN()}</b><span>mastered</span></div></div>
+    <div class="kind" style="margin:22px 0 10px"><span>Badges</span><span>${owned} of ${BADGES.length}</span></div>
+    <div class="badges">${BADGES.map(([id, icon, name, desc, test]) => {
+      const has = g.badges[id], [cur, need] = test();
+      return `<div class="bdg${has ? '' : ' locked'}"><span class="ic">${icon}</span><b>${name}</b><small>${esc(desc)}</small>
+        ${has ? '' : `<span class="bar"><i style="width:${Math.min(100, cur / need * 100)}%"></i></span>`}</div>`;
+    }).join('')}</div>`;
+}
+
 // ---------- Chrome, tabs, keys ----------
 function refreshChrome() {
   const due = dueReviews().length, fresh = newCards().length, total = due + fresh;
   const b = $('#dueBadge'); b.hidden = !total; b.textContent = total;
   const mature = db.cards.filter(c => status(c) === 'mature').length, st = streak();
   $('#stats').innerHTML = db.cards.length
-    ? `${db.profile.size != null ? `<span>${ieltsMode() ? `IELTS ≈<b>${ieltsOf(db.profile.size)}</b> · ${levelOf(db.profile.size).id}` : `<b>${levelOf(db.profile.size).id}</b> · IELTS ≈<b>${ieltsOf(db.profile.size)}</b>`}</span>` : ''}<span><b>${db.cards.length}</b> words</span><span><b>${mature}</b> mastered</span><span><b>${due}</b> due · <b>${fresh}</b> new</span><span><b>${st}</b> day streak${st ? ' 🔥' : ''}</span>`
+    ? `${db.profile.size != null ? `<span>${ieltsMode() ? `IELTS ≈<b>${ieltsOf(db.profile.size)}</b> · ${levelOf(db.profile.size).id}` : `<b>${levelOf(db.profile.size).id}</b> · IELTS ≈<b>${ieltsOf(db.profile.size)}</b>`}</span>` : ''}<span><b>${db.cards.length}</b> words</span><span><b>${mature}</b> mastered</span><span><b>${due}</b> due · <b>${fresh}</b> new</span>`
     : '';
+  const g = G(), li = levelInfo(g.xp), today = xpToday(), goal = db.settings.goal;
+  $('#gamebar').hidden = !db.cards.length && !g.xp;
+  $('#gamebar').innerHTML = `<span class="lv" aria-label="Level ${li.L}">${li.L}</span>
+    <span class="xp"><span class="xpline"><b>${titleOf(li.L)}</b><span>${fmtN(g.xp - li.from)} / ${fmtN(li.to - li.from)} XP</span></span><span class="bar"><i style="width:${li.pct * 100}%"></i></span></span>
+    <span class="ring${today >= goal ? ' done' : ''}" style="--p:${Math.min(1, today / goal)}" title="Daily goal"><span>${today >= goal ? '✓' : Math.round(today / goal * 100) + '%'}</span></span>
+    <span class="flame${st ? '' : ' off'}">🔥<b>${st}</b></span>`;
 }
 
 let tab = 'review';
 function show(t) {
   tab = t; fix = null;
   document.querySelectorAll('[role=tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
-  for (const id of ['review', 'discover', 'add', 'words']) $('#' + id).hidden = id !== t;
+  for (const id of ['review', 'discover', 'add', 'words', 'progress']) $('#' + id).hidden = id !== t;
+  if (t === 'progress') renderProgress();
   if (t === 'review') { if (!session?.cur) session = null; renderReview(); }
   if (t === 'discover') renderDiscover();
   if (t === 'add') $('#newWord').focus();
@@ -1072,6 +1290,10 @@ $('#newPerDay').addEventListener('change', e => {
 function applyTheme() { if (db.settings.theme) document.documentElement.dataset.theme = db.settings.theme; else delete document.documentElement.dataset.theme; }
 $('#theme').value = db.settings.theme; applyTheme();
 $('#scaleSel').value = db.settings.scale;
+$('#goalSel').value = db.settings.goal;
+$('#goalSel').addEventListener('change', e => { db.settings.goal = +e.target.value; save(); refreshChrome(); });
+$('#soundChk').checked = db.settings.sound;
+$('#soundChk').addEventListener('change', e => { db.settings.sound = e.target.checked; save(); if (e.target.checked) sfx('ok'); });
 $('#theme').addEventListener('change', e => { db.settings.theme = e.target.value; applyTheme(); save(); });
 
 $('#exportBtn').addEventListener('click', () => {
@@ -1090,10 +1312,12 @@ $('#importFile').addEventListener('change', async e => {
     db.cards = [...byWord.values()];
     db.days = { ...db.days, ...d.days };
     if (d.profile) db.profile = { ...db.profile, ...d.profile, known: { ...db.profile.known, ...d.profile.known } };
+    if (d.game && d.game.xp > G().xp) db.game = { ...newGame(), ...d.game };
     save(); session = null; sug = null; $('#scaleSel').value = db.settings.scale; syncLevelSel(); refreshChrome(); show(tab); toast(`Imported ${plural(d.cards.length, 'word')}`);
   } catch { toast('That file is not a Wordhoard backup'); }
 });
 
+checkBadges(true); save();
 syncLevelSel();
 refreshChrome();
 show('review');
