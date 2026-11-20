@@ -26,7 +26,7 @@ def fold(s):
     return ''.join(c for c in unicodedata.normalize('NFD', s.lower()) if not unicodedata.combining(c))
 
 
-SUFFIX = {'ja': ['市', '都'], 'zh': ['市'], 'ko': ['특별자치시', '특별시', '광역시', '시']}
+SUFFIX = {'ja': ['市', '都'], 'zh': ['市'], 'ko': ['특별자치시', '특별시', '광역시', '직할시', '시']}
 
 
 def tidy(lang, name):

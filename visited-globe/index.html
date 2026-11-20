@@ -26,6 +26,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--
 button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none}
 #scene{position:fixed;inset:0;display:block;touch-action:none}
+#scene.grabbing{cursor:grabbing!important}
 .vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 60% 50%,transparent 45%,rgba(0,0,0,.55) 100%)}
 svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
@@ -179,6 +180,16 @@ body.loading #views{opacity:0}
 
 /* Labels */
 #labels{position:fixed;inset:0;pointer-events:none;z-index:3}
+#dlabels{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+.dl{position:absolute;left:0;top:0;white-space:nowrap;opacity:0;transition:opacity .35s,color .2s;will-change:transform;text-shadow:0 1px 3px rgba(2,4,12,.95),0 0 10px rgba(2,4,12,.8)}
+.dl.on{opacity:1}
+.dl.city{font-size:11.5px;font-weight:500;color:#d9e1f5;padding-left:9px}
+.dl.city::before{content:"";position:absolute;left:0;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:currentColor;box-shadow:0 0 6px rgba(190,210,255,.7)}
+.dl.city.cap::before{width:7px;height:7px;margin:-3.5px 0 0 -3.5px;box-sizing:border-box;background:rgba(6,10,22,.8);border:1.5px solid currentColor}
+.dl .n{margin-left:5px;font-weight:400;color:#8e9dc2;font-size:10.5px}
+.dl.country{font-size:10.5px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:rgba(168,188,235,.6)}
+.dl.country .n{letter-spacing:.06em;text-transform:none;font-weight:400}
+.dl.hot{color:#fff}
 .lbl{position:absolute;left:0;top:0;font-size:11px;font-weight:500;padding:3px 8px 3px 7px;border-radius:7px;background:rgba(6,10,22,.62);border-left:2px solid var(--c);white-space:nowrap;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .25s;will-change:transform}
 .lbl.country{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;background:rgba(6,10,22,.78);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);border-left-width:2px}
 .lbl .cnt{margin-left:7px;padding:0 5px;border-radius:5px;background:var(--c);color:#0b1020;font-size:9.5px;letter-spacing:0}
@@ -254,6 +265,7 @@ input[type=file]{display:none}
 <body class="loading">
 <canvas id="scene"></canvas>
 <div class="vignette"></div>
+<div id="dlabels"></div>
 <div id="labels"></div>
 <div id="tip" class="glass"></div>
 
@@ -334,7 +346,6 @@ input[type=file]{display:none}
 </script>
 <script type="module">
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -342,7 +353,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import * as topojson from 'topojson-client';
 import { geoEquirectangular, geoPath, geoCentroid, geoArea, geoGraticule, geoDistance } from 'd3-geo';
 
-const ATLAS = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json';
+const ATLAS = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json', ATLAS10 = ATLAS.replace('50m', '10m');
 // atlas name -> [ISO2, continent, common name, UN member]
 const META = {"Zimbabwe":["ZW","Africa","Zimbabwe",1],"Zambia":["ZM","Africa","Zambia",1],"Yemen":["YE","Asia","Yemen",1],"Vietnam":["VN","Asia","Vietnam",1],"Venezuela":["VE","South America","Venezuela",1],"Vatican":["VA","Europe","Vatican City",1],"Vanuatu":["VU","Oceania","Vanuatu",1],"Uzbekistan":["UZ","Asia","Uzbekistan",1],"Uruguay":["UY","South America","Uruguay",1],"Micronesia":["FM","Oceania","Micronesia",1],"Marshall Is.":["MH","Oceania","Marshall Islands",1],"N. Mariana Is.":["MP","Oceania","Northern Mariana Islands",0],"U.S. Virgin Is.":["VI","North America","United States Virgin Islands",0],"Guam":["GU","Oceania","Guam",0],"American Samoa":["AS","Oceania","American Samoa",0],"Puerto Rico":["PR","North America","Puerto Rico",0],"United States of America":["US","North America","United States",1],"S. Geo. and the Is.":["GS","Antarctica","South Georgia",0],"Br. Indian Ocean Ter.":["IO","Africa","British Indian Ocean Territory",0],"Saint Helena":["SH","Africa","Saint Helena, Ascension and Tristan da Cunha",0],"Pitcairn Is.":["PN","Oceania","Pitcairn Islands",0],"Anguilla":["AI","North America","Anguilla",0],"Falkland Is.":["FK","South America","Falkland Islands",0],"Cayman Is.":["KY","North America","Cayman Islands",0],"Bermuda":["BM","North America","Bermuda",0],"British Virgin Is.":["VG","North America","British Virgin Islands",0],"Turks and Caicos Is.":["TC","North America","Turks and Caicos Islands",0],"Montserrat":["MS","North America","Montserrat",0],"Jersey":["JE","Europe","Jersey",0],"Guernsey":["GG","Europe","Guernsey",0],"Isle of Man":["IM","Europe","Isle of Man",0],"United Kingdom":["GB","Europe","United Kingdom",1],"United Arab Emirates":["AE","Asia","United Arab Emirates",1],"Ukraine":["UA","Europe","Ukraine",1],"Uganda":["UG","Africa","Uganda",1],"Turkmenistan":["TM","Asia","Turkmenistan",1],"Turkey":["TR","Asia","Türkiye",1],"Tunisia":["TN","Africa","Tunisia",1],"Trinidad and Tobago":["TT","North America","Trinidad and Tobago",1],"Tonga":["TO","Oceania","Tonga",1],"Togo":["TG","Africa","Togo",1],"Timor-Leste":["TL","Asia","Timor-Leste",1],"Thailand":["TH","Asia","Thailand",1],"Tanzania":["TZ","Africa","Tanzania",1],"Tajikistan":["TJ","Asia","Tajikistan",1],"Taiwan":["TW","Asia","Taiwan",0],"Syria":["SY","Asia","Syria",1],"Switzerland":["CH","Europe","Switzerland",1],"Sweden":["SE","Europe","Sweden",1],"eSwatini":["SZ","Africa","Eswatini",1],"Suriname":["SR","South America","Suriname",1],"S. Sudan":["SS","Africa","South Sudan",1],"Sudan":["SD","Africa","Sudan",1],"Sri Lanka":["LK","Asia","Sri Lanka",1],"Spain":["ES","Europe","Spain",1],"South Korea":["KR","Asia","South Korea",1],"South Africa":["ZA","Africa","South Africa",1],"Somalia":["SO","Africa","Somalia",1],"Solomon Is.":["SB","Oceania","Solomon Islands",1],"Slovakia":["SK","Europe","Slovakia",1],"Slovenia":["SI","Europe","Slovenia",1],"Singapore":["SG","Asia","Singapore",1],"Sierra Leone":["SL","Africa","Sierra Leone",1],"Seychelles":["SC","Africa","Seychelles",1],"Serbia":["RS","Europe","Serbia",1],"Senegal":["SN","Africa","Senegal",1],"Saudi Arabia":["SA","Asia","Saudi Arabia",1],"São Tomé and Principe":["ST","Africa","São Tomé and Príncipe",1],"San Marino":["SM","Europe","San Marino",1],"Samoa":["WS","Oceania","Samoa",1],"St. Vin. and Gren.":["VC","North America","Saint Vincent and the Grenadines",1],"Saint Lucia":["LC","North America","Saint Lucia",1],"St. Kitts and Nevis":["KN","North America","Saint Kitts and Nevis",1],"Rwanda":["RW","Africa","Rwanda",1],"Russia":["RU","Europe","Russia",1],"Romania":["RO","Europe","Romania",1],"Qatar":["QA","Asia","Qatar",1],"Portugal":["PT","Europe","Portugal",1],"Poland":["PL","Europe","Poland",1],"Philippines":["PH","Asia","Philippines",1],"Peru":["PE","South America","Peru",1],"Paraguay":["PY","South America","Paraguay",1],"Papua New Guinea":["PG","Oceania","Papua New Guinea",1],"Panama":["PA","North America","Panama",1],"Palau":["PW","Oceania","Palau",1],"Pakistan":["PK","Asia","Pakistan",1],"Oman":["OM","Asia","Oman",1],"Norway":["NO","Europe","Norway",1],"North Korea":["KP","Asia","North Korea",1],"Nigeria":["NG","Africa","Nigeria",1],"Niger":["NE","Africa","Niger",1],"Nicaragua":["NI","North America","Nicaragua",1],"New Zealand":["NZ","Oceania","New Zealand",1],"Niue":["NU","Oceania","Niue",0],"Cook Is.":["CK","Oceania","Cook Islands",0],"Netherlands":["NL","Europe","Netherlands",1],"Aruba":["AW","North America","Aruba",0],"Curaçao":["CW","North America","Curaçao",0],"Nepal":["NP","Asia","Nepal",1],"Nauru":["NR","Oceania","Nauru",1],"Namibia":["NA","Africa","Namibia",1],"Mozambique":["MZ","Africa","Mozambique",1],"Morocco":["MA","Africa","Morocco",1],"W. Sahara":["EH","Africa","Western Sahara",0],"Montenegro":["ME","Europe","Montenegro",1],"Mongolia":["MN","Asia","Mongolia",1],"Moldova":["MD","Europe","Moldova",1],"Monaco":["MC","Europe","Monaco",1],"Mexico":["MX","North America","Mexico",1],"Mauritius":["MU","Africa","Mauritius",1],"Mauritania":["MR","Africa","Mauritania",1],"Malta":["MT","Europe","Malta",1],"Mali":["ML","Africa","Mali",1],"Maldives":["MV","Asia","Maldives",1],"Malaysia":["MY","Asia","Malaysia",1],"Malawi":["MW","Africa","Malawi",1],"Madagascar":["MG","Africa","Madagascar",1],"Macedonia":["MK","Europe","North Macedonia",1],"Luxembourg":["LU","Europe","Luxembourg",1],"Lithuania":["LT","Europe","Lithuania",1],"Liechtenstein":["LI","Europe","Liechtenstein",1],"Libya":["LY","Africa","Libya",1],"Liberia":["LR","Africa","Liberia",1],"Lesotho":["LS","Africa","Lesotho",1],"Lebanon":["LB","Asia","Lebanon",1],"Latvia":["LV","Europe","Latvia",1],"Laos":["LA","Asia","Laos",1],"Kyrgyzstan":["KG","Asia","Kyrgyzstan",1],"Kuwait":["KW","Asia","Kuwait",1],"Kiribati":["KI","Oceania","Kiribati",1],"Kenya":["KE","Africa","Kenya",1],"Kazakhstan":["KZ","Asia","Kazakhstan",1],"Jordan":["JO","Asia","Jordan",1],"Japan":["JP","Asia","Japan",1],"Jamaica":["JM","North America","Jamaica",1],"Italy":["IT","Europe","Italy",1],"Israel":["IL","Asia","Israel",1],"Palestine":["PS","Asia","Palestine",0],"Ireland":["IE","Europe","Ireland",1],"Iraq":["IQ","Asia","Iraq",1],"Iran":["IR","Asia","Iran",1],"Indonesia":["ID","Asia","Indonesia",1],"India":["IN","Asia","India",1],"Iceland":["IS","Europe","Iceland",1],"Hungary":["HU","Europe","Hungary",1],"Honduras":["HN","North America","Honduras",1],"Haiti":["HT","North America","Haiti",1],"Guyana":["GY","South America","Guyana",1],"Guinea-Bissau":["GW","Africa","Guinea-Bissau",1],"Guinea":["GN","Africa","Guinea",1],"Guatemala":["GT","North America","Guatemala",1],"Grenada":["GD","North America","Grenada",1],"Greece":["GR","Europe","Greece",1],"Ghana":["GH","Africa","Ghana",1],"Germany":["DE","Europe","Germany",1],"Georgia":["GE","Asia","Georgia",1],"Gambia":["GM","Africa","Gambia",1],"Gabon":["GA","Africa","Gabon",1],"France":["FR","Europe","France",1],"St. Pierre and Miquelon":["PM","North America","Saint Pierre and Miquelon",0],"Wallis and Futuna Is.":["WF","Oceania","Wallis and Futuna",0],"St-Martin":["MF","North America","Saint Martin",0],"St-Barthélemy":["BL","North America","Saint Barthélemy",0],"Fr. Polynesia":["PF","Oceania","French Polynesia",0],"New Caledonia":["NC","Oceania","New Caledonia",0],"Fr. S. Antarctic Lands":["TF","Antarctica","French Southern and Antarctic Lands",0],"Åland":["AX","Europe","Åland Islands",0],"Finland":["FI","Europe","Finland",1],"Fiji":["FJ","Oceania","Fiji",1],"Ethiopia":["ET","Africa","Ethiopia",1],"Estonia":["EE","Europe","Estonia",1],"Eritrea":["ER","Africa","Eritrea",1],"Eq. Guinea":["GQ","Africa","Equatorial Guinea",1],"El Salvador":["SV","North America","El Salvador",1],"Egypt":["EG","Africa","Egypt",1],"Ecuador":["EC","South America","Ecuador",1],"Dominican Rep.":["DO","North America","Dominican Republic",1],"Dominica":["DM","North America","Dominica",1],"Djibouti":["DJ","Africa","Djibouti",1],"Greenland":["GL","North America","Greenland",0],"Faeroe Is.":["FO","Europe","Faroe Islands",0],"Denmark":["DK","Europe","Denmark",1],"Czechia":["CZ","Europe","Czechia",1],"Cyprus":["CY","Europe","Cyprus",1],"Cuba":["CU","North America","Cuba",1],"Croatia":["HR","Europe","Croatia",1],"Côte d'Ivoire":["CI","Africa","Ivory Coast",1],"Costa Rica":["CR","North America","Costa Rica",1],"Dem. Rep. Congo":["CD","Africa","DR Congo",1],"Congo":["CG","Africa","Republic of the Congo",1],"Comoros":["KM","Africa","Comoros",1],"Colombia":["CO","South America","Colombia",1],"China":["CN","Asia","China",1],"Macao":["MO","Asia","Macau",0],"Hong Kong":["HK","Asia","Hong Kong",0],"Chile":["CL","South America","Chile",1],"Chad":["TD","Africa","Chad",1],"Central African Rep.":["CF","Africa","Central African Republic",1],"Cabo Verde":["CV","Africa","Cape Verde",1],"Canada":["CA","North America","Canada",1],"Cameroon":["CM","Africa","Cameroon",1],"Cambodia":["KH","Asia","Cambodia",1],"Myanmar":["MM","Asia","Myanmar",1],"Burundi":["BI","Africa","Burundi",1],"Burkina Faso":["BF","Africa","Burkina Faso",1],"Bulgaria":["BG","Europe","Bulgaria",1],"Brunei":["BN","Asia","Brunei",1],"Brazil":["BR","South America","Brazil",1],"Botswana":["BW","Africa","Botswana",1],"Bosnia and Herz.":["BA","Europe","Bosnia and Herzegovina",1],"Bolivia":["BO","South America","Bolivia",1],"Bhutan":["BT","Asia","Bhutan",1],"Benin":["BJ","Africa","Benin",1],"Belize":["BZ","North America","Belize",1],"Belgium":["BE","Europe","Belgium",1],"Belarus":["BY","Europe","Belarus",1],"Barbados":["BB","North America","Barbados",1],"Bangladesh":["BD","Asia","Bangladesh",1],"Bahrain":["BH","Asia","Bahrain",1],"Bahamas":["BS","North America","Bahamas",1],"Azerbaijan":["AZ","Asia","Azerbaijan",1],"Austria":["AT","Europe","Austria",1],"Australia":["AU","Oceania","Australia",1],"Heard I. and McDonald Is.":["HM","Antarctica","Heard Island and McDonald Islands",0],"Norfolk Island":["NF","Oceania","Norfolk Island",0],"Ashmore and Cartier Is.":["AU","Oceania","Australia",1],"Armenia":["AM","Asia","Armenia",1],"Argentina":["AR","South America","Argentina",1],"Antigua and Barb.":["AG","North America","Antigua and Barbuda",1],"Angola":["AO","Africa","Angola",1],"Andorra":["AD","Europe","Andorra",1],"Algeria":["DZ","Africa","Algeria",1],"Albania":["AL","Europe","Albania",1],"Afghanistan":["AF","Asia","Afghanistan",1],"Antarctica":["AQ","Antarctica","Antarctica",0],"Sint Maarten":["SX","North America","Sint Maarten",0],"Kosovo":["XK","Europe","Kosovo",0],"Somaliland":["","Africa","Somaliland",0],"N. Cyprus":["","Asia","Northern Cyprus",0],"Indian Ocean Ter.":["","Oceania","Indian Ocean Territories",0],"Siachen Glacier":["","Asia","Siachen Glacier",0]};
 // name, ISO2, lat, lon
@@ -435,8 +446,6 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.05, 400);
-const controls = new OrbitControls(camera, canvas);
-Object.assign(controls, { enableDamping: true, dampingFactor: 0.06, enablePan: false, minDistance: 1.3, maxDistance: 7, rotateSpeed: 0.45, zoomSpeed: 0.7, autoRotate: true, autoRotateSpeed: 0.35, minPolarAngle: 0.12, maxPolarAngle: Math.PI - 0.12 });
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
@@ -444,7 +453,7 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
-const U = { uTime: { value: 0 }, uSun: { value: new THREE.Vector3(0, 0, 1) }, uIntro: { value: 0 } };
+const U = { uTime: { value: 0 }, uSun: { value: new THREE.Vector3(0, 0, 1) }, uIntro: { value: 0 }, uCoarse: { value: 1 }, uFine: { value: 0 }, uArcW: { value: 1 }, uArcH: { value: 1 }, uAtm: { value: 1 } };
 const SUN_VIEW = new THREE.Vector3(-0.55, 0.5, 0.67).normalize();
 
 // Nebula
@@ -510,12 +519,12 @@ globe.add(ocean);
 const ATM_R = 1.2, ATM_COS = Math.sqrt(1 - 1 / (ATM_R * ATM_R));
 globe.add(new THREE.Mesh(new THREE.SphereGeometry(ATM_R, 96, 64), new THREE.ShaderMaterial({
   side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-  uniforms: { uSun: U.uSun, uC: { value: new THREE.Color('#4d8dff') }, uK: { value: ATM_COS } },
+  uniforms: { uSun: U.uSun, uC: { value: new THREE.Color('#4d8dff') }, uK: { value: ATM_COS }, uF: U.uAtm },
   vertexShader: `varying vec3 vN, vW; void main(){ vN = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
-  fragmentShader: `uniform vec3 uSun, uC; uniform float uK; varying vec3 vN, vW;
+  fragmentShader: `uniform vec3 uSun, uC; uniform float uK, uF; varying vec3 vN, vW;
     void main(){ vec3 v = normalize(cameraPosition - vW); float x = clamp(-dot(normalize(vN), v)/uK, 0., 1.);
       float i = pow(x, 4.5) * (.3 + .8*max(dot(normalize(vN),uSun)*.5+.5, 0.));
-      gl_FragColor = vec4(uC*i*.9, 1.); }`,
+      gl_FragColor = vec4(uC*i*.9*uF, 1.); }`,
 })));
 
 /* ---------------- interaction plumbing ---------------- */
@@ -525,22 +534,124 @@ const tip = $('#tip'), pop = $('#pop'), labelsEl = $('#labels');
 
 function scheduleAutoRotate() {
   clearTimeout(idleTimer);
-  controls.autoRotate = false;
-  idleTimer = setTimeout(() => { if (!popState && !flight) controls.autoRotate = true; }, 9000);
+  nav.auto = false;
+  idleTimer = setTimeout(() => { if (!popState && !flight) nav.auto = true; }, 9000);
 }
-controls.addEventListener('start', () => { dragging = true; scheduleAutoRotate(); });
-controls.addEventListener('end', () => { dragging = false; scheduleAutoRotate(); });
 
 function flyTo(lat, lon, dist) {
   const from = camera.position.clone(), fromLen = from.length();
   const toDir = toVec(THREE.MathUtils.clamp(lat, -80, 80), lon).normalize();
-  const toLen = dist ?? Math.min(Math.max(fromLen, 2.1), 2.9);
+  const toLen = dist ? Math.min(dist, Math.max(fromLen, 1.3)) : Math.min(Math.max(fromLen, 1.6), 2.9);
   const ang = from.clone().normalize().angleTo(toDir);
   flight = { t0: performance.now(), dur: 900 + ang * 450, fromDir: from.normalize(), toDir, fromLen, toLen, lift: Math.min(ang, 1.6) * 0.45 };
-  controls.enabled = false;
+  nav.zoomTo = 0; nav.vLon = nav.vLat = 0;
   scheduleAutoRotate();
 }
 const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+/* ---------------- navigation ---------------- */
+// The grabbed point stays under the pointer, zoom is relative to altitude and aims at the cursor, release keeps a short glide.
+const MIN_ALT = 0.06, MAX_ALT = 6, SPHERE = new THREE.Sphere(new THREE.Vector3(), 1), FOV_T = Math.tan(21 * D2R);
+const nav = { auto: true, drag: null, pinch: null, vLon: 0, vLat: 0, zoomTo: 0, zoomAt: null, pts: new Map(), multi: false };
+const clamp = THREE.MathUtils.clamp, wrap = d => ((d + 540) % 360) - 180;
+const camAlt = () => camera.position.length() - 1;
+function camLL() { const n = camera.position.clone().normalize(); return { lat: Math.asin(n.y) / D2R, lon: Math.atan2(n.x, n.z) / D2R }; }
+function setCam(lat, lon, alt) { camera.position.copy(toVec(clamp(lat, -84, 84), lon, 1 + alt)); camera.lookAt(0, 0, 0); }
+function sphereAt(cx, cy) {
+  pointer.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1);
+  ray.setFromCamera(pointer, camera);
+  return ray.ray.intersectSphere(SPHERE, new THREE.Vector3());
+}
+// Near the limb a small pointer move spans a huge arc, so only grab well inside the disc.
+function grabAt(x, y) { const p = sphereAt(x, y); return p && p.dot(camera.position) / camera.position.length() > 0.45 ? toLatLon(p) : null; }
+function pinUnder(ll, x, y) {
+  for (let i = 0; i < 2; i++) {
+    const p = sphereAt(x, y);
+    if (!p || p.dot(camera.position) / camera.position.length() < 0.4) return false;
+    const h = toLatLon(p), c = camLL();
+    setCam(c.lat + ll.lat - h.lat, c.lon + wrap(ll.lon - h.lon), camAlt());
+  }
+  return true;
+}
+const degPerPx = () => Math.min(0.25, 2 * camAlt() * FOV_T / innerHeight / D2R);
+function startGesture() {
+  const ps = [...nav.pts.values()];
+  nav.drag = nav.pinch = null;
+  if (ps.length === 1) nav.drag = { x: ps[0].x, y: ps[0].y, grab: grabAt(ps[0].x, ps[0].y), hist: [] };
+  else if (ps.length > 1) { const [a, b] = ps; nav.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), alt: camAlt(), grab: grabAt((a.x + b.x) / 2, (a.y + b.y) / 2) }; }
+  dragging = !!(nav.drag || nav.pinch);
+  canvas.classList.toggle('grabbing', dragging);
+}
+canvas.addEventListener('pointerdown', e => {
+  if (e.button > 0) return;
+  if (!nav.pts.size) nav.multi = false;
+  canvas.setPointerCapture(e.pointerId);
+  nav.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (nav.pts.size > 1) nav.multi = true;
+  flight = null; nav.vLon = nav.vLat = 0; nav.zoomTo = 0;
+  scheduleAutoRotate();
+  startGesture();
+});
+canvas.addEventListener('pointermove', e => {
+  const pt = nav.pts.get(e.pointerId);
+  if (!pt) return;
+  pt.x = e.clientX; pt.y = e.clientY;
+  if (nav.pinch) {
+    const [a, b] = [...nav.pts.values()], c = camLL();
+    setCam(c.lat, c.lon, clamp(nav.pinch.alt * nav.pinch.d / Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)), MIN_ALT, MAX_ALT));
+    if (nav.pinch.grab) pinUnder(nav.pinch.grab, (a.x + b.x) / 2, (a.y + b.y) / 2);
+  } else if (nav.drag) {
+    const dr = nav.drag, dx = pt.x - dr.x, dy = pt.y - dr.y, before = camLL();
+    dr.x = pt.x; dr.y = pt.y;
+    if (!dr.grab || !pinUnder(dr.grab, pt.x, pt.y)) {
+      const k = degPerPx();
+      setCam(before.lat + dy * k, before.lon - dx * k, camAlt());
+      dr.grab = grabAt(pt.x, pt.y);
+    }
+    const after = camLL(), now = performance.now();
+    dr.hist.push({ t: now, lon: wrap(after.lon - before.lon), lat: after.lat - before.lat });
+    while (dr.hist.length && now - dr.hist[0].t > 100) dr.hist.shift();
+  }
+});
+function endPointer(e) {
+  if (!nav.pts.delete(e.pointerId)) return;
+  const dr = nav.drag, now = performance.now();
+  if (dr && !nav.pts.size && dr.hist.length && now - dr.hist.at(-1).t < 50) {
+    const span = Math.max(16, now - dr.hist[0].t);
+    nav.vLon = dr.hist.reduce((a, h) => a + h.lon, 0) / span;
+    nav.vLat = dr.hist.reduce((a, h) => a + h.lat, 0) / span;
+  }
+  startGesture();
+  scheduleAutoRotate();
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (flight) return;
+  const dy = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+  nav.zoomTo = clamp((nav.zoomTo || camAlt()) * Math.exp(clamp(dy, -200, 200) * (e.ctrlKey ? 0.012 : 0.0018)), MIN_ALT, MAX_ALT);
+  nav.zoomAt = { x: e.clientX, y: e.clientY, ll: grabAt(e.clientX, e.clientY) };
+  nav.vLon = nav.vLat = 0;
+  scheduleAutoRotate();
+}, { passive: false });
+function navStep(dt) {
+  const alt = camAlt(), busy = nav.drag || nav.pinch;
+  if (nav.zoomTo) {
+    const done = Math.abs(nav.zoomTo - alt) < nav.zoomTo * 0.003;
+    const na = done ? nav.zoomTo : alt + (nav.zoomTo - alt) * (1 - Math.exp(-dt / 85)), c = camLL();
+    setCam(c.lat, c.lon, na);
+    if (nav.zoomAt?.ll) pinUnder(nav.zoomAt.ll, nav.zoomAt.x, nav.zoomAt.y);
+    if (done) nav.zoomTo = 0;
+  }
+  if (busy) return;
+  if (nav.vLon || nav.vLat) {
+    const c = camLL(), f = Math.exp(-dt / 260);
+    setCam(c.lat + nav.vLat * dt, c.lon + nav.vLon * dt, camAlt());
+    nav.vLon *= f; nav.vLat *= f;
+    if (Math.hypot(nav.vLon, nav.vLat) < 2e-5) nav.vLon = nav.vLat = 0;
+  } else if (nav.auto) { const c = camLL(); setCam(c.lat, c.lon - 0.0021 * dt * Math.min(1, alt / 2), alt); }
+}
 
 /* ---------------- boot ---------------- */
 let COUNTRIES, byKey, countryAt, countryNear, dotMesh, dotCountry, dotPos, dotQuat, dotJitter, dotLat, gridN;
@@ -629,24 +740,15 @@ function buildWorld(topo) {
   });
   const geo = new THREE.CircleGeometry(DOT_R, 6);
   geo.setAttribute('aSeed', new THREE.InstancedBufferAttribute(seeds, 1));
-  dotMesh = new THREE.InstancedMesh(geo, new THREE.ShaderMaterial({
-    uniforms: { uIntro: U.uIntro, uSun: U.uSun },
-    vertexShader: `uniform float uIntro; uniform vec3 uSun; attribute float aSeed; varying vec3 vC; varying float vS;
-      void main(){ vec4 c = modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.), p = modelMatrix*instanceMatrix*vec4(position,1.);
-        float s = smoothstep(aSeed*.7, aSeed*.7+.3, uIntro); p.xyz = c.xyz + (p.xyz-c.xyz)*s;
-        vec3 n = normalize(c.xyz); float f = clamp(dot(n, normalize(cameraPosition-c.xyz)),0.,1.);
-        vS = (.3 + .7*clamp(dot(n,uSun)*.6+.55,0.,1.)) * (.35 + .65*smoothstep(0.,.55,f));
-        vC = instanceColor; gl_Position = projectionMatrix*viewMatrix*p; }`,
-    fragmentShader: `varying vec3 vC; varying float vS; void main(){ gl_FragColor = vec4(vC*vS, 1.); }`,
-  }), N);
+  dotMesh = new THREE.InstancedMesh(geo, dotMat(U.uCoarse), N);
   dotMesh.frustumCulled = false;
   for (let j = 0; j < N; j++) dotMesh.setColorAt(j, BASE);
   globe.add(dotMesh);
 
   // Faint graticule and borders
-  const lineMat = (color, opacity) => new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
   globe.add(new THREE.LineSegments(linesGeo(geoGraticule().step([30, 30]).precision(2)().coordinates, 1.0004), lineMat('#6f8fd6', 0.07)));
-  globe.add(new THREE.LineSegments(linesGeo(topojson.mesh(topo, topo.objects.countries).coordinates, 1.0018), lineMat('#8aa4e6', 0.13)));
+  lines50 = new THREE.LineSegments(linesGeo(topojson.mesh(topo, topo.objects.countries).coordinates, 1.0018), lineMat('#8aa4e6', 0.13));
+  globe.add(lines50);
   hoverLine = new THREE.LineSegments(new THREE.BufferGeometry(), lineMat('#ffffff', 0.85));
   hoverLine.renderOrder = 3;
   globe.add(hoverLine);
@@ -657,15 +759,39 @@ function buildWorld(topo) {
   fillPath = geoPath(geoEquirectangular().scale(2048 / (2 * Math.PI)).translate([1024, 512]).precision(0.2), fillCanvas.getContext('2d'));
   const fm = new THREE.Mesh(new THREE.SphereGeometry(1.0006, 128, 96), new THREE.MeshBasicMaterial({ map: fillTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
   fm.rotation.y = -Math.PI / 2; // SphereGeometry's u=0 sits at lon -90 in our mapping
-  globe.add(fm);
+  globe.add(fm); fillMesh.mesh = fm;
 
   refreshWorld();
   renderPanel();
   startIntro();
-  setTimeout(() => loadCities().then(() => { rebuildPins(); renderPanel(); }), 1500);
+  buildCandidates();
+  setTimeout(() => loadCities().then(() => { rebuildPins(); renderPanel(); buildCandidates(); }), 1500);
 }
 
 const BASE = new THREE.Color('#33446e');
+const dotMat = uSize => new THREE.ShaderMaterial({
+  uniforms: { uIntro: U.uIntro, uSun: U.uSun, uSize },
+  vertexShader: `uniform float uIntro, uSize; uniform vec3 uSun; attribute float aSeed; varying vec3 vC; varying float vS;
+    void main(){ vec4 c = modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.), p = modelMatrix*instanceMatrix*vec4(position,1.);
+      float s = smoothstep(aSeed*.7, aSeed*.7+.3, uIntro) * uSize; p.xyz = c.xyz + (p.xyz-c.xyz)*s;
+      vec3 n = normalize(c.xyz); float f = clamp(dot(n, normalize(cameraPosition-c.xyz)),0.,1.);
+      vS = (.3 + .7*clamp(dot(n,uSun)*.6+.55,0.,1.)) * (.35 + .65*smoothstep(0.,.55,f));
+      vC = instanceColor; gl_Position = projectionMatrix*viewMatrix*p; }`,
+  fragmentShader: `varying vec3 vC; varying float vS; void main(){ gl_FragColor = vec4(vC*vS, 1.); }`,
+});
+const lineMat = (color, opacity) => new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
+let lines50, lines10 = null, HI = null, hiP = null;
+// Coastlines and borders at 1:10m, fetched the first time someone zooms in.
+function loadHi() {
+  return hiP ||= fetch(ATLAS10).then(r => r.json()).then(topo => {
+    lines10 = new THREE.LineSegments(linesGeo(topojson.mesh(topo, topo.objects.countries).coordinates, 1.0014), lineMat('#8aa4e6', 0));
+    lines10.visible = false; globe.add(lines10);
+    HI = new Map(topojson.feature(topo, topo.objects.countries).features.map(f => [f.properties.name, f]));
+    for (const g of outlineCache.values()) g.dispose();
+    outlineCache.clear(); refreshWorld();
+    hoverLine.geometry = hoverCi >= 0 ? outlineGeo(hoverCi) : new THREE.BufferGeometry();
+  }).catch(e => console.warn('hi-res atlas', e));
+}
 let hoverLine, fillCanvas, fillTex, fillPath;
 
 function linesGeo(lines, r) {
@@ -681,9 +807,9 @@ function linesGeo(lines, r) {
 const outlineCache = new Map();
 function outlineGeo(ci) {
   if (!outlineCache.has(ci)) {
-    const g = COUNTRIES[ci].feature.geometry;
+    const g = (HI?.get(COUNTRIES[ci].key) || COUNTRIES[ci].feature).geometry;
     const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
-    outlineCache.set(ci, linesGeo(polys.flat(), 1.0028));
+    outlineCache.set(ci, linesGeo(polys.flat(), 1.0016));
   }
   return outlineCache.get(ci);
 }
@@ -720,13 +846,15 @@ function touched(p) {
   for (const pl of [...p.places, ...p.homes]) { const ci = countryNear(pl.lat, pl.lon); if (ci >= 0) set.add(COUNTRIES[ci].key); }
   return set;
 }
+// Sets tmpC to a dot's colour and returns its scale.
+function dotLook(ci, jit, g, gc, k) {
+  const vis = visitors[ci], hot = ci === hoverCi;
+  if (g > 0) { tmpC.set(gc); tmpC.multiplyScalar(glow(tmpC) * (0.3 + 0.7 * g) * (hot ? 1.4 : 1)); return 0.92 + 0.2 * g; }
+  if (vis.length) { tmpC2.set(vis[k % vis.length]); tmpC.copy(BASE).multiplyScalar(jit).lerp(tmpC2, state.view === 'cities' ? 0.16 : 0.36).multiplyScalar(hot ? 1.8 : 1); return hot ? 1.05 : 0.95; }
+  tmpC.copy(BASE).multiplyScalar(jit * (hot ? 2.1 : 1)); return hot ? 1.05 : 0.9;
+}
 function paintDot(j) {
-  const ci = dotCountry[j], vis = visitors[ci], hot = ci === hoverCi;
-  let s;
-  const g = placeGlow.s ? placeGlow.s[j] : 0;
-  if (g > 0) { tmpC.set(placeGlow.col[j]); tmpC.multiplyScalar(glow(tmpC) * (0.3 + 0.7 * g) * (hot ? 1.4 : 1)); s = 0.92 + 0.2 * g; }
-  else if (vis.length) { tmpC2.set(vis[j % vis.length]); tmpC.copy(BASE).multiplyScalar(dotJitter[j]).lerp(tmpC2, state.view === 'cities' ? 0.16 : 0.36).multiplyScalar(hot ? 1.8 : 1); s = hot ? 1.05 : 0.95; }
-  else { tmpC.copy(BASE).multiplyScalar(dotJitter[j] * (hot ? 2.1 : 1)); s = hot ? 1.05 : 0.9; }
+  const s = dotLook(dotCountry[j], dotJitter[j], placeGlow.s ? placeGlow.s[j] : 0, placeGlow.col?.[j], j);
   dotMesh.setColorAt(j, tmpC);
   tmpP.fromArray(dotPos, j * 3); tmpQ.fromArray(dotQuat, j * 4); tmpS.setScalar(s);
   dotMesh.setMatrixAt(j, tmpM.compose(tmpP, tmpQ, tmpS));
@@ -756,6 +884,7 @@ function refreshWorld() {
   }
   ctx.globalAlpha = 1;
   fillTex.needsUpdate = true;
+  if (fine?.n) { fineGlow(); paintFine(); }
   rebuildPins();
   rebuildArcs();
 }
@@ -764,6 +893,7 @@ function setHover(ci) {
   if (ci === hoverCi) return;
   const prev = hoverCi; hoverCi = ci;
   paintCountry(prev); paintCountry(ci); flushDots();
+  if (fine?.n) { paintFine(fine.byC.get(prev)); paintFine(fine.byC.get(ci)); }
   hoverLine.geometry = ci >= 0 ? outlineGeo(ci) : new THREE.BufferGeometry();
 }
 
@@ -807,7 +937,7 @@ function makePin(place, color, profile, kind) {
     if (isHome && homeUntil(profile, place)) lbl.classList.add('past');
   }
   labelsEl.appendChild(lbl);
-  const pin = { place, profile, kind, isHome, isCountry, group: g, ring, hit, lbl, tip: n.clone().multiplyScalar(1 + h + 0.012), born, phase: Math.random() * 2 };
+  const pin = { place, profile, kind, isHome, isCountry, group: g, ring, hit, lbl, n, h, tip: new THREE.Vector3(), born, phase: Math.random() * 2 };
   hit.userData.pin = pin;
   pinsGroup.add(g);
   return pin;
@@ -838,7 +968,10 @@ function homeYears(p, h) {
 
 const arcMatBase = {
   transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  vertexShader: `uniform float uW, uH; varying vec2 vUv;
+    void main(){ vUv = uv; vec3 c = position - normal*.0019; float r = length(c);
+      vec3 p = c/r*(1.002 + (r-1.002)*uH) + normal*.0019*uW;
+      gl_Position = projectionMatrix*modelViewMatrix*vec4(p,1.); }`,
   fragmentShader: `uniform float uTime, uProg, uOff; uniform vec3 uC; varying vec2 vUv;
     void main(){ if (vUv.x > uProg) discard;
       float head = fract(uTime*.22 + uOff), d = head - vUv.x; if (d < 0.) d += 1.;
@@ -887,7 +1020,7 @@ function rebuildArcs() {
     for (const [a, b, key, kind] of legsFor(prof, state.view)) {
       if (km(a, b) < 30) continue;
       const col = kind === 'move' && !state.compare ? HOME_COLOR : prof.color;
-      const mat = new THREE.ShaderMaterial({ ...arcMatBase, uniforms: { uTime: U.uTime, uProg: { value: seenArcs.has(key) ? 1 : 0 }, uOff: { value: Math.random() }, uC: { value: new THREE.Color(col).multiplyScalar(kind === 'move' ? 0.8 : 1) } } });
+      const mat = new THREE.ShaderMaterial({ ...arcMatBase, uniforms: { uTime: U.uTime, uW: U.uArcW, uH: U.uArcH, uProg: { value: seenArcs.has(key) ? 1 : 0 }, uOff: { value: Math.random() }, uC: { value: new THREE.Color(col).multiplyScalar(kind === 'move' ? 0.8 : 1) } } });
       const mesh = new THREE.Mesh(arcGeo(a, b), mat);
       arcsGroup.add(mesh);
       arcs.push({ mesh, mat, key, start: performance.now() / 1000 + 0.3 + arcs.length * 0.06 });
@@ -903,7 +1036,6 @@ function startIntro() {
   const dir = toVec(THREE.MathUtils.clamp(start.lat, -50, 50) * 0.7 + 8, start.lon).normalize();
   camera.position.copy(dir).multiplyScalar(9);
   flight = { t0: performance.now() + 150, dur: 2600, fromDir: dir.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -0.9), toDir: dir, fromLen: 9, toLen: MOBILE ? 4.4 : 3.05, lift: 0 };
-  controls.enabled = false;
   introT0 = performance.now();
   requestAnimationFrame(() => document.body.classList.remove('loading'));
 }
@@ -911,9 +1043,12 @@ let introT0 = 0;
 
 /* ---------------- render loop ---------------- */
 const proj = new THREE.Vector3(), camDir = new THREE.Vector3();
+let lastNow = 0, lastDetail = 0, lastFine = 0;
+const detailCam = new THREE.Vector3();
 function loop(now) {
   requestAnimationFrame(loop);
-  const t = U.uTime.value = performance.now() / 1000;
+  const t = U.uTime.value = performance.now() / 1000, dt = Math.min(50, now - (lastNow || now));
+  lastNow = now;
   if (introT0) U.uIntro.value = Math.min(1, (now - introT0) / 2600);
 
   if (flight) {
@@ -921,17 +1056,32 @@ function loop(now) {
     const d = slerpVec(flight.fromDir, flight.toDir, e);
     camera.position.copy(d.normalize()).multiplyScalar(THREE.MathUtils.lerp(flight.fromLen, flight.toLen, e) + Math.sin(Math.PI * e) * flight.lift);
     camera.lookAt(0, 0, 0);
-    if (k >= 1) { flight = null; controls.enabled = true; }
-  } else controls.update();
+    if (k >= 1) flight = null;
+  } else navStep(dt);
 
   U.uSun.value.copy(SUN_VIEW).applyQuaternion(camera.quaternion);
+
+  // Zoom-dependent detail
+  const alt = camAlt(), near = clamp(alt * 0.3, 0.005, 0.05);
+  if (Math.abs(camera.near - near) > 1e-4) { camera.near = near; camera.updateProjectionMatrix(); }
+  const pinK = clamp(alt / 0.7, 0.05, 1), zoomK = 1 - THREE.MathUtils.smoothstep(alt, 0.08, 1);
+  U.uArcW.value = clamp(alt / 0.7, 0.12, 1); U.uArcH.value = clamp(alt / 0.6, 0.15, 1);
+  U.uAtm.value = THREE.MathUtils.smoothstep(alt + 1, 1.21, 1.4);
+  U.uCoarse.value = fine?.n ? THREE.MathUtils.smoothstep(alt, FINE_END, FINE_START) : 1;
+  U.uFine.value = 1 - U.uCoarse.value;
+  if (fine) fine.mesh.visible = U.uFine.value > 0;
+  if (alt < 1.2 && !hiP && COUNTRIES) loadHi();
+  if (lines50) { const hi = lines10 && alt < 0.9; lines50.visible = !hi; if (lines10) { lines10.visible = hi; lines10.material.opacity = 0.13 + 0.32 * zoomK; } }
+  if (fillMesh.mesh) fillMesh.mesh.material.opacity = 1 - 0.55 * zoomK;
+  if (COUNTRIES && alt < FINE_START && now - lastFine > 150 && !flight) { lastFine = now; ensureFine(); }
 
   // pins & labels
   camDir.copy(camera.position).normalize();
   const dist = camera.position.length(), showAll = dist < 2.5 || pins.length <= 14;
   for (const p of pins) {
     const age = t - p.born, grow = THREE.MathUtils.clamp(age / 0.6, 0, 1);
-    p.group.scale.setScalar(grow < 1 ? 1 + 2.7 * Math.pow(grow - 1, 3) + 1.7 * Math.pow(grow - 1, 2) : 1);
+    p.group.scale.setScalar((grow < 1 ? 1 + 2.7 * Math.pow(grow - 1, 3) + 1.7 * Math.pow(grow - 1, 2) : 1) * pinK);
+    p.tip.copy(p.n).multiplyScalar(1 + (p.h + 0.012) * pinK);
     const r = ((t + p.phase) % 2.4) / 2.4;
     p.ring.scale.setScalar(p.isCountry ? 0.016 + r * 0.07 : (p.isHome ? 0.012 : 0.007) + r * (p.isHome ? 0.05 : 0.026));
     p.ring.material.opacity = (1 - r) * 0.8;
@@ -959,6 +1109,9 @@ function loop(now) {
     pop.classList.toggle('hidden', facing < 0.05 && !flight);
   }
 
+  if (DCAND && (now - lastDetail > 400 || (now - lastDetail > 110 && detailCam.distanceToSquared(camera.position) > 1e-8))) { lastDetail = now; detailCam.copy(camera.position); selectDetail(); }
+  placeDetail();
+
   if (hoverDirty && !dragging && !flight) { hoverDirty = false; doHover(); }
   composer.render();
 }
@@ -969,17 +1122,25 @@ function pickAt(cx, cy) {
   pointer.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
   const ph = ray.intersectObjects(pins.map(p => p.hit), false)[0];
-  const oh = ray.intersectObject(ocean, false)[0];
-  if (ph && (!oh || ph.distance < oh.distance + 0.05)) return { pin: ph.object.userData.pin };
-  if (!oh) return null;
-  const ll = toLatLon(oh.point);
-  return { ...ll, ci: countryAt(ll.lat, ll.lon), point: oh.point };
+  const op = ray.ray.intersectSphere(SPHERE, new THREE.Vector3()), od = op ? op.distanceTo(ray.ray.origin) : Infinity;
+  if (ph && ph.distance < od + 0.05 * Math.min(1, camAlt())) return { pin: ph.object.userData.pin };
+  const lb = labelAt(cx, cy);
+  if (lb) return { label: lb };
+  if (!op) return null;
+  const ll = toLatLon(op);
+  return { ...ll, ci: countryAt(ll.lat, ll.lon), point: op };
 }
-let hotPin = null;
+let hotPin = null, hotDl = null;
 function doHover() {
   if (!lastMove || lastMove.pointerType === 'touch') return;
   const hit = pickAt(lastMove.clientX, lastMove.clientY);
   if (hotPin && hotPin !== hit?.pin) { hotPin.lbl.classList.remove('hot'); hotPin = null; }
+  if (hotDl && hotDl !== hit?.label) { hotDl.el.classList.remove('hot'); hotDl = null; }
+  if (hit?.label) {
+    hotDl = hit.label; hotDl.el.classList.add('hot');
+    canvas.style.cursor = 'pointer'; tip.classList.remove('on'); setHover(hotDl.kind === 'country' ? hotDl.ci : -1);
+    return;
+  }
   if (hit?.pin) {
     hotPin = hit.pin; hotPin.lbl.classList.add('hot');
     canvas.style.cursor = 'pointer'; tip.classList.remove('on'); setHover(-1);
@@ -1003,12 +1164,155 @@ canvas.addEventListener('pointerup', e => {
   if (!downAt) return;
   const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y), dt = performance.now() - downAt.t;
   downAt = null;
-  if (moved > 6 || dt > 600) return;
+  if (moved > 6 || dt > 600 || nav.multi) return;
   const hit = pickAt(e.clientX, e.clientY);
   if (!hit) { closePop(); return; }
   if (hit.pin) openPinPop(hit.pin);
+  else if (hit.label) { const d = hit.label; d.kind === 'city' ? openSpotPop({ lat: d.lat, lon: d.lon, ci: countryNear(d.lat, d.lon), title: d.name, local: d.local }) : openSpotPop({ lat: d.lat, lon: d.lon, ci: d.ci, whole: true }); }
   else openSpotPop({ lat: hit.lat, lon: hit.lon, ci: hit.ci });
 });
+
+/* ---------------- fine dots ---------------- */
+// A denser dot lattice around the view, swapped in for the global one once you're close to the ground.
+const FINE_STEP = 0.12, FINE_MAX = 80000, FINE_GLOW = 0.35, FINE_START = 0.3, FINE_END = 0.16;
+let fine = null;
+function viewRadius(alt) {
+  const tc = Math.atan(FOV_T * Math.hypot(1, camera.aspect)), d = 1 + alt, s = d * Math.sin(tc);
+  return (s >= 1 ? Math.acos(1 / d) : Math.asin(s) - tc) / D2R;
+}
+const angDeg = (a, b) => geoDistance([a.lon, a.lat], [b.lon, b.lat]) / D2R;
+function ensureFine() {
+  const c = camLL(), need = viewRadius(camAlt()) + 1;
+  if (fine?.n && angDeg(c, fine.c) + need <= fine.R) return;
+  buildFine(c, need + 3);
+}
+const hash2 = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
+function buildFine(c, R) {
+  if (!fine) {
+    const geo = new THREE.CircleGeometry(FINE_STEP * D2R * 0.36, 6);
+    geo.setAttribute('aSeed', new THREE.InstancedBufferAttribute(new Float32Array(FINE_MAX), 1));
+    const mesh = new THREE.InstancedMesh(geo, dotMat(U.uFine), FINE_MAX);
+    mesh.frustumCulled = false; mesh.count = 0;
+    mesh.setColorAt(0, BASE);
+    globe.add(mesh);
+    fine = { mesh, n: 0, ci: new Int16Array(FINE_MAX), jit: new Float32Array(FINE_MAX), v: new Float32Array(FINE_MAX * 3), g: new Float32Array(FINE_MAX), gc: new Array(FINE_MAX), byC: new Map() };
+  }
+  const cv = toVec(c.lat, c.lon).normalize(), cosR = Math.cos(R * D2R), z = new THREE.Vector3(0, 0, 1), q = new THREE.Quaternion();
+  const i0 = Math.max(0, Math.ceil((c.lat - R + 90) / FINE_STEP - 0.5)), i1 = Math.min(Math.floor(180 / FINE_STEP) - 1, Math.floor((c.lat + R + 90) / FINE_STEP - 0.5));
+  let n = 0;
+  fine.byC = new Map();
+  for (let i = i0; i <= i1 && n < FINE_MAX; i++) {
+    const lat = -90 + (i + 0.5) * FINE_STEP, cs = Math.cos(lat * D2R), cnt = Math.max(1, Math.round(360 / FINE_STEP * cs)), w = 360 / cnt;
+    const span = R / Math.max(cs, 1e-3), k0 = span >= 180 ? 0 : Math.floor((c.lon - span + 180) / w - 0.5), k1 = span >= 180 ? cnt - 1 : Math.ceil((c.lon + span + 180) / w - 0.5);
+    for (let k = k0; k <= k1 && n < FINE_MAX; k++) {
+      const kk = ((k % cnt) + cnt) % cnt, lon = -180 + (kk + 0.5) * w;
+      const v = toVec(lat, lon);
+      if (v.dot(cv) < cosR) continue;
+      const ci = countryAt(lat, lon);
+      if (ci < 0) continue;
+      fine.v.set([v.x, v.y, v.z], n * 3); fine.ci[n] = ci; fine.jit[n] = 0.82 + hash2(i, kk) * 0.3;
+      let l = fine.byC.get(ci); if (!l) fine.byC.set(ci, l = []); l.push(n);
+      n++;
+    }
+  }
+  fine.n = n; fine.c = c; fine.R = R; fine.mesh.count = n;
+  fineGlow(); paintFine();
+}
+function fineGlow() {
+  const { g, gc, v, n } = fine, cosG = Math.cos(FINE_GLOW * D2R), pv = new THREE.Vector3();
+  g.fill(0, 0, n);
+  for (const p of shown()) for (const pl of [...p.places, ...p.homes]) {
+    if (angDeg(pl, fine.c) > fine.R + FINE_GLOW) continue;
+    pv.copy(toVec(pl.lat, pl.lon)).normalize();
+    for (let j = 0; j < n; j++) {
+      const d = pv.x * v[j * 3] + pv.y * v[j * 3 + 1] + pv.z * v[j * 3 + 2];
+      if (d < cosG) continue;
+      const k = 1 - Math.acos(Math.min(1, d)) / D2R / FINE_GLOW;
+      if (k > g[j]) { g[j] = k; gc[j] = p.color; }
+    }
+  }
+}
+function paintFine(idx) {
+  if (!fine?.n) return;
+  const { mesh, ci, jit, v, g, gc } = fine, z = new THREE.Vector3(0, 0, 1);
+  const each = j => {
+    const s = dotLook(ci[j], jit[j], g[j], gc[j], j);
+    mesh.setColorAt(j, tmpC);
+    tmpP.set(v[j * 3], v[j * 3 + 1], v[j * 3 + 2]); tmpQ.setFromUnitVectors(z, tmpP); tmpP.multiplyScalar(1.0009); tmpS.setScalar(s);
+    mesh.setMatrixAt(j, tmpM.compose(tmpP, tmpQ, tmpS));
+  };
+  if (idx) idx.forEach(each); else for (let j = 0; j < fine.n; j++) each(j);
+  mesh.instanceColor.needsUpdate = true; mesh.instanceMatrix.needsUpdate = true;
+}
+
+/* ---------------- place names ---------------- */
+// Country names at mid zoom, then cities (bigger first) as you get closer; greedy placement so labels never overlap.
+let DCAND = null, dlShown = [];
+const dlBox = $('#dlabels');
+function buildCandidates() {
+  for (const d of DCAND || []) d.el?.remove();
+  const cs = COUNTRIES.filter(c => c.count > 2 && c.key !== 'Siachen Glacier' && c.key !== 'Antarctica').map(c => ({ kind: 'country', name: c.name, local: c.native, lat: c.lat, lon: c.lon, size: Math.sqrt(c.count) * (MOBILE ? 0.72 : 0.5), ci: c.i, key: c.key })).sort((a, b) => b.size - a.size);
+  const ct = Object.values(CITY_DB || {}).flatMap(rows => rows.map(([name, lat, lon, pop, cap, local]) => ({ kind: 'city', name, local: local || '', lat, lon, pop, cap }))).sort((a, b) => b.cap - a.cap || b.pop - a.pop);
+  DCAND = [...cs, ...ct].map(d => ({ ...d, v: toVec(d.lat, d.lon).normalize(), el: null, x: 0, y: 0, w: 0 }));
+  dlShown = [];
+}
+function makeDl(d) {
+  const el = d.el = document.createElement('div');
+  el.className = `dl ${d.kind}${d.cap ? ' cap' : ''}`;
+  el.innerHTML = esc(d.name) + (d.local ? `<span class="n">${esc(d.local)}</span>` : '');
+  dlBox.appendChild(el);
+  d.w = el.offsetWidth;
+}
+function screenOf(d) {
+  proj.copy(d.v).multiplyScalar(1.002).project(camera);
+  d.x = (proj.x * .5 + .5) * innerWidth; d.y = (-proj.y * .5 + .5) * innerHeight;
+}
+const facingOK = (d, cp, dist) => (d.v.dot(cp) - 1) / (dist - 1) > 0.25;
+function selectDetail() {
+  const alt = camAlt(), cp = camera.position, dist = cp.length(), out = [];
+  if (alt < 1.7 && !flight) {
+    const pxDeg = innerHeight / (2 * alt * FOV_T) * D2R, taken = [];
+    for (const p of pins) {
+      if (+p.lbl.style.opacity > 0.3) { const r = p.lbl.getBoundingClientRect(); taken.push([r.left - 4, r.top - 3, r.right + 4, r.bottom + 3]); }
+      if (p.n.dot(cp) > 1) { proj.copy(p.n).project(camera); const x = (proj.x * .5 + .5) * innerWidth, y = (-proj.y * .5 + .5) * innerHeight; taken.push([x - 22, y - 22, x + 22, y + 22]); }
+    }
+    const placesShown = pins.filter(p => !p.isCountry).map(p => p.place), countryPins = new Set(pins.filter(p => p.isCountry).map(p => p.place.key));
+    const popMin = alt > 0.7 ? 3000 : alt > 0.45 ? 900 : alt > 0.28 ? 300 : alt > 0.16 ? 80 : 0, max = MOBILE ? 20 : 46;
+    for (const d of DCAND) {
+      if (out.length >= max) break;
+      if (d.kind === 'country') {
+        const px = d.size * pxDeg;
+        if (alt < 0.1 || px < 90 || px > innerWidth * 4 || countryPins.has(d.key)) continue;
+      } else if (alt > 0.95 || (d.pop < popMin && !(d.cap && alt < 0.7)) || placesShown.some(pl => Math.abs(pl.lat - d.lat) < 0.4 && km(pl, d) < 20)) continue;
+      if (!facingOK(d, cp, dist)) continue;
+      screenOf(d);
+      if (d.x < 0 || d.x > innerWidth || d.y < 8 || d.y > innerHeight - 8) continue;
+      if (!d.el) makeDl(d);
+      const r = d.kind === 'country' ? [d.x - d.w / 2 - 6, d.y - 10, d.x + d.w / 2 + 6, d.y + 10] : [d.x - 6, d.y - 10, d.x + d.w + 4, d.y + 10];
+      if (taken.some(t => r[0] < t[2] && r[2] > t[0] && r[1] < t[3] && r[3] > t[1])) continue;
+      taken.push(r); out.push(d);
+    }
+  }
+  const on = new Set(out);
+  for (const d of dlShown) if (!on.has(d)) d.el.classList.remove('on', 'hot');
+  for (const d of out) d.el.classList.add('on');
+  dlShown = out;
+}
+function placeDetail() {
+  const cp = camera.position, dist = cp.length();
+  for (const d of dlShown) {
+    screenOf(d);
+    d.el.style.transform = d.kind === 'country' ? `translate(${d.x}px,${d.y}px) translate(-50%,-50%)` : `translate(${d.x}px,${d.y}px) translate(0,-50%)`;
+    if (!facingOK(d, cp, dist)) d.el.classList.remove('on');
+  }
+}
+function labelAt(cx, cy) {
+  for (const d of dlShown) {
+    if (!d.el.classList.contains('on')) continue;
+    if (d.kind === 'city' ? cx > d.x - 8 && cx < d.x + d.w + 2 && Math.abs(cy - d.y) < 10 : Math.abs(cx - d.x) < d.w / 2 + 4 && Math.abs(cy - d.y) < 10) return d;
+  }
+  return null;
+}
 
 /* ---------------- popovers ---------------- */
 let popState = null;
@@ -1017,7 +1321,7 @@ function showPop(html, lat, lon, ctx) {
   pop.classList.remove('wide');
   popState = { anchor: toVec(lat, lon, 1.01), ...ctx };
   pop.classList.add('open');
-  clearTimeout(idleTimer); controls.autoRotate = false;
+  clearTimeout(idleTimer); nav.auto = false;
 }
 function closePop() { pop.classList.remove('open'); popState = null; scheduleAutoRotate(); }
 function visitorChips(ci) {
