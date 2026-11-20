@@ -1,5 +1,5 @@
 // Stale-while-revalidate: instant and offline from cache, refreshed in the background.
-const CACHE = 'wordhoard-v2';
+const CACHE = 'wordhoard-v3';
 const CORE = ['./', 'index.html', 'words.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 const CACHEABLE = url => url.origin === location.origin || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
 

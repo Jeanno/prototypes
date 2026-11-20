@@ -60,6 +60,8 @@ nav button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-
 .card{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:26px 22px;box-shadow:0 1px 0 var(--rule),0 8px 24px -16px rgb(0 0 0/.25)}
 .word{font-family:var(--f-display);font-size:clamp(34px,9vw,48px);font-weight:600;line-height:1.1;margin:0;letter-spacing:-.015em;overflow-wrap:anywhere}
 .phon{color:var(--muted);font-size:15px;display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.ipa{border:0;background:var(--sunk);color:var(--ink);border-radius:999px;padding:2px 9px;cursor:pointer;font-size:14px;display:inline-flex;align-items:baseline;gap:6px;font-family:"Charis SIL","Doulos SIL","Gentium Plus","Lucida Grande","Segoe UI",system-ui,sans-serif}
+.ipa small{font-family:var(--f-ui);font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--accent)}
 .pos{font-style:italic;color:var(--accent);font-family:var(--f-display)}
 .speak{border:1px solid var(--rule);background:var(--bg);border-radius:999px;width:32px;height:32px;display:inline-grid;place-items:center;cursor:pointer;padding:0;color:var(--ink)}
 .speak svg{width:16px;height:16px}
@@ -315,7 +317,7 @@ details.settings summary{cursor:pointer;padding:8px 0}
       </select>
     </div>
     <p>Words are stored in this browser only. Export a backup now and then.</p>
-    <p>Word list from <a href="https://wordnet.princeton.edu/">WordNet</a> and <a href="https://github.com/rspeer/wordfreq">wordfreq</a> (CC BY-SA 4.0). Online lookups via <a href="https://dictionaryapi.dev/">Free Dictionary API</a>.</p>
+    <p>Word list from <a href="https://wordnet.princeton.edu/">WordNet</a> and <a href="https://github.com/rspeer/wordfreq">wordfreq</a> (CC BY-SA 4.0). Pronunciations from <a href="https://github.com/cmusphinx/cmudict">CMUdict</a> (US) and <a href="https://github.com/open-dict-data/ipa-dict">ipa-dict</a> (UK). Online lookups via <a href="https://dictionaryapi.dev/">Free Dictionary API</a>.</p>
   </details>
 </div>
 <div class="toast" id="toast"></div>
@@ -333,7 +335,7 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const SPEAK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
 
 // ---------- Word database ----------
-const DICT = new Map((window.WORDS || []).map(([word, pos, z, rank, definition, example, synonyms]) => [word, { word, pos, z, rank, definition, example, synonyms }]));
+const DICT = new Map((window.WORDS || []).map(([word, pos, z, rank, definition, example, synonyms, uk, us]) => [word, { word, pos, z, rank, definition, example, synonyms, uk, us }]));
 const BY_RANK = [...DICT.values()].sort((a, b) => a.rank - b.rank);
 const MAX_RANK = BY_RANK.at(-1)?.rank || 25000;
 const lowerBound = r => { let lo = 0, hi = BY_RANK.length; while (lo < hi) { const m = lo + hi >> 1; BY_RANK[m].rank < r ? lo = m + 1 : hi = m; } return lo; };
@@ -603,7 +605,15 @@ function lev(a, b) {
   return d[a.length][b.length];
 }
 
-const headHtml = c => `<div class="word">${esc(c.word)}</div><div class="phon">${c.pos ? `<span class="pos">${esc(c.pos)}</span>` : ''}${c.phonetic ? `<span>${esc(c.phonetic)}</span>` : ''}<button class="speak" data-speak="${esc(c.word)}" aria-label="Pronounce">${SPEAK_SVG}</button></div>`;
+// Built-in words carry UK and US IPA; each is tappable to hear that accent.
+function phonHtml(c) {
+  const d = DICT.get(c.word.toLowerCase()), uk = d?.uk, us = d?.us;
+  if (!uk && !us) return c.phonetic ? `<span>${esc(c.phonetic)}</span>` : '';
+  const chip = (acc, label, ipa) => `<button class="ipa" data-speak="${esc(c.word)}" data-accent="${acc}" aria-label="Pronounce, ${label} accent"><small>${label}</small>/${esc(ipa)}/</button>`;
+  if (uk === us) return chip('GB', 'UK US', uk);
+  return (uk ? chip('GB', 'UK', uk) : '') + (us ? chip('US', 'US', us) : '');
+}
+const headHtml = c => `<div class="word">${esc(c.word)}</div><div class="phon">${c.pos ? `<span class="pos">${esc(c.pos)}</span>` : ''}${phonHtml(c)}<button class="speak" data-speak="${esc(c.word)}" aria-label="Pronounce">${SPEAK_SVG}</button></div>`;
 const exHtml = c => c.example ? `<p class="ex">${bold(c.example, c.word)}</p>` : '';
 const synHtml = c => c.synonyms?.length ? `<p class="syn">Similar: ${esc(c.synonyms.join(', '))}</p>` : '';
 const noteHtml = c => c.note ? `<p class="note">${esc(c.note)}</p>` : '';
@@ -1017,24 +1027,27 @@ $('#levelSel').addEventListener('change', e => { const v = e.target.value; if (v
 $('#scaleSel').addEventListener('change', e => { db.settings.scale = e.target.value; save(); syncLevelSel(); refreshChrome(); if (tab === 'discover') renderDiscover(); });
 
 // ---------- Pronunciation ----------
-let voice;
+let voice, voices = [];
 function pickVoice() {
-  const vs = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang));
-  voice = vs.find(v => /en[-_](GB|US)/i.test(v.lang) && v.localService) || vs[0];
+  voices = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang));
+  voice = voices.find(v => /en[-_](GB|US)/i.test(v.lang) && v.localService) || voices[0];
 }
+const voiceFor = acc => { const re = new RegExp(`en[-_]${acc}`, 'i'), vs = voices.filter(v => re.test(v.lang)); return vs.find(v => v.localService) || vs[0]; };
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
-function speak(word) {
+function speak(word, accent) {
+  if (accent) return tts(word, accent);
   const audio = db.cards.find(c => c.word === word)?.audio || (draft?.word === word && draft.audio);
   if (audio) { new Audio(audio).play().catch(() => tts(word)); return; }
   tts(word);
 }
-function tts(text) {
+function tts(text, accent) {
   if (!('speechSynthesis' in window)) return toast('Speech is not supported in this browser');
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text); if (voice) u.voice = voice; u.lang = voice?.lang || 'en-US'; u.rate = 0.9;
+  const v = (accent && voiceFor(accent)) || voice;
+  const u = new SpeechSynthesisUtterance(text); if (v) u.voice = v; u.lang = v?.lang || (accent ? 'en-' + accent : 'en-US'); u.rate = 0.9;
   speechSynthesis.speak(u);
 }
-document.addEventListener('click', e => { const s = e.target.closest('[data-speak]'); if (s) speak(s.dataset.speak); });
+document.addEventListener('click', e => { const s = e.target.closest('[data-speak]'); if (s) speak(s.dataset.speak, s.dataset.accent); });
 
 // ---------- Adding words ----------
 async function lookup(word) {
