@@ -1,2 +1,3 @@
 .DS_Store
 vocab/.nltk/
+__pycache__/
