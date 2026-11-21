@@ -44,14 +44,7 @@
 .notes{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:14px;text-wrap:pretty}
 .notes b{color:var(--amber);font-weight:600}
 .merge td{white-space:normal}
-.join{display:flex;flex-direction:column;gap:10px}
-.join label{display:flex;flex-direction:column;gap:4px}
-.join input{font-family:var(--f-data);font-size:16px;min-height:44px;padding:0 12px;border-radius:4px;border:1px solid var(--rule-2);background:var(--panel-2);color:var(--ink);-webkit-user-select:text;user-select:text;width:100%}
-.join input#jRoom{font-size:22px;letter-spacing:.2em;text-transform:uppercase}
-.join .row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
-.join details summary{cursor:pointer;font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
-.join details label{margin-top:8px}
-.net-online .aboard{display:flex;flex-direction:column;gap:6px}
+.aboard{display:flex;flex-direction:column;gap:6px}
 .aboard .room{font-family:var(--f-display);font-size:34px;line-height:1;color:var(--phos);letter-spacing:.12em}
 .st .who{font-family:var(--f-data);font-size:12px;color:var(--muted)}
 .st .who.on{color:var(--phos)}
@@ -98,22 +91,12 @@
   </div>
 
   <aside class="side">
-    <section class="card" aria-labelledby="hJoin">
-      <h2 id="hJoin">Crew a boat <span class="h-note offline-only">live over the internet</span><span class="h-note live-only" id="jConn">connecting…</span></h2>
-      <form class="join offline-only" id="joinForm">
-        <div class="row">
-          <label><span class="lbl">Room code</span><input id="jRoom" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="SUB1" required pattern="[A-Za-z0-9\-]{3,12}"></label>
-          <button type="button" class="btn" id="jNew">New</button>
-        </div>
-        <label><span class="lbl">Your name</span><input id="jName" maxlength="24" autocomplete="nickname" placeholder="e.g. Ana" required></label>
-        <details><summary>Server</summary><label><span class="lbl">WebSocket URL</span><input id="jServer" placeholder="wss://fathom-crew.example.workers.dev" spellcheck="false"></label></details>
-        <button class="btn primary" type="submit">Join, then pick a seat</button>
-      </form>
-      <div class="aboard live-only">
-        <span class="lbl">Aboard</span>
+    <section class="card live-only" aria-labelledby="hJoin">
+      <h2 id="hJoin">Aboard <span class="h-note" id="jConn">connecting…</span></h2>
+      <div class="aboard">
         <span class="room" id="aRoom"></span>
-        <p class="hint">Tap a station below to take that seat. Everyone on this code shares one boat. Captain, Comms, Helm and Navigator are live; the rest are still mockups.</p>
-        <div class="btns"><button type="button" class="btn" id="aShare">Copy invite link</button><button type="button" class="btn" id="aLeave">Leave</button></div>
+        <p class="hint">Tap a station to take that seat. Everyone on this code shares one boat. Captain, Comms, Helm and Navigator are live; the rest are still mockups.</p>
+        <div class="btns"><button type="button" class="btn primary" id="aShare">Copy invite link</button><button type="button" class="btn" id="aLeave">Leave</button></div>
       </div>
     </section>
 
@@ -228,20 +211,7 @@ focusSeat('captain');
 const LIVE = new Set(['captain', 'comms', 'helm', 'nav']);
 roster.querySelectorAll('.st').forEach(c => c.insertAdjacentHTML('beforeend', `<span class="who" data-who="${c.dataset.id}"></span>`));
 
-if (!NET.online) {
-  const rnd = () => Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
-  const $j = id => document.getElementById(id);
-  $j('jRoom').value = NET.room || '';
-  $j('jName').value = NET.name || '';
-  $j('jServer').value = NET.server || '';
-  $j('jNew').onclick = () => { $j('jRoom').value = rnd(); };
-  $j('joinForm').onsubmit = e => {
-    e.preventDefault();
-    if (!$j('jServer').value.trim()) { $j('jServer').closest('details').open = true; $j('jServer').focus(); NET.toast('Set the server URL first'); return; }
-    NET.join($j('jRoom').value.trim(), { name: $j('jName').value.trim(), server: $j('jServer').value.trim() });
-    location.href = location.pathname;
-  };
-} else {
+if (NET.online) {
   document.getElementById('aRoom').textContent = NET.room;
   document.getElementById('aLeave').onclick = () => NET.leave();
   document.getElementById('aShare').onclick = async () => {
