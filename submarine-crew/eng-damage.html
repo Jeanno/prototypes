@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fathom · Damage control</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Saira+Stencil+One&display=swap">
+<link rel="stylesheet" href="crew.css">
+<style>
+.boat-wrap{position:relative;width:100%;aspect-ratio:2.5;min-height:300px}
+@media (max-width:640px){.boat-wrap{aspect-ratio:auto;height:282px;min-height:0}}
+#boat{display:block;width:100%;height:100%;cursor:pointer;touch-action:manipulation}
+.door{position:absolute;width:44px;height:44px;margin-left:-22px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;background:var(--panel);border:1px solid var(--rule-2);border-radius:4px;cursor:pointer;font-family:var(--f-data);line-height:1.1}
+.door span{font-size:9px;color:var(--muted)}
+.door b{font-size:10px;font-weight:600;color:var(--phos-dim)}
+.door[aria-pressed="true"]{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel))}
+.door[aria-pressed="true"] b{color:var(--amber)}
+@media (hover:hover){.door:hover{border-color:var(--phos-dim)}}
+
+.jobs,.orders,.waits{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.job{border:1px solid var(--rule);border-radius:4px;padding:8px 10px;background:color-mix(in srgb,var(--panel-2) 50%,var(--panel))}
+.job.on{border-color:color-mix(in srgb,var(--amber) 60%,transparent)}
+.job.done{opacity:.5}
+.job-top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.job-title{font-weight:600;font-size:15px}
+.job-where{margin-left:auto;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.job-st{font-family:var(--f-data);font-size:12px;color:var(--muted);margin-top:4px}
+.job.on .job-st{color:var(--amber)}
+.job .btns{margin-top:8px}
+.job .btn{font-size:14px;padding:0 12px}
+
+.party-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dots{display:inline-flex;gap:5px}
+.dots i{width:12px;height:12px;border-radius:50%;background:var(--phos);box-shadow:0 0 6px color-mix(in srgb,var(--phos) 60%,transparent)}
+.party-state{font-size:18px;font-weight:600}
+.prow{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.prow .meter{margin:0}
+.prow .val{text-align:right;color:var(--ink)}
+
+.tradeoff{margin-top:8px;padding:8px 10px;border-radius:4px;border:1px solid color-mix(in srgb,var(--amber) 60%,transparent);background:color-mix(in srgb,var(--amber) 8%,transparent);color:var(--amber);font-family:var(--f-data);font-size:13px}
+.tradeoff.off{color:var(--phos);border-color:var(--phos-dim);background:color-mix(in srgb,var(--phos) 6%,transparent)}
+
+.order{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:8px 10px;border-radius:4px;border:1px solid color-mix(in srgb,var(--amber) 50%,transparent);background:color-mix(in srgb,var(--amber) 7%,transparent)}
+.order.ack{border-color:var(--rule);background:transparent;opacity:.6}
+.order p{margin:0;font-size:14px}
+.order small{display:block;font-family:var(--f-data);font-size:11px;color:var(--amber);letter-spacing:.06em}
+.order.ack small{color:var(--muted)}
+.sub{margin:14px 0 6px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.waits li{font-family:var(--f-data);font-size:12px;display:flex;gap:8px}
+.waits li::before{content:"…";color:var(--amber)}
+.waits li.none::before{content:"·";color:var(--muted)}
+.waits li.none{color:var(--muted)}
+#slowBtn[data-st="pending"]{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 60%,transparent)}
+
+.stress{position:relative;height:10px;margin-top:8px;background:var(--panel-2);border:1px solid var(--rule);border-radius:2px}
+.stress i{position:absolute;left:0;top:0;bottom:0;background:var(--phos);transition:width .25s}
+.stress .warn{background:var(--amber)}.stress .crit{background:var(--hostile)}
+.stress b{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--amber)}
+.stress em{position:absolute;top:12px;font-style:normal;font-family:var(--f-data);font-size:10px;color:var(--muted);transform:translateX(-50%)}
+.stress-wrap{padding-bottom:14px}
+
+tbody tr{cursor:pointer}
+@media (hover:hover){tbody tr:hover{background:var(--panel-2)}}
+tbody tr.tgt td:first-child{color:var(--amber);box-shadow:inset 3px 0 var(--amber)}
+td.wet{color:var(--bio)}
+td.up{color:var(--amber)}
+td.up.crit{color:var(--hostile)}
+td.lo{color:var(--amber)}
+td.out{color:var(--hostile)}
+@media (max-width:520px){.job-where{margin-left:0;width:100%}}
+</style>
+
+<body data-station="damage">
+<header class="bar">
+  <div class="brand">
+    <span class="mark">FATHOM</span>
+    <small>Damage control · ENG 3 · flooding, fire &amp; repairs</small>
+  </div>
+  <dl class="status" aria-live="off">
+    <div><dt>Depth</dt><dd><span id="stDep">150</span><small>/ <span id="stTest">600</span> ft</small></dd></div>
+    <div><dt>Hull stress</dt><dd id="stStress">25%</dd></div>
+    <div><dt>Flooding</dt><dd id="stFlood" class="warn">+1.0<small>gal/min</small></dd></div>
+    <div><dt>Pumps</dt><dd id="stPump" class="on">ON<small>+6 dB</small></dd></div>
+    <div><dt>Party</dt><dd id="stParty">IDLE</dd></div>
+    <div class="st-time"><dt>Time</dt><dd id="stTime">0347:00Z</dd></div>
+  </dl>
+</header>
+
+<button type="button" class="alert" id="alert" data-sev="2" aria-live="polite">
+  <span class="alert-sev" id="alertSev">ACTION</span>
+  <span class="alert-msg" id="alertMsg">Shaft seal leak, Motor room. Send repair party.</span>
+  <span class="alert-more" id="alertMore">TAP · SEND PARTY</span>
+</button>
+
+<main class="grid">
+  <section class="main-col" aria-label="Boat cutaway">
+    <div class="boat-wrap" id="wrap">
+      <canvas id="boat" aria-label="Side cutaway of the boat. Tap a compartment to send the repair party there."></canvas>
+      <div class="hud tl" id="hudL">DEPTH <b>150</b> FT · TEST <b>600</b><br>HULL STRESS <b>25%</b></div>
+      <div class="hud tr" id="hudR">SPEED <b>8.0</b> KTS<br>SEAL LEAK <b>4.0</b> GAL/MIN</div>
+      <div id="doors"></div>
+    </div>
+    <p class="hint">Tap a compartment to send the repair party. Tap a door to shut or open it: a shut door stops water spreading, but also stops the party and crew passing.</p>
+    <section class="card" aria-labelledby="hComp">
+      <h2 id="hComp">Compartments <span class="h-note">bow to stern · tap a row to send party</span></h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Compartment</th><th class="n">Water</th><th class="n">Level</th><th class="n">Rate</th><th>State</th></tr></thead>
+          <tbody id="compBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <aside class="side">
+    <section class="card" aria-labelledby="hDmg">
+      <h2 id="hDmg">Damage list <span class="h-note" id="dmgNote">3 open</span></h2>
+      <ul class="jobs" id="jobs"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hParty">
+      <h2 id="hParty">Repair party <span class="h-note">2 crew · only you can send them</span></h2>
+      <div class="party-head"><span class="dots" aria-hidden="true"><i></i><i></i></span><span class="party-state" id="pState">Standing by</span><span class="chip" id="pChip">IDLE</span></div>
+      <dl class="facts">
+        <div><dt>At</dt><dd id="pAt">Berthing</dd></div>
+        <div><dt>Heading to</dt><dd id="pTo">—</dd></div>
+        <div><dt>Travel</dt><dd id="pEta">—</dd></div>
+        <div class="wide"><dt>Job</dt><dd id="pJob" style="font-size:13px">None. Tap a compartment or a Send party button.</dd></div>
+      </dl>
+      <div class="prow"><span>Repair</span><div class="meter warn"><i id="pBar"></i></div><span class="val" id="pPct">—</span></div>
+      <p class="hint">30 s per compartment. A shut door stops them until you open it.</p>
+      <div class="btns"><button type="button" class="btn" id="recallBtn">Recall to DC locker</button></div>
+    </section>
+
+    <section class="card" aria-labelledby="hPump">
+      <h2 id="hPump">Bilge pumps <span class="chip warn" id="pumpChip">+6 dB</span></h2>
+      <div class="ctl"><span class="lbl">Pumps</span>
+        <div class="seg" data-seg="pumps"><button type="button" data-v="off" aria-pressed="false">Off · quiet</button><button type="button" data-v="on" aria-pressed="true">On · 3 gal/min</button></div></div>
+      <div class="tradeoff" id="tradeoff">Pumps: +6 dB, Sonar counter-detection ↑</div>
+      <dl class="facts">
+        <div><dt>Leaking in</dt><dd id="fIn">4.0</dd></div>
+        <div><dt>Pumped out</dt><dd id="fOut">3.0</dd></div>
+        <div><dt>Net gal/min</dt><dd id="fNet" class="warn">+1.0</dd></div>
+        <div class="wide"><dt>Motor room deckplates wet in</dt><dd id="fDeck">—</dd></div>
+      </dl>
+      <p class="hint">Off is quiet, but the Motor room fills four times faster. S3 is listening at 8.8 kyd.</p>
+    </section>
+
+    <section class="card" aria-labelledby="hOrd">
+      <h2 id="hOrd">Orders &amp; requests <span class="h-note" id="ordNote">2 to acknowledge</span></h2>
+      <ul class="orders" id="orders"></ul>
+      <div class="btns"><button type="button" class="btn" id="slowBtn" data-st="none">Request ahead slow</button></div>
+      <p class="hint" id="slowHint">To the Captain. The seal leaks more with shaft speed: 4.0 gal/min at 8 kts, 1.4 at 4 kts. Slower also means longer to KILO.</p>
+      <h3 class="sub">Waiting on</h3>
+      <ul class="waits" id="waits"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hHull">
+      <h2 id="hHull">Hull <span class="chip ok" id="hullChip">Sound</span></h2>
+      <dl class="facts">
+        <div class="big"><dt>Depth ft</dt><dd id="hDep">150</dd></div>
+        <div class="big"><dt>Test ft</dt><dd id="hTest">600</dd></div>
+        <div class="big"><dt>Stress</dt><dd id="hStress">25%</dd></div>
+        <div><dt>Crush est.</dt><dd id="hCrush">900 ft</dd></div>
+        <div><dt>Water aboard</dt><dd id="hWater">140 gal</dd></div>
+        <div><dt>Weight aft</dt><dd id="hAft">+1,197 lb</dd></div>
+      </dl>
+      <div class="stress-wrap"><div class="stress" aria-hidden="true"><i id="stressBar"></i><b id="testMark"></b><em id="testLbl">TEST</em></div></div>
+      <div class="ctl"><label class="lbl" for="chk">Check</label>
+        <div class="sl"><input type="range" id="chk" min="60" max="900" step="10" value="520"><output class="val" id="chkVal" for="chk">520 ft</output></div></div>
+      <p class="hint" id="chkNote">At 520 ft (S3's depth): 87% of test depth.</p>
+      <div class="btns"><button type="button" class="btn" id="adviseBtn">Advise Captain: max depth</button></div>
+    </section>
+
+    <section class="card" aria-labelledby="hSpare">
+      <h2 id="hSpare">Parts &amp; spares <span class="h-note">used on arrival</span></h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Item</th><th class="n">Qty</th><th>For</th></tr></thead>
+          <tbody id="spareBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hDemo">
+      <h2 id="hDemo">Demo <span class="h-note">see the station under stress</span></h2>
+      <div class="btns" style="margin-top:0">
+        <button type="button" class="btn danger" id="hitBtn">Simulate hit</button>
+        <button type="button" class="btn" id="fireBtn">Electrical fire</button>
+        <button type="button" class="btn" id="resetBtn">Reset</button>
+      </div>
+      <div class="ctl" style="margin-top:8px"><span class="lbl">Time</span>
+        <div class="seg" data-seg="time"><button type="button" data-v="1" aria-pressed="false">1×</button><button type="button" data-v="10" aria-pressed="true">10×</button><button type="button" data-v="60" aria-pressed="false">60×</button></div></div>
+    </section>
+
+    <section class="card" aria-labelledby="hLog">
+      <h2 id="hLog">DC log <span class="h-note">newest first</span></h2>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLinks">
+      <h2 id="hLinks">Crew links</h2>
+      <div class="links"><b>Takes from</b><a href="captain.html">Captain</a><a href="helm.html">Helm</a><a href="eng-power.html">Power</a><a href="../submarine-sonar/index.html">Sonar</a></div>
+      <div class="links" style="margin-top:8px"><b>Hands to</b><a href="captain.html">Captain</a><a href="../submarine-sonar/index.html">Sonar</a><a href="eng-life.html">Life support</a><a href="helm.html">Helm</a><a href="eng-power.html">Power</a></div>
+      <p class="hint">Damage reports and speed requests go up to the Captain; pump noise to Sonar; smoke to Life support; water weight aft to Helm for trim; breaker isolation to Power.</p>
+    </section>
+  </aside>
+</main>
+
+<footer class="keys">
+  <span><kbd>1</kbd>–<kbd>7</kbd>Send party</span>
+  <span><kbd>P</kbd>Pumps</span>
+  <span><kbd>S</kbd>Request ahead slow</span>
+  <span><kbd>H</kbd>Simulate hit</span>
+  <span><kbd>F</kbd>Electrical fire</span>
+</footer>
+
+<script src="crew.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const rootCss = getComputedStyle(document.documentElement);
+const hex = n => { const h = rootCss.getPropertyValue(n).trim().replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const COL = { phos: hex('--phos'), dim: hex('--phos-dim'), amber: hex('--amber'), hostile: hex('--hostile'), bio: hex('--bio'), hull: hex('--hull'), panel: hex('--panel'), panel2: hex('--panel-2'), rule: hex('--rule'), rule2: hex('--rule-2'), muted: hex('--muted'), ink: hex('--ink') };
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const approach = (v, t, m) => v + Math.sign(t - v) * Math.min(Math.abs(t - v), m);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmtN = n => Math.round(n).toLocaleString('en-US');
+const sgn = n => (n >= 0.05 ? '+' : n <= -0.05 ? '−' : '±') + Math.abs(n).toFixed(1);
+const mmss = s => { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+
+const COMPS = [
+  { name: 'Torpedo room', short: 'TORP', w: 1.25, cap: 1600 },
+  { name: 'Control room', short: 'CTRL', w: 1.15, cap: 1800 },
+  { name: 'Sonar / Radio', short: 'SONR', w: 0.9, cap: 900 },
+  { name: 'Berthing', short: 'BRTH', w: 1.0, cap: 1300 },
+  { name: 'Battery well', short: 'BATT', w: 1.0, cap: 1300 },
+  { name: 'Engine room', short: 'ENG', w: 1.25, cap: 1700 },
+  { name: 'Motor room', short: 'MOTR', w: 1.1, cap: 1100 },
+];
+const N = COMPS.length, LOCKER = 3, PUMP_AT = 5, PUMP_RATE = 3, TRAVEL = 30, SILL = 0.3, DECK = 0.2;
+const SEV = { crit: 0, major: 1, minor: 2 };
+const SEV_LABEL = { crit: 'Critical', major: 'Major', minor: 'Minor' };
+const SEV_CHIP = { crit: 'crit', major: 'warn', minor: '' };
+const SPARES = {
+  packing: { name: 'Seal packing set', qty: 2, for: 'Shaft seal' },
+  patch: { name: 'Soft patch kit', qty: 2, for: 'Hull breach' },
+  shoring: { name: 'Shoring timbers', qty: 10, for: 'Hull breach' },
+  clamp: { name: 'Pipe clamps', qty: 4, for: 'Pipe leaks' },
+  co2: { name: 'CO2 extinguisher', qty: 3, for: 'Fire' },
+  bearing: { name: 'Fan bearing', qty: 1, for: 'Vent fans' },
+  fuse: { name: 'Breakers / fuses', qty: 6, for: 'Electrical' },
+};
+
+let S;
+function init() {
+  S = {
+    t: 0, rt: 0, scale: 10, speed: SHIP.speed, speedTarget: SHIP.speed, depth: SHIP.depth, test: 600, hullHit: false,
+    pumps: true, water: [0, 0, 0, 0, 0, 0, 140], rate: Array(N).fill(0), spill: Array(N - 1).fill(0), doors: Array(N - 1).fill(false),
+    party: { pos: LOCKER, target: null, job: null, state: 'idle', door: -1 },
+    jobs: [], nextJob: 1, spares: JSON.parse(JSON.stringify(SPARES)), orders: [], nextOrder: 1,
+    slow: 'none', timers: [], flash: 0, target: null, sig: '', osig: '', sonarTold: false,
+  };
+  addJob({ kind: 'seal', comp: 6, title: 'Shaft seal leak', sev: 'major', work: 360, parts: { packing: 1 }, note: 'Leaking in, worse with speed' });
+  addJob({ kind: 'fan', comp: 3, title: 'Vent fan 2 bearing noisy', sev: 'minor', work: 240, parts: { bearing: 1 }, note: '+1 dB self-noise' });
+  addJob({ kind: 'hyd', comp: 1, title: 'Hydraulic weep, steering', sev: 'minor', work: 180, parts: { clamp: 1 }, note: 'Slow drip, watch it' });
+  addOrder('Captain', '0345Z', 'Damage control: give me a time to repair the shaft seal.');
+  addOrder('Captain', '0346Z', 'Be ready to secure pumps on my order. We may go quiet for the 0400Z broadcast.');
+  later(9, () => addOrder('Sonar', zulu().slice(0, 4) + 'Z', 'I can hear our drain pump on the hull array. S3 at 8.8 kyd may hear it too.'));
+  $('#log').innerHTML = '';
+  log('Station manned. Shaft seal leak, Motor room, 4 gal/min. Pumps running.', 'warn');
+  setSeg('pumps', 'on', true); setSeg('time', '10', true);
+  $('#slowBtn').disabled = false;
+  buildSpares(); renderOrders(); placeDoors();
+}
+
+function addJob(j) {
+  j = Object.assign({ id: S.nextJob++, prog: 0, taken: false, done: false, grow: 0.2, iso: 'none' }, j);
+  S.jobs.push(j); return j;
+}
+function addOrder(from, at, text) { S.orders.push({ id: S.nextOrder++, from, at, text, ack: false }); renderOrders(); }
+function later(sec, fn) { S.timers.push({ at: S.rt + sec, fn }); }
+function zulu() {
+  const s = Math.floor(3 * 3600 + 47 * 60 + S.t), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60, ss = s % 60;
+  return `${String(h).padStart(2, '0')}${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+function log(msg, kind = '') {
+  const el = $('#log'), li = document.createElement('li'); li.className = kind;
+  const t = document.createElement('time'); t.textContent = zulu();
+  const sp = document.createElement('span'); sp.textContent = msg;
+  li.append(t, sp); el.prepend(li);
+  while (el.children.length > 60) el.lastChild.remove();
+}
+
+/* ---------- model ---------- */
+const openJobs = () => S.jobs.filter(j => !j.done);
+const sealJob = () => S.jobs.find(j => j.kind === 'seal');
+const leakRate = () => (sealJob().done ? 0.1 : 4 * Math.pow(S.speed / 8, 1.5));
+const fireInt = j => (j.done ? 0 : Math.min(1, j.grow) * (1 - j.prog));
+function inflow(i) {
+  let q = 0;
+  if (i === 6) q += leakRate();
+  for (const j of S.jobs) if (j.kind === 'breach' && !j.done && j.comp === i) q += 60 * (1 - 0.95 * j.prog);
+  return q;
+}
+function pumpTarget() {
+  let best = -1, lv = 0;
+  for (let i = 0; i < N; i++) { const l = S.water[i] / COMPS[i].cap; if (S.water[i] > 2 && l > lv) { lv = l; best = i; } }
+  return best;
+}
+function totalIn() { let q = 0; for (let i = 0; i < N; i++) q += inflow(i); return q; }
+function pumped() { return S.pumps && pumpTarget() >= 0 ? PUMP_RATE : 0; }
+
+function step(dt) {
+  S.t += dt;
+  S.depth = SHIP.depth + Math.sin(S.t / 40) * 1.5;
+  S.speed = approach(S.speed, S.speedTarget, 0.02 * dt);
+
+  const before = S.water.slice();
+  for (let i = 0; i < N; i++) S.water[i] += inflow(i) / 60 * dt;
+  const pt = pumpTarget();
+  if (S.pumps && pt >= 0) S.water[pt] = Math.max(0, S.water[pt] - PUMP_RATE / 60 * dt);
+  for (let d = 0; d < N - 1; d++) {
+    S.spill[d] = 0;
+    if (S.doors[d]) continue;
+    const a = d, b = d + 1, la = S.water[a] / COMPS[a].cap, lb = S.water[b] / COMPS[b].cap;
+    const hi = la > lb ? a : b, lo = hi === a ? b : a, lh = Math.max(la, lb), ll = Math.min(la, lb);
+    if (lh > SILL && lh > ll + 0.01) {
+      const q = 240 * (lh - Math.max(ll, SILL));
+      const mv = Math.min(q / 60 * dt, S.water[hi]);
+      S.water[hi] -= mv; S.water[lo] += mv; S.spill[d] = q * (hi === a ? 1 : -1);
+    }
+  }
+  for (let i = 0; i < N; i++) { S.water[i] = clamp(S.water[i], 0, COMPS[i].cap); S.rate[i] = (S.water[i] - before[i]) / dt * 60; }
+
+  for (const j of S.jobs) {
+    if (j.kind !== 'fire' || j.done) continue;
+    const was = j.sev;
+    j.grow = Math.min(1, j.grow + 0.0025 * dt);
+    j.sev = fireInt(j) > 0.55 ? 'crit' : 'major';
+    if (was !== j.sev && j.sev === 'crit') log(`Fire in ${COMPS[j.comp].name} spreading.`, 'alert-l');
+  }
+  stepParty(dt);
+}
+
+function stepParty(dt) {
+  const P = S.party;
+  if (P.target === null) return;
+  if (P.pos !== P.target) {
+    const dir = Math.sign(P.target - P.pos);
+    let next = P.pos + dir * dt / TRAVEL;
+    if ((next - P.target) * dir > 0) next = P.target;
+    const d = dir > 0 ? Math.ceil(P.pos - 0.5 + 1e-6) : Math.floor(P.pos - 0.5 - 1e-6);
+    const dpos = d + 0.5;
+    if (d >= 0 && d < N - 1 && S.doors[d] && (dpos - P.pos) * dir > 0 && (next - dpos) * dir > -0.2) {
+      P.pos = dpos - dir * 0.2;
+      if (P.state !== 'blocked') log(`Repair party stopped at door D${d + 1} (shut).`, 'warn');
+      P.state = 'blocked'; P.door = d; return;
+    }
+    P.pos = next; P.state = 'moving'; P.door = -1;
+    if (P.pos !== P.target) return;
+    log(`Repair party on scene, ${COMPS[P.target].name}.`);
+  }
+  const j = P.job;
+  if (!j || j.done) { P.state = 'standby'; P.job = null; return; }
+  if (!j.taken) {
+    const lack = Object.entries(j.parts).find(([k, n]) => S.spares[k].qty < n);
+    if (lack) { if (P.state !== 'noparts') log(`No ${S.spares[lack[0]].name} left for ${j.title.toLowerCase()}.`, 'alert-l'); P.state = 'noparts'; return; }
+    for (const [k, n] of Object.entries(j.parts)) S.spares[k].qty -= n;
+    j.taken = true; updateSpares();
+  }
+  P.state = 'working';
+  let rate = 1 / j.work;
+  if (j.kind === 'seal' && S.speed <= 5) rate *= 2;
+  if (j.kind === 'fire' && j.iso !== 'done') rate *= 0.45;
+  j.prog = Math.min(1, j.prog + rate * dt);
+  if (j.prog >= 1) finish(j);
+}
+
+function finish(j) {
+  j.done = true; j.prog = 1;
+  const P = S.party; if (P.job === j) { P.job = null; P.state = 'standby'; }
+  const msg = {
+    seal: 'Shaft seal repacked. Leak down to a weep. Pumps can be secured.',
+    fan: 'Vent fan 2 bearing replaced. Self-noise down 1 dB.',
+    hyd: 'Steering hydraulic weep clamped.',
+    fire: `Fire out in ${COMPS[j.comp].name}. Reflash watch set.`,
+    breach: `Breach patched and shored, ${COMPS[j.comp].name}. Flooding stopped.`,
+  }[j.kind];
+  log(msg, 'ok');
+  if (j.kind === 'fire') log('Sent to Life support: fire out, ventilate when able.', 'ok');
+}
+
+function sendParty(comp, job) {
+  const P = S.party;
+  if (job === undefined) job = openJobs().filter(j => j.comp === comp).sort(jobOrder)[0] || null;
+  S.target = comp;
+  if (P.job && P.job !== job) log(`Party pulled off ${P.job.title.toLowerCase()} (${Math.round(P.job.prog * 100)}% done).`, 'warn');
+  P.target = comp; P.job = job; P.state = P.pos === comp ? 'working' : 'moving'; P.door = -1;
+  const eta = Math.abs(comp - P.pos) * TRAVEL;
+  log(job ? `Repair party to ${COMPS[comp].name}: ${job.title.toLowerCase()}. ETA ${mmss(eta)}.` : `Repair party to ${COMPS[comp].name}, standing by.`, job ? 'warn' : '');
+  update(true);
+}
+const jobOrder = (a, b) => SEV[a.sev] - SEV[b.sev] || (a.kind === 'breach' ? -1 : b.kind === 'breach' ? 1 : 0) || a.id - b.id;
+
+function toggleDoor(d) {
+  S.doors[d] = !S.doors[d];
+  log(`Door D${d + 1} ${COMPS[d].name} / ${COMPS[d + 1].name} ${S.doors[d] ? 'shut and dogged' : 'opened'}.`, S.doors[d] ? 'warn' : '');
+  if (S.doors[d] && S.party.target !== null && S.party.state === 'moving') {
+    const lo = Math.min(S.party.pos, S.party.target), hi = Math.max(S.party.pos, S.party.target);
+    if (d + 0.5 > lo && d + 0.5 < hi) log(`Party's route crosses D${d + 1}. They will stop there.`, 'warn');
+  }
+  renderDoors(); update(true);
+}
+
+function setPumps(on) {
+  if (S.pumps === on) return;
+  S.pumps = on;
+  log(on ? 'Bilge pumps on. Told Sonar: +6 dB self-noise.' : 'Bilge pumps secured. Running quiet; Motor room filling faster.', on ? 'warn' : 'ok');
+}
+
+function requestSlow() {
+  if (S.slow !== 'none') return;
+  S.slow = 'pending';
+  log('Requested ahead slow (4 kts) from Captain: seal leak worsens with shaft speed.', 'warn');
+  later(5, () => {
+    if (S.slow !== 'pending') return;
+    S.slow = 'approved'; S.speedTarget = 4;
+    addOrder('Captain', zulu().slice(0, 4) + 'Z', 'Ahead slow approved. Helm making turns for 4 kts. Get that seal fixed.');
+    log('Captain approved ahead slow. Speed coming down to 4 kts.', 'ok');
+  });
+  update(true);
+}
+
+function isolate(j) {
+  if (j.iso !== 'none') return;
+  j.iso = 'pending';
+  log(`Asked Power to isolate breakers feeding ${COMPS[j.comp].name}.`, 'warn');
+  later(4, () => { if (j.done) return; j.iso = 'done'; log(`Power: breakers open, ${COMPS[j.comp].name} de-energized.`, 'ok'); S.sig = ''; });
+  S.sig = ''; update(true);
+}
+
+function startFire(comp, grow, quiet) {
+  if (S.jobs.some(j => j.kind === 'fire' && !j.done && j.comp === comp)) return;
+  addJob({ kind: 'fire', comp, title: comp === 2 ? 'Electrical fire, radio rack' : 'Electrical fire, battery breaker', sev: 'major', work: 150, parts: { co2: 1 }, grow, note: 'Isolate power to put it out faster' });
+  if (!quiet) log(`FIRE in ${COMPS[comp].name}! Electrical.`, 'alert-l');
+  log(`Sent to Life support: smoke in ${COMPS[comp].name}, expect O2 drawdown.`, 'warn');
+}
+
+function simulateHit() {
+  if (S.hullHit) { log('Already hit. Reset to run it again.'); return; }
+  S.hullHit = true; S.test = 450; S.flash = 1;
+  addJob({ kind: 'breach', comp: 5, title: 'Hull breach, frame 62', sev: 'crit', work: 480, parts: { patch: 1, shoring: 4 }, note: 'Flooding 60 gal/min' });
+  startFire(4, 0.5, true);
+  log('HIT aft! Flooding in Engine room, 60 gal/min. Fire in Battery well.', 'alert-l');
+  log('Hull frames strained. Test depth cut to 450 ft.', 'alert-l');
+  addOrder('Captain', zulu().slice(0, 4) + 'Z', 'Damage report, now! Contain the flooding.');
+  update(true);
+}
+
+/* ---------- canvas ---------- */
+const cv = $('#boat'), ctx = cv.getContext('2d'), wrap = $('#wrap');
+let dpr = 1, L = null;
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const box = cv.getBoundingClientRect();
+  cv.width = Math.max(1, Math.round(box.width * dpr)); cv.height = Math.max(1, Math.round(box.height * dpr));
+  const W = box.width, H = box.height;
+  const x0 = 10, x1 = W - 34, tw = COMPS.reduce((a, c) => a + c.w, 0);
+  const bx = [x0]; COMPS.forEach(c => bx.push(bx[bx.length - 1] + (x1 - x0) * c.w / tw));
+  let minGap = Infinity; for (let d = 1; d < N - 1; d++) minGap = Math.min(minGap, bx[d + 1] - bx[d]);
+  const stagger = minGap < 52, rowH = stagger ? 102 : 54;
+  const B = H - rowH - 8, hh = Math.min(W * 0.24, B - 70), T = B - hh;
+  L = { W, H, x0, x1, bx, T, B, hh, r: hh / 2, mid: (T + B) / 2, stagger, doorTop: B + 10, deckY: B - hh * DECK };
+  placeDoors();
+}
+new ResizeObserver(resize).observe(cv);
+
+function hullPath() {
+  const { x0, x1, T, B, mid, r } = L, nose = r * 1.4, xs = x1 - Math.min(r * 2.4, (x1 - x0) * 0.16);
+  ctx.beginPath();
+  ctx.moveTo(x0 + nose, T); ctx.lineTo(xs, T);
+  ctx.bezierCurveTo(xs + (x1 - xs) * 0.6, T, x1, mid - r * 0.5, x1, mid - r * 0.28);
+  ctx.lineTo(x1, mid + r * 0.28);
+  ctx.bezierCurveTo(x1, mid + r * 0.5, xs + (x1 - xs) * 0.6, B, xs, B);
+  ctx.lineTo(x0 + nose, B);
+  ctx.bezierCurveTo(x0 + nose * 0.3, B, x0, mid + r * 0.55, x0, mid);
+  ctx.bezierCurveTo(x0, mid - r * 0.55, x0 + nose * 0.3, T, x0 + nose, T);
+  ctx.closePath();
+}
+const center = i => (L.bx[i] + L.bx[i + 1]) / 2;
+function posToX(p) {
+  const i = Math.floor(p), f = p - i;
+  if (i >= N - 1) return center(N - 1);
+  return f <= 0.5 ? center(i) + (L.bx[i + 1] - center(i)) * f * 2 : L.bx[i + 1] + (center(i + 1) - L.bx[i + 1]) * (f - 0.5) * 2;
+}
+const stressCol = s => (s > 0.85 ? COL.hostile : s > 0.5 ? COL.amber : COL.phos);
+
+function draw() {
+  if (!L) return;
+  const { W, H, x0, x1, bx, T, B, hh, mid, r, deckY } = L, rt = reduceMotion ? 0 : S.rt;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const g = ctx.createLinearGradient(0, 0, 0, B + 20);
+  g.addColorStop(0, rgba(COL.bio, 0.07)); g.addColorStop(1, rgba(COL.bio, 0.015));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, B + 20);
+  ctx.strokeStyle = rgba(COL.rule, 0.6); ctx.lineWidth = 1;
+  for (let y = T - 30; y > 30; y -= 34) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  if (S.pumps) {
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, B + 6); ctx.clip();
+    const px = center(PUMP_AT), py = B - hh * 0.1;
+    for (let k = 0; k < 3; k++) {
+      const ph = ((rt * 0.45) + k / 3) % 1, rad = r * 0.5 + ph * r * 2.6;
+      ctx.strokeStyle = rgba(COL.amber, (1 - ph) * 0.4); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(px, py, rad, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  const stress = S.depth / S.test, sc = stressCol(stress);
+  hullPath(); ctx.fillStyle = rgba(COL.panel, 1); ctx.fill();
+  ctx.save(); hullPath(); ctx.clip();
+  for (let i = 0; i < N; i++) {
+    const a = bx[i], b = bx[i + 1], jobs = openJobs().filter(j => j.comp === i);
+    const worst = jobs.sort(jobOrder)[0];
+    if (worst) { ctx.fillStyle = rgba(worst.sev === 'crit' ? COL.hostile : worst.sev === 'major' ? COL.amber : COL.muted, worst.sev === 'crit' ? 0.12 + 0.06 * Math.sin(rt * 5) : 0.07); ctx.fillRect(a, T, b - a, hh); }
+    ctx.strokeStyle = rgba(COL.rule2, 0.7); ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(a, deckY); ctx.lineTo(b, deckY); ctx.stroke(); ctx.setLineDash([]);
+    const lv = S.water[i] / COMPS[i].cap;
+    if (lv > 0.002) {
+      const wy = B - lv * hh, amp = 1 + Math.min(3, Math.abs(S.rate[i]) / 15);
+      ctx.beginPath(); ctx.moveTo(a, B + 2);
+      for (let x = a; x <= b + 0.1; x += 3) ctx.lineTo(x, wy + Math.sin(x * 0.09 + rt * 2.2 + i) * amp);
+      ctx.lineTo(b, B + 2); ctx.closePath();
+      ctx.fillStyle = rgba(COL.bio, 0.3); ctx.fill();
+      ctx.beginPath();
+      for (let x = a; x <= b + 0.1; x += 3) { const y = wy + Math.sin(x * 0.09 + rt * 2.2 + i) * amp; x === a ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+      ctx.strokeStyle = rgba(COL.bio, 0.9); ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    for (const j of jobs) if (j.kind === 'fire') drawFire(a, b, fireInt(j), rt);
+  }
+  // shaft seal drips
+  const leak = leakRate();
+  if (leak > 0.2) {
+    const sx = bx[N] - (bx[N] - bx[N - 1]) * 0.25, wy = B - S.water[N - 1] / COMPS[N - 1].cap * hh;
+    const n = Math.ceil(leak);
+    ctx.fillStyle = rgba(COL.bio, 0.9);
+    for (let k = 0; k < n; k++) {
+      const ph = (rt * (0.8 + leak * 0.15) + k / n) % 1, y = mid + (wy - mid) * ph;
+      ctx.beginPath(); ctx.arc(sx + (k % 2 ? 3 : -2), y, 1.6, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  ctx.strokeStyle = rgba(sc, 0.18 + stress * 0.3); ctx.lineWidth = 1;
+  ctx.save(); hullPath(); ctx.clip();
+  for (let x = x0 + 8; x < x1; x += 14) { ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, T + 5); ctx.moveTo(x, B); ctx.lineTo(x, B - 5); ctx.stroke(); }
+  ctx.restore();
+
+  // sail over control room
+  const sw = Math.min((bx[2] - bx[1]) * 0.8, 120), sx0 = center(1) - sw / 2, sh = Math.min(hh * 0.32, 52);
+  ctx.beginPath(); ctx.moveTo(sx0, T + 1); ctx.lineTo(sx0 + sw * 0.08, T - sh); ctx.lineTo(sx0 + sw * 0.85, T - sh); ctx.quadraticCurveTo(sx0 + sw, T - sh, sx0 + sw, T + 1);
+  ctx.fillStyle = rgba(COL.panel, 1); ctx.fill(); ctx.strokeStyle = rgba(sc, 0.9); ctx.lineWidth = 2; ctx.stroke();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = rgba(COL.rule2, 1);
+  ctx.beginPath(); ctx.moveTo(sx0 + sw * 0.35, T - sh); ctx.lineTo(sx0 + sw * 0.35, T - sh - 12); ctx.moveTo(sx0 + sw * 0.55, T - sh); ctx.lineTo(sx0 + sw * 0.55, T - sh - 8); ctx.stroke();
+
+  hullPath(); ctx.strokeStyle = rgba(sc, 0.95); ctx.lineWidth = 2; ctx.stroke();
+
+  // shaft + screw
+  const yS = mid;
+  ctx.strokeStyle = rgba(COL.muted, 0.9); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(center(N - 1) - 4, yS); ctx.lineTo(x1 + 14, yS); ctx.stroke();
+  ctx.fillStyle = rgba(COL.rule2, 1); ctx.fillRect(center(N - 1) - 12, yS - 7, 10, 14);
+  const ph = reduceMotion ? 0.7 : Math.abs(Math.sin(S.rt * S.speed * 0.6));
+  ctx.fillStyle = rgba(COL.phos, 0.6);
+  ctx.beginPath(); ctx.ellipse(x1 + 16, yS - 9 * ph, 3, 9 * ph + 1, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x1 + 16, yS + 9 * (1 - ph), 3, 9 * (1 - ph) + 1, 0, 0, Math.PI * 2); ctx.fill();
+
+  // bulkheads + doors
+  const dh = hh * 0.42, dTop = deckY - dh;
+  for (let d = 0; d < N - 1; d++) {
+    const x = bx[d + 1], shut = S.doors[d];
+    ctx.save(); hullPath(); ctx.clip();
+    ctx.strokeStyle = rgba(COL.rule2, 1); ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, dTop); ctx.moveTo(x, deckY); ctx.lineTo(x, B); ctx.stroke();
+    ctx.restore();
+    if (shut) { ctx.fillStyle = rgba(COL.amber, 1); ctx.fillRect(x - 2.5, dTop, 5, dh); }
+    else { ctx.strokeStyle = rgba(COL.dim, 1); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, dTop); ctx.lineTo(x + 9, dTop + 5); ctx.stroke(); }
+    if (Math.abs(S.spill[d]) > 1) {
+      const dir = Math.sign(S.spill[d]), y = B - SILL * hh;
+      ctx.strokeStyle = rgba(COL.bio, 1); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x - dir * 8, y); ctx.lineTo(x + dir * 8, y); ctx.lineTo(x + dir * 3, y - 4); ctx.moveTo(x + dir * 8, y); ctx.lineTo(x + dir * 3, y + 4); ctx.stroke();
+    }
+    const top = L.doorTop + (L.stagger && d % 2 ? 48 : 0);
+    ctx.strokeStyle = rgba(shut ? COL.amber : COL.rule2, shut ? 0.6 : 1); ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(x, B + 1); ctx.lineTo(x, top); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // target outline
+  const P = S.party;
+  if (P.target !== null) {
+    const a = bx[P.target], b = bx[P.target + 1];
+    ctx.save(); hullPath(); ctx.clip();
+    ctx.strokeStyle = rgba(COL.amber, 0.9); ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.strokeRect(a + 3, T + 3, b - a - 6, hh - 6); ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // labels
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = 0; i < N; i++) {
+    const cw = bx[i + 1] - bx[i], cx = center(i), jobs = openJobs().filter(j => j.comp === i).sort(jobOrder);
+    const worst = jobs[0];
+    ctx.font = `500 ${cw > 90 ? 12 : 10}px "IBM Plex Mono", monospace`;
+    ctx.fillStyle = rgba(P.target === i ? COL.amber : worst && worst.sev === 'crit' ? COL.hostile : COL.muted, 1);
+    const full = COMPS[i].name.toUpperCase();
+    ctx.fillText(ctx.measureText(full).width < cw - 14 ? full : COMPS[i].short, cx, mid - hh * 0.2);
+    if (worst) {
+      const c = worst.sev === 'crit' ? COL.hostile : worst.sev === 'major' ? COL.amber : COL.muted, y = mid - hh * 0.2 + 15;
+      ctx.fillStyle = rgba(c, 1);
+      ctx.beginPath(); ctx.moveTo(cx, y - 5); ctx.lineTo(cx + 5, y); ctx.lineTo(cx, y + 5); ctx.lineTo(cx - 5, y); ctx.closePath(); ctx.fill();
+    }
+    if (S.water[i] > 1) {
+      ctx.font = `500 ${cw > 90 ? 12 : 10}px "IBM Plex Mono", monospace`; ctx.fillStyle = rgba(COL.bio, 1);
+      ctx.fillText(cw > 80 ? `${fmtN(S.water[i])} gal` : `${fmtN(S.water[i])}g`, cx, mid + hh * 0.1);
+    }
+  }
+  if (S.pumps) { ctx.font = '600 10px "IBM Plex Mono", monospace'; ctx.fillStyle = rgba(COL.amber, 0.6 + 0.4 * Math.sin(rt * 6)); ctx.fillText('PUMP', center(PUMP_AT), B - hh * 0.09); }
+
+  // party
+  const px = posToX(P.pos), py = deckY - 6, bob = reduceMotion || P.state !== 'moving' ? 0 : Math.sin(S.rt * 12) * 1.5;
+  if (P.target !== null && P.pos !== P.target) {
+    ctx.strokeStyle = rgba(COL.amber, 0.7); ctx.lineWidth = 1.5; ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(center(P.target), py); ctx.stroke(); ctx.setLineDash([]);
+  }
+  const dc = P.state === 'blocked' || P.state === 'noparts' ? COL.hostile : COL.phos;
+  for (const [k, off] of [[0, -5], [1, 5]]) {
+    ctx.fillStyle = rgba(dc, 1); ctx.shadowColor = rgba(dc, 0.8); ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(px + off, py + (k ? bob : -bob), 4.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  if (P.state === 'working') {
+    const j = P.job, w = 34;
+    ctx.fillStyle = rgba(COL.panel2, 1); ctx.fillRect(px - w / 2, py - 18, w, 5);
+    ctx.fillStyle = rgba(COL.amber, 1); ctx.fillRect(px - w / 2, py - 18, w * (j ? j.prog : 0), 5);
+  }
+
+  if (S.flash > 0) { ctx.fillStyle = rgba(COL.hostile, S.flash * 0.35); ctx.fillRect(0, 0, W, H); }
+}
+
+function drawFire(a, b, int, rt) {
+  const { B, hh, T, deckY } = L, n = 5, w = (b - a) * 0.7, x0 = a + (b - a) * 0.15;
+  const sm = ctx.createLinearGradient(0, T, 0, T + hh * (0.3 + 0.4 * int));
+  sm.addColorStop(0, rgba(COL.muted, 0.35 * int)); sm.addColorStop(1, rgba(COL.muted, 0));
+  ctx.fillStyle = sm; ctx.fillRect(a, T, b - a, hh * (0.3 + 0.4 * int));
+  for (let k = 0; k < n; k++) {
+    const x = x0 + w * (k + 0.5) / n, f = 0.65 + 0.35 * Math.sin(rt * 9 + k * 1.7), h = hh * 0.42 * (0.3 + int) * f, bw = w / n * 0.55;
+    const gr = ctx.createLinearGradient(0, deckY, 0, deckY - h);
+    gr.addColorStop(0, rgba(COL.hostile, 0.95)); gr.addColorStop(1, rgba(COL.amber, 0.25));
+    ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.moveTo(x - bw, deckY); ctx.quadraticCurveTo(x - bw * 0.6, deckY - h * 0.5, x, deckY - h); ctx.quadraticCurveTo(x + bw * 0.6, deckY - h * 0.5, x + bw, deckY); ctx.closePath(); ctx.fill();
+  }
+}
+
+cv.addEventListener('click', e => {
+  if (!L) return;
+  const box = cv.getBoundingClientRect(), x = e.clientX - box.left, y = e.clientY - box.top;
+  if (y > L.B + 6 || y < L.T - 60) return;
+  for (let i = 0; i < N; i++) if (x >= L.bx[i] && x < L.bx[i + 1]) return sendParty(i);
+});
+
+/* ---------- doors ---------- */
+const doorsEl = $('#doors');
+for (let d = 0; d < N - 1; d++) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'door'; b.dataset.d = d;
+  b.innerHTML = `<span>D${d + 1}</span><b>OPEN</b>`;
+  b.addEventListener('click', () => toggleDoor(d));
+  doorsEl.append(b);
+}
+function placeDoors() {
+  if (!L) return;
+  doorsEl.querySelectorAll('.door').forEach(b => {
+    const d = +b.dataset.d;
+    b.style.left = L.bx[d + 1] + 'px';
+    b.style.top = (L.doorTop + (L.stagger && d % 2 ? 48 : 0)) + 'px';
+  });
+  renderDoors();
+}
+function renderDoors() {
+  doorsEl.querySelectorAll('.door').forEach(b => {
+    const d = +b.dataset.d, shut = S.doors[d];
+    b.setAttribute('aria-pressed', String(shut));
+    b.querySelector('b').textContent = shut ? 'SHUT' : 'OPEN';
+    b.setAttribute('aria-label', `Door D${d + 1}, ${COMPS[d].name} to ${COMPS[d + 1].name}, ${shut ? 'shut' : 'open'}`);
+  });
+}
+
+/* ---------- side UI ---------- */
+const compBody = $('#compBody');
+COMPS.forEach((c, i) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${c.name}</td><td class="n"></td><td class="n"></td><td class="n"></td><td></td>`;
+  tr.addEventListener('click', () => sendParty(i));
+  compBody.append(tr);
+});
+
+function buildSpares() {
+  $('#spareBody').innerHTML = Object.entries(S.spares).map(([k, s]) => `<tr data-k="${k}"><td>${s.name}</td><td class="n"></td><td>${s.for}</td></tr>`).join('');
+  updateSpares();
+}
+function updateSpares() {
+  $('#spareBody').querySelectorAll('tr').forEach(tr => {
+    const s = S.spares[tr.dataset.k], td = tr.children[1];
+    td.textContent = s.qty; td.className = 'n' + (s.qty === 0 ? ' out' : s.qty <= 1 ? ' lo' : '');
+  });
+}
+
+const jobsEl = $('#jobs');
+function renderJobs() {
+  const list = S.jobs.slice().sort((a, b) => (a.done - b.done) || jobOrder(a, b));
+  jobsEl.innerHTML = '';
+  for (const j of list) {
+    const li = document.createElement('li');
+    li.className = 'job' + (j.done ? ' done' : S.party.job === j ? ' on' : ''); li.dataset.id = j.id;
+    const chip = j.done ? '<span class="chip ok">Fixed</span>' : `<span class="chip ${SEV_CHIP[j.sev]}">${j.kind === 'fire' ? 'Fire · ' : ''}${SEV_LABEL[j.sev]}</span>`;
+    const parts = Object.entries(j.parts).map(([k, n]) => `${n}× ${S.spares[k].name}`).join(', ');
+    li.innerHTML = `<div class="job-top">${chip}<span class="job-title">${j.title}</span><span class="job-where">${COMPS[j.comp].name}</span></div>
+      <div class="meter warn"><i style="width:${j.prog * 100}%"></i></div>
+      <div class="job-st"></div>` + (j.done ? '' : `<div class="hint">${j.note}. Needs ${parts}.</div><div class="btns"></div>`);
+    if (!j.done) {
+      const bt = li.querySelector('.btns'), on = S.party.job === j;
+      const send = document.createElement('button'); send.type = 'button'; send.className = 'btn' + (on ? '' : ' primary');
+      send.textContent = on ? 'Party assigned' : 'Send party'; send.disabled = on;
+      send.addEventListener('click', () => sendParty(j.comp, j)); bt.append(send);
+      if (j.kind === 'fire') {
+        const iso = document.createElement('button'); iso.type = 'button'; iso.className = 'btn';
+        iso.textContent = { none: 'Ask Power to isolate', pending: 'Isolating…', done: 'Power isolated' }[j.iso]; iso.disabled = j.iso !== 'none';
+        iso.addEventListener('click', () => isolate(j)); bt.append(iso);
+      }
+    }
+    jobsEl.append(li);
+  }
+}
+function jobStatus(j) {
+  const P = S.party;
+  if (j.done) return j.kind === 'fire' ? 'Out. Reflash watch.' : 'Fixed.';
+  let extra = '';
+  if (j.kind === 'seal') extra = ` · ${leakRate().toFixed(1)} gal/min in`;
+  if (j.kind === 'breach') extra = ` · ${inflow(j.comp).toFixed(0)} gal/min in`;
+  if (j.kind === 'fire') extra = ` · intensity ${Math.round(fireInt(j) * 100)}%`;
+  if (P.job !== j) return (j.prog > 0 ? `Paused at ${Math.round(j.prog * 100)}%` : 'Unassigned') + extra;
+  if (P.state === 'moving') return `Party en route · ${mmss(Math.abs(P.target - P.pos) * TRAVEL)}` + extra;
+  if (P.state === 'blocked') return `Party blocked at door D${P.door + 1} (shut)`;
+  if (P.state === 'noparts') return 'No parts aboard';
+  let rate = 1 / j.work;
+  if (j.kind === 'seal' && S.speed <= 5) rate *= 2;
+  if (j.kind === 'fire' && j.iso !== 'done') rate *= 0.45;
+  return `Repairing ${Math.round(j.prog * 100)}% · ${mmss((1 - j.prog) / rate)} left` + extra;
+}
+
+const ordersEl = $('#orders');
+function renderOrders() {
+  ordersEl.innerHTML = '';
+  for (const o of S.orders.slice().reverse()) {
+    const li = document.createElement('li'); li.className = 'order' + (o.ack ? ' ack' : '');
+    li.innerHTML = `<p><small>${o.from.toUpperCase()} · ${o.at}${o.ack ? ' · ACK' : ''}</small>${o.text}</p>`;
+    if (!o.ack) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn primary'; b.textContent = 'Acknowledge';
+      b.addEventListener('click', () => ack(o)); li.append(b);
+    }
+    ordersEl.append(li);
+  }
+  const n = S.orders.filter(o => !o.ack).length;
+  $('#ordNote').textContent = n ? `${n} to acknowledge` : 'all acknowledged';
+}
+function ack(o) {
+  o.ack = true;
+  if (/time to repair/.test(o.text)) {
+    const j = sealJob(), m = Math.round((1 - j.prog) * j.work / 60);
+    log(`Reported to Captain: seal ${j.done ? 'repaired' : `about ${m} min once party on scene, half that at ahead slow`}.`, 'ok');
+  } else if (/secure pumps/.test(o.text)) log('Ack Captain: ready to secure pumps on order.', 'ok');
+  else if (/Damage report/.test(o.text)) log(`Reported: breach Engine room, fire Battery well, test depth 450 ft.`, 'ok');
+  else log(`Ack ${o.from}.`, 'ok');
+  renderOrders();
+}
+
+function setSeg(name, v, quiet) {
+  if (name === 'pumps') { if (quiet) S.pumps = v === 'on'; else setPumps(v === 'on'); }
+  if (name === 'time') S.scale = +v;
+  document.querySelectorAll(`[data-seg="${name}"] button`).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v))));
+  update(true);
+}
+document.querySelectorAll('[data-seg]').forEach(g => g.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) setSeg(g.dataset.seg, b.dataset.v);
+}));
+
+function setAlert(sev, label, msg, more) {
+  const a = $('#alert'); a.dataset.sev = sev;
+  $('#alertSev').textContent = label; $('#alertMsg').textContent = msg;
+  const m = $('#alertMore'); m.hidden = !more; m.textContent = more || '';
+}
+let alertAction = null;
+function computeAlert() {
+  const P = S.party, open = openJobs().sort(jobOrder), top = open.find(j => j.sev !== 'minor');
+  const breach = open.find(j => j.kind === 'breach'), fire = open.find(j => j.kind === 'fire');
+  const onIt = j => P.job === j;
+  const partyMsg = j => P.state === 'blocked' ? `door D${P.door + 1} shut, party blocked` : P.state === 'moving' ? `party en route ${mmss(Math.abs(P.target - P.pos) * TRAVEL)}` : `party on it ${Math.round(j.prog * 100)}%`;
+  if (breach || (fire && fire.sev === 'crit')) {
+    const j = breach || fire;
+    const what = breach && fire ? `Flooding ${COMPS[breach.comp].name} ${inflow(breach.comp).toFixed(0)} gal/min, fire ${COMPS[fire.comp].name}` : breach ? `Flooding ${COMPS[breach.comp].name} ${inflow(breach.comp).toFixed(0)} gal/min` : `Fire spreading, ${COMPS[fire.comp].name}`;
+    if (P.state === 'blocked') alertAction = () => toggleDoor(P.door);
+    else alertAction = onIt(j) ? null : () => sendParty(j.comp, j);
+    return setAlert(3, 'EMERGENCY', `${what}.`, P.state === 'blocked' ? `TAP · OPEN D${P.door + 1}` : onIt(j) ? partyMsg(j).toUpperCase() : 'TAP · SEND PARTY');
+  }
+  if (top) {
+    const msg = top.kind === 'fire' ? `Fire, ${COMPS[top.comp].name}. Send party with CO2.` : `${top.title}, ${COMPS[top.comp].name}. Net ${sgn(S.rate[top.comp])} gal/min.`;
+    if (P.state === 'blocked') alertAction = () => toggleDoor(P.door);
+    else alertAction = onIt(top) ? null : () => sendParty(top.comp, top);
+    return setAlert(2, 'ACTION', msg, P.state === 'blocked' ? `TAP · OPEN D${P.door + 1}` : onIt(top) ? partyMsg(top).toUpperCase() : 'TAP · SEND PARTY');
+  }
+  if (S.pumps && totalIn() < 0.5) {
+    alertAction = () => setSeg('pumps', 'off');
+    return setAlert(0, 'ADVISE', `Leak stopped. Secure pumps to go quiet; ${fmtN(S.water[N - 1])} gal can wait in the bilge.`, 'TAP · PUMPS OFF');
+  }
+  alertAction = null;
+  setAlert(0, 'ALL CLEAR', open.length ? `${open.length} minor item${open.length > 1 ? 's' : ''} open. Boat tight.` : 'Boat tight. No open damage.', '');
+}
+$('#alert').addEventListener('click', () => { if (alertAction) alertAction(); });
+
+const PARTY_LABEL = { idle: ['IDLE', ''], standby: ['STANDBY', ''], moving: ['EN ROUTE', 'warn'], working: ['ON SCENE', 'warn'], blocked: ['BLOCKED', 'crit'], noparts: ['NO PARTS', 'crit'] };
+const PARTY_TEXT = { idle: 'Standing by', standby: 'Standing by', moving: 'Moving', working: 'Repairing', blocked: 'Blocked by shut door', noparts: 'Waiting for parts' };
+
+let lastUi = 0;
+function update(force) {
+  if (!force && S.rt - lastUi < 0.25) return;
+  lastUi = S.rt;
+  const P = S.party, stress = S.depth / S.test, inQ = totalIn(), outQ = pumped(), net = inQ - outQ;
+  $('#stTime').textContent = zulu() + 'Z';
+  $('#stDep').textContent = Math.round(S.depth); $('#stTest').textContent = S.test;
+  const st = $('#stStress'); st.textContent = Math.round(stress * 100) + '%'; st.className = stress > 0.85 ? 'crit' : stress > 0.5 ? 'warn' : '';
+  const fl = $('#stFlood'); fl.innerHTML = `${sgn(net)}<small>gal/min</small>`; fl.className = net > 10 ? 'crit' : net > 0.05 ? 'warn' : '';
+  const pu = $('#stPump'); pu.innerHTML = S.pumps ? 'ON<small>+6 dB</small>' : 'OFF<small>quiet</small>'; pu.className = S.pumps ? 'on' : '';
+  const [pl, pc] = PARTY_LABEL[P.state]; const sp = $('#stParty'); sp.textContent = pl; sp.className = pc;
+
+  $('#hudL').innerHTML = `DEPTH <b>${Math.round(S.depth)}</b> FT · TEST <b>${S.test}</b><br>HULL STRESS <b>${Math.round(stress * 100)}%</b>`;
+  $('#hudR').innerHTML = `SPEED <b>${S.speed.toFixed(1)}</b> KTS<br>SEAL LEAK <b>${leakRate().toFixed(1)}</b> GAL/MIN`;
+
+  computeAlert();
+
+  // compartments
+  compBody.querySelectorAll('tr').forEach((tr, i) => {
+    const td = tr.children, w = S.water[i], lv = w / COMPS[i].cap, r = S.rate[i];
+    td[1].textContent = fmtN(w); td[1].className = 'n' + (w > 1 ? ' wet' : '');
+    td[2].textContent = Math.round(lv * 100) + '%'; td[2].className = 'n' + (lv > SILL ? ' up crit' : lv > 0.05 ? ' wet' : '');
+    td[3].textContent = Math.abs(r) < 0.05 ? '—' : sgn(r); td[3].className = 'n' + (r > 10 ? ' up crit' : r > 0.05 ? ' up' : '');
+    const chips = [];
+    for (const j of openJobs().filter(j => j.comp === i).sort(jobOrder)) chips.push(`<span class="chip ${SEV_CHIP[j.sev]}">${{ seal: 'Leak', fan: 'Noise', hyd: 'Weep', fire: 'Fire', breach: 'Breach' }[j.kind]}</span>`);
+    if (Math.round(P.pos) === i && Math.abs(P.pos - i) < 0.3) chips.push('<span class="chip ok">Party</span>');
+    const html = chips.join(' ') || '<span class="chip">Tight</span>';
+    if (td[4].innerHTML !== html) td[4].innerHTML = html;
+    tr.classList.toggle('tgt', P.target === i);
+  });
+
+  // jobs
+  const sig = S.jobs.map(j => `${j.id}${j.done}${j.sev}${j.iso}`).join() + '|' + (P.job ? P.job.id : 0);
+  if (sig !== S.sig) { S.sig = sig; renderJobs(); }
+  for (const li of jobsEl.children) {
+    const j = S.jobs.find(x => x.id === +li.dataset.id);
+    li.querySelector('.meter i').style.width = (j.prog * 100) + '%';
+    li.querySelector('.job-st').textContent = jobStatus(j);
+  }
+  const nOpen = openJobs().length; $('#dmgNote').textContent = nOpen ? `${nOpen} open` : 'none open';
+
+  // party
+  $('#pState').textContent = PARTY_TEXT[P.state];
+  const pch = $('#pChip'); pch.textContent = pl; pch.className = 'chip ' + (pc || 'ok');
+  $('#pAt').textContent = COMPS[Math.round(P.pos)].name + (Math.abs(P.pos - Math.round(P.pos)) > 0.1 ? ' (passing)' : '');
+  $('#pTo').textContent = P.target === null || P.pos === P.target ? '—' : COMPS[P.target].name;
+  $('#pEta').textContent = P.target === null || P.pos === P.target ? '—' : P.state === 'blocked' ? `door D${P.door + 1}` : mmss(Math.abs(P.target - P.pos) * TRAVEL);
+  $('#pJob').textContent = P.job ? `${P.job.title}, ${COMPS[P.job.comp].name}` : 'None. Tap a compartment or a Send party button.';
+  $('#pBar').style.width = (P.job ? P.job.prog * 100 : 0) + '%';
+  $('#pPct').textContent = P.job ? Math.round(P.job.prog * 100) + '%' : '—';
+
+  // pumps
+  $('#pumpChip').textContent = S.pumps ? '+6 dB' : 'Quiet'; $('#pumpChip').className = 'chip ' + (S.pumps ? 'warn' : 'ok');
+  const to = $('#tradeoff');
+  to.textContent = S.pumps ? 'Pumps: +6 dB, Sonar counter-detection ↑' : 'Pumps off: quiet, water rising faster';
+  to.classList.toggle('off', !S.pumps);
+  $('#fIn').textContent = inQ.toFixed(1); $('#fOut').textContent = outQ.toFixed(1);
+  const fn = $('#fNet'); fn.textContent = sgn(net); fn.className = net > 10 ? 'crit' : net > 0.05 ? 'warn' : '';
+  const mr = N - 1, toDeck = (DECK * COMPS[mr].cap - S.water[mr]) / Math.max(0.01, S.rate[mr]);
+  const fd = $('#fDeck');
+  fd.textContent = S.water[mr] >= DECK * COMPS[mr].cap ? 'Wet now' : S.rate[mr] <= 0.05 ? 'Not rising' : `${mmss(toDeck * 60)} at ${sgn(S.rate[mr])} gal/min`;
+  fd.className = S.water[mr] >= DECK * COMPS[mr].cap || toDeck < 15 ? 'crit' : S.rate[mr] > 0.05 ? 'warn' : '';
+
+  // requests
+  const sb = $('#slowBtn'); sb.dataset.st = S.slow;
+  sb.textContent = { none: 'Request ahead slow', pending: 'Ahead slow requested…', approved: 'Ahead slow approved' }[S.slow];
+  sb.disabled = S.slow !== 'none';
+  const waits = [];
+  if (S.slow === 'pending') waits.push('Captain · answer on ahead slow');
+  if (S.slow === 'approved' && Math.abs(S.speed - S.speedTarget) > 0.1) waits.push(`Helm · slowing, ${S.speed.toFixed(1)} → 4 kts`);
+  for (const j of openJobs()) if (j.kind === 'fire' && j.iso === 'pending') waits.push(`Power · isolate ${COMPS[j.comp].name}`);
+  const aboard = S.water.reduce((a, b) => a + b, 0), aftLb = (S.water[4] + S.water[5] + S.water[6]) * 8.55;
+  if (aftLb > 500) waits.push(`Helm · trim for +${fmtN(aftLb)} lb aft`);
+  for (const o of S.orders) if (!o.ack) { waits.unshift(`You · ack ${o.from} ${o.at}`); break; }
+  const wh = waits.length ? waits.map(w => `<li>${w}</li>`).join('') : '<li class="none">Nothing pending.</li>';
+  if ($('#waits').innerHTML !== wh) $('#waits').innerHTML = wh;
+
+  // hull
+  $('#hDep').textContent = Math.round(S.depth); $('#hTest').textContent = S.test;
+  const hs = $('#hStress'); hs.textContent = Math.round(stress * 100) + '%'; hs.className = st.className;
+  $('#hCrush').textContent = Math.round(S.test * 1.5) + ' ft';
+  $('#hWater').textContent = fmtN(aboard) + ' gal'; $('#hAft').textContent = '+' + fmtN(aftLb) + ' lb';
+  const hc = $('#hullChip'); hc.textContent = S.hullHit ? 'Damaged' : 'Sound'; hc.className = 'chip ' + (S.hullHit ? 'crit' : 'ok');
+  const bar = $('#stressBar'); bar.style.width = clamp(stress / 1.5, 0, 1) * 100 + '%'; bar.className = stress > 0.85 ? 'crit' : stress > 0.5 ? 'warn' : '';
+  $('#testMark').style.left = (100 / 1.5) + '%'; $('#testLbl').style.left = (100 / 1.5) + '%';
+  updateCheck();
+}
+
+function updateCheck() {
+  const d = +$('#chk').value, p = d / S.test;
+  $('#chkVal').textContent = d + ' ft';
+  const note = d === SHIP.contacts[2].depth ? " (S3's depth)" : d === SHIP.layer ? ' (the layer)' : d === SHIP.broadcast.needDepth ? ' (antenna depth)' : '';
+  const n = $('#chkNote');
+  n.textContent = `At ${d} ft${note}: ${Math.round(p * 100)}% of test depth${p > 1 ? '. Beyond test depth.' : p > 0.85 ? '. Frames working hard.' : '.'}`;
+  n.style.color = p > 1 ? 'var(--hostile)' : p > 0.85 ? 'var(--amber)' : '';
+}
+$('#chk').addEventListener('input', updateCheck);
+$('#adviseBtn').addEventListener('click', () => log(`Advised Captain: keep above ${Math.floor(S.test * 0.9 / 10) * 10} ft (90% of test${S.hullHit ? ', hull damaged' : ''}).`, 'ok'));
+$('#slowBtn').addEventListener('click', requestSlow);
+$('#recallBtn').addEventListener('click', () => sendParty(LOCKER, null));
+$('#hitBtn').addEventListener('click', simulateHit);
+$('#fireBtn').addEventListener('click', () => { startFire(2, 0.2); update(true); });
+$('#resetBtn').addEventListener('click', () => { init(); log('Demo reset.'); update(true); });
+
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.matches('input')) return;
+  const k = e.key.toLowerCase();
+  if (k >= '1' && k <= '7') sendParty(+k - 1);
+  else if (k === 'p') setSeg('pumps', S.pumps ? 'off' : 'on');
+  else if (k === 's') requestSlow();
+  else if (k === 'h') simulateHit();
+  else if (k === 'f') { startFire(2, 0.2); update(true); }
+});
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  S.rt += dt;
+  S.flash = Math.max(0, S.flash - dt * 0.8);
+  for (const t of S.timers.filter(t => t.at <= S.rt)) { S.timers.splice(S.timers.indexOf(t), 1); t.fn(); }
+  step(dt * S.scale);
+  update(false);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+init();
+resize();
+update(true);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

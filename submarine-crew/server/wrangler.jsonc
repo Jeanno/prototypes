@@ -1,0 +1,8 @@
+{
+  "name": "fathom-crew",
+  "main": "src/index.js",
+  "account_id": "74ceb5d0d3c508f775f13bea8695976b",
+  "compatibility_date": "2026-11-01",
+  "durable_objects": { "bindings": [{ "name": "BOAT", "class_name": "Boat" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Boat"] }]
+}

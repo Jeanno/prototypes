@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fathom · Fire control</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Saira+Stencil+One&display=swap">
+<link rel="stylesheet" href="crew.css">
+<style>
+.plan-wrap{position:relative;width:100%;aspect-ratio:1;min-height:300px;max-height:calc(100vh - 260px)}
+@media (min-width:700px){.plan-wrap{aspect-ratio:16/10}}
+#plan{display:block;width:100%;height:100%;cursor:pointer;touch-action:none}
+.plan-tools{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:10px}
+
+.pair{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+@media (min-width:1240px){.pair{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
+
+.tgt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.tgt button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-height:52px;padding:4px 10px;background:transparent;border:1px solid var(--rule-2);border-radius:4px;cursor:pointer;text-align:left}
+.tgt b{font-family:var(--f-data);font-size:16px;font-weight:500}
+.tgt small{font-family:var(--f-data);font-size:11px;color:var(--muted);text-transform:uppercase}
+.tgt button.hostile b{color:var(--hostile)}
+.tgt button[aria-pressed="true"]{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,transparent)}
+.tgt button[aria-pressed="true"] small{color:var(--amber)}
+
+.q-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin:4px 0 12px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.q-row .meter{margin:0;height:9px}
+.q-row .val{font-size:18px;color:var(--amber)}
+.q-row .val.ok{color:var(--phos)}
+
+.dots-wrap{position:relative;border:1px solid var(--rule);border-radius:3px;overflow:hidden;background:var(--hull)}
+#dots{display:block;width:100%;height:230px}
+.dots-wrap .hud{padding:4px 6px}
+.axis{display:flex;justify-content:space-between;font-family:var(--f-data);font-size:10.5px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+
+.nud{padding-block:4px}
+.nud-top{display:flex;justify-content:space-between;align-items:baseline}
+.nud-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center}
+.step{min-width:44px;min-height:44px;background:var(--panel-2);border:1px solid var(--rule-2);border-radius:4px;font-family:var(--f-data);font-size:18px;cursor:pointer;touch-action:manipulation}
+.step:active{border-color:var(--amber);color:var(--amber)}
+.nud .val{font-size:15px}
+.nud .val small{color:var(--muted);font-size:11px;margin-left:6px}
+
+.tube-seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.tube-seg button{min-height:52px;background:transparent;border:1px solid var(--rule-2);border-radius:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15}
+.tube-seg b{font-family:var(--f-data);font-size:15px;font-weight:500}
+.tube-seg small{font-family:var(--f-data);font-size:10px;color:var(--muted);text-transform:uppercase}
+.tube-seg button[aria-pressed="true"]{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,transparent)}
+.ctl.wide{grid-template-columns:84px minmax(0,1fr)}
+.empty-note{margin:8px 0;padding:10px 12px;border:1px dashed var(--rule-2);border-radius:4px;color:var(--muted);font-size:14px}
+
+.perm{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);border-radius:4px;background:color-mix(in srgb,var(--amber) 8%,transparent)}
+.perm-l{display:flex;flex-direction:column}
+.perm-l span:first-child{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.perm-l b{font-family:var(--f-data);font-size:16px;font-weight:600;color:var(--amber);letter-spacing:.06em}
+.fs-row{padding:12px 0 10px;border-bottom:1px solid var(--rule)}
+.fs-row:last-child{border-bottom:0;padding-bottom:0}
+.fs-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.fs-head b{font-family:var(--f-data);font-size:18px;font-weight:500;color:var(--phos)}
+.fs-head .fs-load{font-size:14px}
+.fs-head .fs-from{margin-left:auto;font-family:var(--f-data);font-size:11px;color:var(--muted)}
+.pips{list-style:none;margin:8px 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.pips li{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-top:4px solid var(--panel-2);padding-top:4px;line-height:1.15}
+.pips li.done{border-color:var(--phos);color:var(--phos)}
+.pips li.wait{border-color:var(--amber);color:var(--amber);animation:sevpulse 1.2s ease-in-out infinite}
+.pips li.lock{border-color:color-mix(in srgb,var(--hostile) 60%,transparent);color:var(--hostile)}
+.fs-act{display:flex;gap:8px}
+.fs-act .btn{flex:1;font-size:14px;padding:0 10px}
+.btn.fire{font-family:var(--f-data);font-weight:600;letter-spacing:.14em;flex:0 0 38%}
+.fs-why{margin:4px 0 0;font-size:12px;color:var(--muted)}
+
+.wire-off{color:var(--muted);font-size:14px;margin:0}
+.steer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.steer .btn{font-family:var(--f-data);font-size:14px}
+.demo-tag{font-family:var(--f-data);font-size:10px;color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 50%,transparent);border-radius:3px;padding:0 5px;letter-spacing:.08em}
+
+.orders{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.orders li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 8px 8px 10px;border:1px solid var(--rule-2);border-left:3px solid var(--amber);border-radius:4px}
+.orders li.acked{border-left-color:var(--phos-dim);opacity:.65}
+.o-from{font-family:var(--f-data);font-size:11px;letter-spacing:.06em;color:var(--amber)}
+.orders li.acked .o-from{color:var(--phos-dim)}
+.o-msg{font-size:14px;line-height:1.3}
+.orders .btn{grid-row:span 2;font-size:13px;padding:0 12px}
+.waits{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+.waits li{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:8px;align-items:center}
+.waits .who{font-family:var(--f-data);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+@media (max-width:520px){
+  .alert{flex-wrap:wrap}
+  .alert-more{flex-basis:100%;text-align:right;margin-top:-4px}
+  .ctl.wide{grid-template-columns:minmax(0,1fr);gap:2px}
+  .ctl.wide .seg{justify-self:stretch;display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
+}
+.card h2{flex-wrap:wrap}
+.flash{animation:flash .9s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 2px transparent}}
+@media (prefers-reduced-motion:reduce){.pips li.wait,.flash{animation:none}}
+</style>
+<body data-station="weapons">
+
+<header class="bar">
+  <div class="brand">
+    <span class="mark">FATHOM</span>
+    <small>Fire control · WPN 1 · solve, set, shoot, steer</small>
+  </div>
+  <dl class="status">
+    <div><dt>Target</dt><dd><span id="stTgt">S3</span><span class="chip crit" id="stTgtChip">Hostile</span></dd></div>
+    <div><dt>Solution</dt><dd class="warn" id="stSol">55%</dd></div>
+    <div><dt>Range</dt><dd><span id="stRng">8.8</span><small>kyd</small></dd></div>
+    <div><dt>Tubes ready</dt><dd id="stReady">0<small>/3</small></dd></div>
+    <div><dt>Permission</dt><dd class="warn" id="stPerm">PENDING</dd></div>
+    <div class="st-time"><dt>Time</dt><dd id="stTime">0347:00Z</dd></div>
+  </dl>
+</header>
+
+<button type="button" class="alert" id="alert" data-sev="2">
+  <span class="alert-sev" id="alertSev">SOLUTION</span>
+  <span class="alert-msg" id="alertMsg">S3 solution 55%. Line up the dots to reach 80% before asking to shoot.</span>
+  <span class="alert-more" id="alertMore">Permission: pending</span>
+</button>
+
+<main class="grid">
+  <div class="main-col">
+    <section class="card" aria-labelledby="hPlan">
+      <h2 id="hPlan">Plan view <span class="h-note">estimated target, intended torpedo run, enable point</span></h2>
+      <div class="plan-wrap">
+        <canvas id="plan" aria-label="Plan view: own ship centre, contacts at estimated positions, torpedo run from own ship to the intercept point with the enable point marked. Tap a contact to target it."></canvas>
+        <div class="hud tl" id="hudScale">SCALE <b>16</b> KYD<br>NORTH-UP</div>
+        <div class="hud tr" id="hudRun">T1 RUN<br>—</div>
+        <div class="hud bl" id="hudTgt">S3 EST<br>—</div>
+        <div class="hud br">TAP · TARGET<br>DASH · SONAR BEARING</div>
+      </div>
+      <div class="plan-tools">
+        <div class="ctl" style="padding:0"><span class="lbl">Scale</span>
+          <div class="seg" data-seg="scale"><button type="button" data-v="8" aria-pressed="false">8</button><button type="button" data-v="16" aria-pressed="true">16</button><button type="button" data-v="24" aria-pressed="false">24 kyd</button></div></div>
+      </div>
+    </section>
+
+    <div class="pair">
+      <section class="card" id="solCard" aria-labelledby="hSol">
+        <h2 id="hSol">Firing solution <span class="h-note">from Sonar's bearings · you refine range, course, speed</span></h2>
+        <div class="tgt" id="tgtSel" role="group" aria-label="Target"></div>
+        <dl class="facts">
+          <div class="big"><dt>Bearing</dt><dd id="fBrg">194°</dd></div>
+          <div class="big"><dt>Range kyd</dt><dd id="fRng">8.8</dd></div>
+          <div class="big"><dt>RMS err</dt><dd id="fRms">—</dd></div>
+          <div><dt>Course</dt><dd id="fCrs">020°</dd></div>
+          <div><dt>Speed</dt><dd id="fSpd">5.0 kts</dd></div>
+          <div><dt>Depth</dt><dd id="fDep">~520 ft</dd></div>
+        </dl>
+        <div class="q-row"><span>Quality</span><div class="meter warn" id="qMeter"><i id="qBar"></i></div><span class="val" id="qVal">55%</span></div>
+        <div class="dots-wrap">
+          <canvas id="dots" aria-label="Bearing dot stack: each dot is a sonar bearing minus your predicted bearing, newest at top. A straight vertical stack on the centre line means the solution fits."></canvas>
+          <div class="hud tl">NOW</div>
+          <div class="hud tr" id="hudDots">BRG EVERY 10 S</div>
+          <div class="hud bl">−12 MIN</div>
+        </div>
+        <div class="axis"><span>−6° obs left</span><span>−3</span><span>0 fit</span><span>+3</span><span>obs right +6°</span></div>
+        <p class="hint">Stack straight on the centre line = fit. A slant means speed or course is off; a kink at own ship's leg change means range is off.</p>
+
+        <div class="nud">
+          <div class="nud-top"><label class="lbl" for="eRng">Range</label><output class="val" id="eRngV" for="eRng">8.8 kyd</output></div>
+          <div class="nud-row"><button type="button" class="step" data-nud="eRng" data-d="-0.1" aria-label="Range minus">−</button><input type="range" id="eRng" min="2" max="20" step="0.1" value="8.8"><button type="button" class="step" data-nud="eRng" data-d="0.1" aria-label="Range plus">+</button></div>
+        </div>
+        <div class="nud">
+          <div class="nud-top"><label class="lbl" for="eCrs">Course</label><output class="val" id="eCrsV" for="eCrs">020°</output></div>
+          <div class="nud-row"><button type="button" class="step" data-nud="eCrs" data-d="-1" aria-label="Course left">−</button><input type="range" id="eCrs" min="0" max="359" step="1" value="20"><button type="button" class="step" data-nud="eCrs" data-d="1" aria-label="Course right">+</button></div>
+        </div>
+        <div class="nud">
+          <div class="nud-top"><label class="lbl" for="eSpd">Speed</label><output class="val" id="eSpdV" for="eSpd">5.0 kts</output></div>
+          <div class="nud-row"><button type="button" class="step" data-nud="eSpd" data-d="-0.5" aria-label="Speed minus">−</button><input type="range" id="eSpd" min="0" max="25" step="0.5" value="5"><button type="button" class="step" data-nud="eSpd" data-d="0.5" aria-label="Speed plus">+</button></div>
+        </div>
+        <div class="btns">
+          <button type="button" class="btn primary" id="sendSol">Report solution to Captain</button>
+          <button type="button" class="btn" id="revert">Revert to Sonar's estimate</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="hPre">
+        <h2 id="hPre">Torpedo presets <span class="h-note">set per tube, sent to Torpedo room</span></h2>
+        <div class="tube-seg" id="tubeSel" role="group" aria-label="Tube"></div>
+        <div id="preBody">
+          <div class="ctl wide"><span class="lbl">Run speed</span>
+            <div class="seg" data-seg="spd"><button type="button" data-v="28" aria-pressed="false">Slow 28</button><button type="button" data-v="40" aria-pressed="true">Med 40</button><button type="button" data-v="55" aria-pressed="false">Fast 55</button></div></div>
+          <div class="ctl wide"><label class="lbl" for="pDep">Search depth</label>
+            <div class="sl"><input type="range" id="pDep" min="50" max="1300" step="10" value="520"><output class="val" id="pDepV" for="pDep">520 ft</output></div></div>
+          <div class="ctl wide"><label class="lbl" for="pEn">Enable at</label>
+            <div class="sl"><input type="range" id="pEn" min="1" max="15" step="0.5" value="6"><output class="val" id="pEnV" for="pEn">6.0 kyd</output></div></div>
+          <div class="ctl wide"><span class="lbl">Pattern</span>
+            <div class="seg" data-seg="pat"><button type="button" data-v="straight" aria-pressed="false">Straight</button><button type="button" data-v="snake" aria-pressed="true">Snake</button><button type="button" data-v="circle" aria-pressed="false">Circle</button></div></div>
+          <dl class="facts">
+            <div><dt>Run</dt><dd id="pRun">—</dd></div>
+            <div><dt>Time</dt><dd id="pTime">—</dd></div>
+            <div><dt>Max run</dt><dd id="pMax">18 kyd</dd></div>
+            <div class="wide"><dt>Note</dt><dd id="pNote" style="font-size:13px">—</dd></div>
+          </dl>
+          <div class="btns"><button type="button" class="btn primary" id="sendPre">Send presets to tube 1</button><span class="chip ok" id="preSent" style="align-self:center">Sent 0345</span></div>
+        </div>
+        <p class="empty-note" id="preEmpty" hidden></p>
+      </section>
+    </div>
+  </div>
+
+  <aside class="side">
+    <section class="card" aria-labelledby="hOrd">
+      <h2 id="hOrd">Orders <span class="h-note">from Captain and crew</span></h2>
+      <ul class="orders" id="orders"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hFs">
+      <h2 id="hFs">Fire sequence <span class="h-note">tube state from Torpedo room</span></h2>
+      <div class="perm">
+        <div class="perm-l"><span>Captain's permission to fire</span><b id="permVal">Permission: pending</b></div>
+        <button type="button" class="btn" id="askPerm">Ask again</button>
+      </div>
+      <div id="fsList"></div>
+    </section>
+
+    <section class="card" aria-labelledby="hWire">
+      <h2 id="hWire">Wire guidance <button type="button" class="toggle" id="wireDemo" aria-pressed="false">Demo: unit running</button></h2>
+      <p class="wire-off" id="wireOff">No weapon running. After launch the wire lets you steer the torpedo until its seeker takes over. Toggle the demo to see a unit from tube 1 under way.</p>
+      <div id="wireOn" hidden>
+        <dl class="facts">
+          <div class="big"><dt>Run time</dt><dd id="wTime">0:00</dd></div>
+          <div class="big"><dt>Torp rng</dt><dd id="wRng">0.0</dd></div>
+          <div class="big"><dt>Heading</dt><dd id="wHdg">—</dd></div>
+          <div><dt>Seeker</dt><dd id="wSeek">Off</dd></div>
+          <div><dt>Wire</dt><dd id="wWire">OK</dd></div>
+          <div><dt>Depth</dt><dd id="wDep">—</dd></div>
+        </dl>
+        <div class="steer">
+          <button type="button" class="btn" id="stL">◀ Left 5°</button>
+          <button type="button" class="btn" id="stR">Right 5° ▶</button>
+          <button type="button" class="btn" id="wEn">Enable seeker now</button>
+          <button type="button" class="btn danger" id="wCut">Cut wire</button>
+        </div>
+        <p class="hint"><span class="demo-tag">DEMO 6×</span> Run time plays fast so you can watch the run. Cutting the wire frees own ship to manoeuvre.</p>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hWait">
+      <h2 id="hWait">Waiting on <span class="h-note">what others owe you</span></h2>
+      <ul class="waits" id="waits"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLog">
+      <h2 id="hLog">Fire control log <span class="h-note">newest first</span></h2>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLinks">
+      <h2 id="hLinks">Crew links</h2>
+      <div class="links"><b>Takes from</b><a href="../submarine-sonar/index.html">Sonar · bearings</a><a href="torpedo-room.html">Torpedo room · tube state</a><a href="captain.html">Captain · permission</a></div>
+      <div class="links" style="margin-top:8px"><b>Hands to</b><a href="captain.html">Captain · solution</a><a href="torpedo-room.html">Torpedo room · presets, door orders</a><a href="helm.html">Helm · firing course</a></div>
+    </section>
+  </aside>
+</main>
+
+<script src="crew.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const cs = getComputedStyle(document.documentElement);
+const v = n => cs.getPropertyValue(n).trim();
+const COL = { hull: v('--hull'), panel: v('--panel'), panel2: v('--panel-2'), rule: v('--rule'), rule2: v('--rule-2'), phos: v('--phos'), phosDim: v('--phos-dim'), amber: v('--amber'), hostile: v('--hostile'), bio: v('--bio'), ink: v('--ink'), muted: v('--muted') };
+const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+const rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
+const norm = d => ((d % 360) + 360) % 360, wrap = d => ((d % 360) + 540) % 360 - 180;
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const pad3 = d => String(Math.round(norm(d)) % 360).padStart(3, '0');
+const YPM = 2025.4 / 60; // yards per minute per knot
+const T0 = performance.now();
+const tNow = () => (performance.now() - T0) / 60000; // minutes since 0347:00Z
+const zulu = (offMin = 0) => {
+  const s = Math.floor(3 * 3600 + 47 * 60 + (tNow() + offMin) * 60), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60;
+  return `${String(h).padStart(2, '0')}${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+};
+const hhmm = () => zulu().slice(0, 4);
+
+// Own ship ran 090 until 0341, then came to 045: the leg change is what makes passive range observable.
+const LEG_T = -6;
+function ownPos(t) {
+  const sp = SHIP.speed * YPM, c2 = rad(SHIP.course), c1 = rad(90);
+  if (t >= LEG_T) return [Math.sin(c2) * sp * t, Math.cos(c2) * sp * t];
+  const p = [Math.sin(c2) * sp * LEG_T, Math.cos(c2) * sp * LEG_T], dt = t - LEG_T;
+  return [p[0] + Math.sin(c1) * sp * dt, p[1] + Math.cos(c1) * sp * dt];
+}
+const posAt = (c, p, t) => {
+  const r = p.kyd * 1000, d = p.speed * YPM * t;
+  return [Math.sin(rad(c.brg)) * r + Math.sin(rad(p.course)) * d, Math.cos(rad(c.brg)) * r + Math.cos(rad(p.course)) * d];
+};
+const brgAt = (c, p, t) => { const o = ownPos(t), q = posAt(c, p, t); return norm(deg(Math.atan2(q[0] - o[0], q[1] - o[1]))); };
+
+let seed = 11;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const noise = () => (rnd() + rnd() + rnd() - 1.5) * 0.6;
+
+const WIN = 12, OBS_DT = 1 / 6;
+const C = SHIP.contacts.map(c => ({
+  ...c,
+  est: { kyd: c.kyd, course: c.course, speed: c.speed },
+  truth: { kyd: +(c.kyd * 0.92).toFixed(2), course: norm(c.course + 14), speed: c.speed + 1.5 },
+  obs: [], r0: 1, q: c.sol, sent: null,
+}));
+const addObs = (c, t) => c.obs.push({ t, b: norm(brgAt(c, c.truth, t) + noise()) });
+let nextObs = 0;
+for (const c of C) for (let t = -WIN; t <= 0.0001; t += OBS_DT) addObs(c, t);
+nextObs = OBS_DT;
+
+function rms(c, p = c.est) {
+  const now = tNow(); let s = 0, n = 0;
+  for (const o of c.obs) { if (o.t < now - WIN) continue; const r = wrap(o.b - brgAt(c, p, o.t)); s += r * r; n++; }
+  return n ? Math.sqrt(s / n) : 0;
+}
+// Calibrate so Sonar's starting estimate reads the scenario's quality (S3 55%).
+for (const c of C) c.r0 = rms(c) / Math.sqrt(1 / c.sol - 1);
+const quality = c => 1 / (1 + (rms(c) / c.r0) ** 2);
+
+const W = { tgt: C.find(c => c.id === 'S3'), scale: 16, tube: 1, perm: 'pending', wire: null };
+const lastObs = c => c.obs[c.obs.length - 1];
+
+const TUBES = SHIP.tubes.map(t => ({
+  n: t.n, load: t.load ? (t.load.startsWith('Heavy') ? 'HWT' : 'DEC') : null, state: t.state, pct: t.pct || 0, asked: null,
+  preset: { spd: 40, depth: 520, en: 6, pat: 'snake', sent: t.n === 1 ? '0345' : null },
+}));
+const SPD = { 28: { name: 'Slow', max: 25 }, 40: { name: 'Med', max: 18 }, 55: { name: 'Fast', max: 10 } };
+const STEPS = ['dry', 'flooded', 'equalized', 'open'];
+const NEXT = { dry: 'flood', flooded: 'equalize', equalized: 'open muzzle' };
+const STATE_TXT = { dry: 'Dry', flooded: 'Flooded', equalized: 'Equalized', open: 'Muzzle open', reloading: 'Reloading' };
+const tube = n => TUBES[n - 1];
+
+/* ---------- log ---------- */
+const logEl = $('#log');
+function log(msg, kind = '', at) {
+  const li = document.createElement('li'); li.className = kind;
+  const t = document.createElement('time'); t.textContent = at || zulu();
+  const sp = document.createElement('span'); sp.textContent = msg;
+  li.append(t, sp); logEl.prepend(li);
+  while (logEl.children.length > 60) logEl.lastChild.remove();
+}
+log('Battle stations. Fire control manned.', '', '0344:10');
+log('Tube 1 flooded (Torpedo room).', 'ok', '0345:02');
+log('Presets sent to tube 1: Med 40, 520 ft, enable 6 kyd, snake.', '', '0345:40');
+log('Requested permission to fire on S3. Captain: wait.', 'warn', '0346:15');
+log('Sonar hands over S3: brg 194, est 8.8 kyd, crs 020, 5 kts.', 'ok', '0346:50');
+
+/* ---------- orders ---------- */
+const ORDERS = [
+  { from: 'CAPTAIN', at: '0346', msg: 'Build a solution on S3. Report when you reach 80%.' },
+  { from: 'CAPTAIN', at: '0346', msg: 'Make tubes 1 and 2 ready. Outer doors stay shut until I say.' },
+  { from: 'SONAR', at: '0347', msg: 'S3 bearing drifting left, slow. Blade rate says 5 to 7 kts.' },
+];
+function renderOrders() {
+  $('#orders').innerHTML = ORDERS.map((o, i) => `<li class="${o.ack ? 'acked' : ''}"><span class="o-from">${o.from} · ${o.at}Z${o.ack ? ' · ACK ' + o.ack : ''}</span><button type="button" class="btn" data-ack="${i}" ${o.ack ? 'disabled' : ''}>${o.ack ? 'Acked' : 'Acknowledge'}</button><span class="o-msg">${o.msg}</span></li>`).join('');
+}
+$('#orders').addEventListener('click', e => {
+  const b = e.target.closest('[data-ack]'); if (!b) return;
+  const o = ORDERS[+b.dataset.ack]; o.ack = hhmm();
+  log(`Ack ${o.from.toLowerCase()}: "${o.msg}"`, 'ok'); renderOrders();
+});
+renderOrders();
+
+/* ---------- target selector + solution ---------- */
+function renderTargets() {
+  $('#tgtSel').innerHTML = C.map(c => `<button type="button" data-c="${c.id}" class="${c.hostile ? 'hostile' : ''}" aria-pressed="${c === W.tgt}"><b>${c.id}</b><small>${c.hostile ? 'Hostile sub' : c.kind} · <span data-q="${c.id}">${Math.round(c.q * 100)}%</span></small></button>`).join('');
+}
+$('#tgtSel').addEventListener('click', e => {
+  const b = e.target.closest('[data-c]'); if (!b) return; selectTarget(C.find(c => c.id === b.dataset.c));
+});
+function selectTarget(c) {
+  if (c === W.tgt) return;
+  W.tgt = c; renderTargets(); syncSliders(); refresh();
+  log(`Target ${c.id} (${c.hostile ? 'hostile submarine' : c.kind}).${c.hostile ? '' : ' Neutral: weapons tight.'}`, c.hostile ? 'alert-l' : '');
+}
+const eRng = $('#eRng'), eCrs = $('#eCrs'), eSpd = $('#eSpd');
+function syncSliders() { eRng.value = W.tgt.est.kyd; eCrs.value = W.tgt.est.course; eSpd.value = W.tgt.est.speed; }
+function readSliders() {
+  const e = W.tgt.est; e.kyd = +eRng.value; e.course = +eCrs.value; e.speed = +eSpd.value; refresh();
+}
+[eRng, eCrs, eSpd].forEach(el => el.addEventListener('input', readSliders));
+let nudgeLogT = 0;
+$$('[data-nud]').forEach(b => b.addEventListener('click', () => {
+  const el = $('#' + b.dataset.nud), d = +b.dataset.d;
+  let x = +el.value + d;
+  if (el === eCrs) x = norm(x); else x = clamp(x, +el.min, +el.max);
+  el.value = x; readSliders();
+}));
+[eRng, eCrs, eSpd].forEach(el => el.addEventListener('change', () => {
+  if (performance.now() - nudgeLogT < 1500) return; nudgeLogT = performance.now();
+  const e = W.tgt.est; log(`${W.tgt.id} estimate: ${e.kyd.toFixed(1)} kyd, crs ${pad3(e.course)}, ${e.speed.toFixed(1)} kts → ${Math.round(quality(W.tgt) * 100)}%.`);
+}));
+$('#revert').addEventListener('click', () => {
+  const c = W.tgt, s = SHIP.contacts.find(x => x.id === c.id);
+  c.est = { kyd: s.kyd, course: s.course, speed: s.speed }; syncSliders(); refresh();
+  log(`${c.id} reverted to Sonar's estimate.`);
+});
+$('#sendSol').addEventListener('click', () => {
+  const c = W.tgt, q = Math.round(quality(c) * 100); c.sent = q;
+  log(`Reported to Captain: ${c.id} ${q}%, ${curRange(c).toFixed(1)} kyd, crs ${pad3(c.est.course)}, ${c.est.speed.toFixed(1)} kts.${q < 80 ? ' Below 80%.' : ''}`, q >= 80 ? 'ok' : 'warn');
+});
+const curRange = c => { const t = tNow(), o = ownPos(t), p = posAt(c, c.est, t); return Math.hypot(p[0] - o[0], p[1] - o[1]) / 1000; };
+
+/* ---------- presets ---------- */
+function renderTubes() {
+  $('#tubeSel').innerHTML = TUBES.map(t => `<button type="button" data-t="${t.n}" aria-pressed="${t.n === W.tube}"><b>T${t.n}</b><small>${t.load || 'empty'}${t.state === 'reloading' ? ' ' + Math.floor(t.pct) + '%' : ''}</small></button>`).join('');
+}
+$('#tubeSel').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; W.tube = +b.dataset.t; renderTubes(); syncPresets(); });
+function setSeg(name, val) { $$(`[data-seg="${name}"] button`).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(val)))); }
+function syncPresets() {
+  const t = tube(W.tube), hw = t.load === 'HWT' && t.state !== 'reloading';
+  $('#preBody').hidden = !hw; $('#preEmpty').hidden = hw;
+  if (!hw) {
+    $('#preEmpty').textContent = t.load === 'DEC' ? `Tube ${t.n} holds a decoy: no run presets. Torpedo room sets its mode; launch on the Captain's order.` :
+      `Tube ${t.n} is empty. Torpedo room is reloading it (${Math.floor(t.pct)}%). Presets open once a heavyweight is in.`;
+    return;
+  }
+  const p = t.preset; setSeg('spd', p.spd); setSeg('pat', p.pat);
+  $('#pDep').value = p.depth; $('#pEn').value = p.en; $('#sendPre').textContent = `Send presets to tube ${t.n}`;
+  refresh();
+}
+$$('.seg').forEach(seg => seg.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const name = seg.dataset.seg, val = b.dataset.v; setSeg(name, val);
+  if (name === 'scale') { W.scale = +val; return; }
+  const p = tube(W.tube).preset;
+  if (name === 'spd') p.spd = +val;
+  if (name === 'pat') p.pat = val;
+  p.sent = null; refresh();
+}));
+$('#pDep').addEventListener('input', e => { const p = tube(W.tube).preset; p.depth = +e.target.value; p.sent = null; refresh(); });
+$('#pEn').addEventListener('input', e => { const p = tube(W.tube).preset; p.en = +e.target.value; p.sent = null; refresh(); });
+$('#sendPre').addEventListener('click', () => {
+  const t = tube(W.tube), p = t.preset; p.sent = hhmm();
+  log(`Presets → tube ${t.n}: ${SPD[p.spd].name} ${p.spd}, ${p.depth} ft, enable ${p.en.toFixed(1)} kyd, ${p.pat}.`, 'ok'); refresh();
+});
+
+function intercept(c, spdKts) {
+  const now = tNow(), o = ownPos(now), q = posAt(c, c.est, now), P = [q[0] - o[0], q[1] - o[1]];
+  const V = [Math.sin(rad(c.est.course)) * c.est.speed * YPM, Math.cos(rad(c.est.course)) * c.est.speed * YPM];
+  const s = spdKts * YPM, a = V[0] ** 2 + V[1] ** 2 - s * s, b = 2 * (P[0] * V[0] + P[1] * V[1]), cc = P[0] ** 2 + P[1] ** 2;
+  const disc = b * b - 4 * a * cc; if (disc < 0 || a >= 0) return null;
+  const t = (-b - Math.sqrt(disc)) / (2 * a); if (!(t > 0)) return null;
+  const I = [P[0] + V[0] * t, P[1] + V[1] * t];
+  return { t, I, P, dist: Math.hypot(I[0], I[1]), hdg: norm(deg(Math.atan2(I[0], I[1]))) };
+}
+const mmss = m => `${Math.floor(m)}:${String(Math.floor((m % 1) * 60)).padStart(2, '0')}`;
+
+/* ---------- fire sequence ---------- */
+function renderFs() {
+  $('#fsList').innerHTML = TUBES.map(t => {
+    const i = STEPS.indexOf(t.state), name = t.load === 'HWT' ? 'Heavyweight' : t.load === 'DEC' ? 'Decoy' : 'Empty';
+    const pip = (k, label) => {
+      let cls = '';
+      if (t.state === 'reloading') cls = '';
+      else if (k <= i) cls = 'done';
+      else if (k === i + 1 && t.asked) cls = 'wait';
+      if (k === 4) cls = t.state === 'open' && W.perm !== 'granted' ? 'lock' : '';
+      return `<li class="${cls}">${label}</li>`;
+    };
+    const canFire = t.state === 'open' && W.perm === 'granted' && (W.tgt.hostile || t.load === 'DEC');
+    let act, why;
+    if (t.state === 'reloading') { act = `<button type="button" class="btn" disabled>Reloading ${Math.floor(t.pct)}%</button>`; why = 'Torpedo room is loading a heavyweight.'; }
+    else if (t.state === 'open') { act = `<button type="button" class="btn" disabled>Doors open</button>`; why = W.perm === 'granted' ? 'Ready.' : 'Ready in all respects. FIRE locked: permission pending.'; }
+    else if (t.asked) { act = `<button type="button" class="btn" disabled>Asked ${t.asked}</button>`; why = `Waiting on Torpedo room to ${NEXT[t.state]}.`; }
+    else { act = `<button type="button" class="btn" data-ask="${t.n}">Ask: ${NEXT[t.state]}</button>`; why = t.state === 'equalized' ? 'Opening the muzzle is loud: S3 may hear it.' : t.state === 'dry' ? 'Flooding makes a transient Sonar and S3 can hear.' : 'Equalize is quiet.'; }
+    return `<div class="fs-row"><div class="fs-head"><b>T${t.n}</b><span class="fs-load">${name}</span><span class="chip ${t.state === 'open' ? 'warn' : t.state === 'reloading' ? 'warn' : t.state === 'dry' ? '' : 'info'}">${STATE_TXT[t.state]}</span><span class="fs-from">${t.preset.sent && t.load === 'HWT' ? 'presets ' + t.preset.sent : ''}</span></div>
+      <ol class="pips">${pip(1, 'Flooded')}${pip(2, 'Equalized')}${pip(3, 'Muzzle open')}${pip(4, 'FIRE')}</ol>
+      <div class="fs-act">${act}<button type="button" class="btn danger fire" data-fire="${t.n}" ${canFire ? '' : 'disabled'}>FIRE</button></div>
+      <p class="fs-why">${why}</p></div>`;
+  }).join('');
+}
+$('#fsList').addEventListener('click', e => {
+  const b = e.target.closest('[data-ask]'); if (!b) return;
+  const t = tube(+b.dataset.ask), step = NEXT[t.state]; t.asked = hhmm();
+  log(`Asked Torpedo room: tube ${t.n} ${step}.`); renderFs(); refreshWaits();
+  setTimeout(() => {
+    t.state = STEPS[STEPS.indexOf(t.state) + 1]; t.asked = null;
+    log(`Torpedo room: tube ${t.n} ${STATE_TXT[t.state].toLowerCase()}.`, 'ok');
+    if (t.state === 'flooded' || t.state === 'open') log(`Transient from tube ${t.n} (${t.state === 'open' ? 'muzzle door' : 'flooding'}). Sonar heard it; S3 may have too.`, 'warn');
+    renderFs(); refreshWaits(); refresh();
+  }, 3500 + Math.random() * 2500);
+});
+$('#askPerm').addEventListener('click', () => {
+  log(`Asked Captain again: permission to fire on ${W.tgt.id}, solution ${Math.round(quality(W.tgt) * 100)}%.`, 'warn');
+  const b = $('#askPerm'); b.disabled = true; b.textContent = 'Asked';
+  setTimeout(() => { log('Captain: "Wait. Firm up the solution."', 'warn'); b.disabled = false; b.textContent = 'Ask again'; }, 4000);
+});
+
+/* ---------- waiting on ---------- */
+function refreshWaits() {
+  const lo = lastObs(W.tgt), items = [
+    ['Sonar', `${W.tgt.id} bearings, live`, `<span class="chip ok">${pad3(lo.b)}°</span>`],
+    ['Captain', 'Permission to fire', '<span class="chip warn">Pending</span>'],
+  ];
+  for (const t of TUBES) {
+    if (t.asked) items.push(['Torpedo rm', `Tube ${t.n} ${NEXT[t.state]}`, `<span class="chip warn">Asked ${t.asked}</span>`]);
+    if (t.state === 'reloading') items.push(['Torpedo rm', `Tube ${t.n} reload`, `<span class="chip warn">${Math.floor(t.pct)}%</span>`]);
+  }
+  items.push(['Helm', 'Steady on firing course', '<span class="chip">Not yet</span>']);
+  $('#waits').innerHTML = items.map(([w, what, st]) => `<li><span class="who">${w}</span><span>${what}</span>${st}</li>`).join('');
+}
+
+/* ---------- wire guidance demo ---------- */
+const DEMO = 6;
+$('#wireDemo').addEventListener('click', e => {
+  const on = !W.wire; e.currentTarget.setAttribute('aria-pressed', String(on));
+  $('#wireOn').hidden = !on; $('#wireOff').hidden = on;
+  if (on) {
+    const t = tube(1), p = t.preset, ic = intercept(W.tgt, p.spd), o = ownPos(tNow());
+    W.wire = { x: o[0], y: o[1], hdg: ic ? ic.hdg : W.tgt.brg, spd: p.spd, depth: p.depth, en: p.en, pat: p.pat, t: 0, dist: 0, wire: true, seeker: 'off', trail: [] };
+    log('Demo: unit 1 running, wire guided.', 'alert-l');
+  } else { W.wire = null; log('Demo ended.'); }
+  refresh();
+});
+const steer = d => { const w = W.wire; if (!w || !w.wire) return; w.hdg = norm(w.hdg + d); log(`Unit 1 steer ${d < 0 ? 'left' : 'right'} 5°, new heading ${pad3(w.hdg)}.`); };
+$('#stL').addEventListener('click', () => steer(-5));
+$('#stR').addEventListener('click', () => steer(5));
+$('#wEn').addEventListener('click', () => { const w = W.wire; if (!w || !w.wire || w.seeker !== 'off') return; w.seeker = 'searching'; log('Unit 1 seeker enabled early by wire.', 'warn'); });
+$('#wCut').addEventListener('click', () => { const w = W.wire; if (!w || !w.wire) return; w.wire = false; log('Wire cut. Unit 1 on its own. Own ship free to manoeuvre.', 'warn'); });
+function stepWire(dtMin) {
+  const w = W.wire; if (!w) return;
+  const dm = dtMin * DEMO, d = w.spd * YPM * dm;
+  w.x += Math.sin(rad(w.hdg)) * d; w.y += Math.cos(rad(w.hdg)) * d; w.t += dm; w.dist += d;
+  if (!w.trail.length || Math.hypot(w.x - w.trail.at(-1)[0], w.y - w.trail.at(-1)[1]) > 120) w.trail.push([w.x, w.y]);
+  if (w.seeker === 'off' && w.dist >= w.en * 1000) { w.seeker = 'searching'; log('Unit 1 enabled. Seeker searching.', 'warn'); }
+  if (w.seeker === 'searching') {
+    const now = tNow(), tp = posAt(W.tgt, W.tgt.truth, now), dx = tp[0] - w.x, dy = tp[1] - w.y;
+    if (Math.hypot(dx, dy) < 2200 && Math.abs(wrap(deg(Math.atan2(dx, dy)) - w.hdg)) < 30 && W.tgt.hostile) { w.seeker = 'acquired'; log(`Unit 1: acquired ${W.tgt.id}! Homing.`, 'alert-l'); }
+  }
+  if (w.seeker === 'acquired') {
+    const tp = posAt(W.tgt, W.tgt.truth, tNow()); w.hdg = norm(deg(Math.atan2(tp[0] - w.x, tp[1] - w.y)));
+  }
+  if (w.dist > SPD[w.spd].max * 1000 && w.seeker !== 'spent') { w.seeker = 'spent'; w.spd = 0; log('Unit 1 out of fuel. Run ended.', 'warn'); }
+}
+
+/* ---------- canvases ---------- */
+const planC = $('#plan'), planX = planC.getContext('2d'), dotsC = $('#dots'), dotsX = dotsC.getContext('2d');
+function fit(c) {
+  const d = Math.min(window.devicePixelRatio || 1, 2), b = c.getBoundingClientRect();
+  c._d = d; c.width = Math.max(1, Math.round(b.width * d)); c.height = Math.max(1, Math.round(b.height * d));
+}
+const ro = new ResizeObserver(es => es.forEach(e => fit(e.target)));
+ro.observe(planC); ro.observe(dotsC);
+
+function tri(x, cx, cy, hdg, s) {
+  x.save(); x.translate(cx, cy); x.rotate(rad(hdg));
+  x.beginPath(); x.moveTo(0, -s); x.lineTo(s * 0.65, s * 0.6); x.lineTo(-s * 0.65, s * 0.6); x.closePath(); x.fill(); x.restore();
+}
+
+let planHit = [];
+function drawPlan() {
+  const c = planC, x = planX, d = c._d || 1, Wd = c.width, Ht = c.height;
+  x.clearRect(0, 0, Wd, Ht);
+  const cx = Wd / 2, cy = Ht / 2, R = Math.min(Wd, Ht) / 2 - 16 * d, k = R / (W.scale * 1000);
+  const now = tNow(), own = ownPos(now), S = p => [cx + (p[0] - own[0]) * k, cy - (p[1] - own[1]) * k];
+  const SR = p => [cx + p[0] * k, cy - p[1] * k];
+  x.lineWidth = d; x.font = `${11 * d}px "IBM Plex Mono", monospace`;
+
+  const g = x.createRadialGradient(cx, cy, 0, cx, cy, Math.max(Wd, Ht) / 1.4);
+  g.addColorStop(0, rgba(COL.phos, 0.06)); g.addColorStop(1, rgba(COL.phos, 0.0));
+  x.fillStyle = g; x.fillRect(0, 0, Wd, Ht);
+
+  // range rings and bearing spokes
+  const ringStep = W.scale / 4;
+  for (let r = ringStep; r <= W.scale * 1.5; r += ringStep) {
+    x.strokeStyle = rgba(COL.phos, r % (ringStep * 2) ? 0.07 : 0.14);
+    x.beginPath(); x.arc(cx, cy, r * 1000 * k, 0, Math.PI * 2); x.stroke();
+    if (r < W.scale) { x.fillStyle = rgba(COL.phos, 0.4); x.fillText(String(+r.toFixed(1)), cx + 4 * d, cy - r * 1000 * k - 3 * d); }
+  }
+  for (let b = 0; b < 360; b += 30) {
+    const a = rad(b); x.strokeStyle = rgba(COL.phos, 0.05);
+    x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.sin(a) * R * 1.6, cy - Math.cos(a) * R * 1.6); x.stroke();
+    x.fillStyle = rgba(COL.phos, 0.45); x.textAlign = 'center';
+    x.fillText(pad3(b), cx + Math.sin(a) * (R + 2 * d), cy - Math.cos(a) * (R + 2 * d) + 4 * d);
+  }
+  x.textAlign = 'left';
+
+  // own track
+  x.fillStyle = rgba(COL.phos, 0.35);
+  for (let t = Math.ceil(now - WIN); t < now; t++) { const p = S(ownPos(t)); x.fillRect(p[0] - d, p[1] - d, 2 * d, 2 * d); }
+
+  const tg = W.tgt, q = quality(tg), lo = lastObs(tg);
+  // sonar line of bearing
+  x.setLineDash([6 * d, 6 * d]); x.strokeStyle = rgba(COL.amber, 0.45);
+  x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.sin(rad(lo.b)) * R * 1.6, cy - Math.cos(rad(lo.b)) * R * 1.6); x.stroke();
+  x.setLineDash([]);
+
+  // torpedo intended run
+  const t = tube(W.tube), hw = t.load === 'HWT' && t.state !== 'reloading';
+  const ic = hw ? intercept(tg, t.preset.spd) : null;
+  if (ic && !W.wire) {
+    const u = [Math.sin(rad(ic.hdg)), Math.cos(rad(ic.hdg))], nrm = [u[1], -u[0]], en = t.preset.en * 1000;
+    const enD = Math.min(en, ic.dist), E = [u[0] * enD, u[1] * enD], I = ic.I, maxD = SPD[t.preset.spd].max * 1000;
+    x.strokeStyle = rgba(COL.amber, 0.9); x.lineWidth = 2 * d;
+    x.beginPath(); x.moveTo(cx, cy); x.lineTo(...SR(E)); x.stroke();
+    x.lineWidth = 1.5 * d; x.strokeStyle = rgba(COL.amber, 0.6); x.beginPath();
+    const after = Math.max(1500, ic.dist - enD + 1500);
+    if (t.preset.pat === 'straight') { x.moveTo(...SR(E)); x.lineTo(...SR([E[0] + u[0] * after, E[1] + u[1] * after])); }
+    else if (t.preset.pat === 'snake') {
+      for (let s = 0; s <= after; s += 60) {
+        const off = Math.sin(s / 1600 * Math.PI * 2) * 450 * Math.min(1, s / 400);
+        const p = SR([E[0] + u[0] * s + nrm[0] * off, E[1] + u[1] * s + nrm[1] * off]);
+        s ? x.lineTo(...p) : x.moveTo(...p);
+      }
+    } else {
+      const rr = 800, C0 = [E[0] + u[0] * rr, E[1] + u[1] * rr], p = SR(C0);
+      x.arc(p[0], p[1], rr * k, 0, Math.PI * 2);
+    }
+    x.stroke();
+    // seeker cone at enable
+    const ep = SR(E), a0 = rad(ic.hdg - 90);
+    x.fillStyle = rgba(COL.amber, 0.08);
+    x.beginPath(); x.moveTo(...ep); x.arc(ep[0], ep[1], 2000 * k, a0 - rad(25), a0 + rad(25)); x.closePath(); x.fill();
+    x.fillStyle = COL.amber; x.strokeStyle = COL.hull; x.lineWidth = 2 * d;
+    x.beginPath(); x.arc(ep[0], ep[1], 5 * d, 0, Math.PI * 2); x.fill(); x.stroke();
+    x.fillText('EN', ep[0] + 8 * d, ep[1] - 6 * d);
+    const ip = SR(I); x.strokeStyle = COL.amber; x.lineWidth = 2 * d;
+    x.beginPath(); x.moveTo(ip[0] - 6 * d, ip[1] - 6 * d); x.lineTo(ip[0] + 6 * d, ip[1] + 6 * d); x.moveTo(ip[0] + 6 * d, ip[1] - 6 * d); x.lineTo(ip[0] - 6 * d, ip[1] + 6 * d); x.stroke();
+    if (ic.dist > maxD) {
+      const mp = SR([u[0] * maxD, u[1] * maxD]); x.fillStyle = COL.hostile; x.fillText('MAX RUN', mp[0] + 6 * d, mp[1] + 14 * d);
+      x.beginPath(); x.arc(mp[0], mp[1], 4 * d, 0, Math.PI * 2); x.fill();
+    }
+    x.lineWidth = d;
+  }
+
+  // contacts at estimated positions
+  planHit = [];
+  for (const c of C) {
+    const p = S(posAt(c, c.est, now)), sel = c === tg, col = sel ? COL.amber : c.hostile ? COL.hostile : COL.phos;
+    const cq = c === tg ? q : c.q;
+    if (sel) {
+      // uncertainty grows along the bearing: passive ranging is the weak axis
+      const rng = curRange(c) * 1000, a = Math.max(250, rng * (1 - cq) * 0.55) * k, b = Math.max(120, a / k * 0.28) * k;
+      const lb = lastObs(c).b;
+      x.strokeStyle = rgba(COL.amber, 0.55); x.fillStyle = rgba(COL.amber, 0.07);
+      x.beginPath(); x.ellipse(p[0], p[1], a, b, rad(lb - 90), 0, Math.PI * 2); x.fill(); x.stroke();
+      x.setLineDash([3 * d, 5 * d]); x.strokeStyle = rgba(COL.amber, 0.7);
+      const f = S(posAt(c, c.est, now + 15)); x.beginPath(); x.moveTo(...p); x.lineTo(...f); x.stroke(); x.setLineDash([]);
+    }
+    x.fillStyle = col; x.globalAlpha = sel ? 1 : 0.75;
+    if (c.hostile) { x.save(); x.translate(...p); x.rotate(Math.PI / 4); x.fillRect(-5 * d, -5 * d, 10 * d, 10 * d); x.restore(); }
+    else { x.beginPath(); x.arc(p[0], p[1], 5 * d, 0, Math.PI * 2); x.fill(); }
+    // course vector
+    x.strokeStyle = col; x.lineWidth = 1.5 * d;
+    x.beginPath(); x.moveTo(...p); x.lineTo(p[0] + Math.sin(rad(c.est.course)) * (10 + c.est.speed * 2) * d, p[1] - Math.cos(rad(c.est.course)) * (10 + c.est.speed * 2) * d); x.stroke();
+    x.lineWidth = d; x.globalAlpha = 1;
+    const off = Math.hypot(p[0] - cx, p[1] - cy) > R * 1.02;
+    const lp = off ? [cx + (p[0] - cx) / Math.hypot(p[0] - cx, p[1] - cy) * R * 0.96, cy + (p[1] - cy) / Math.hypot(p[0] - cx, p[1] - cy) * R * 0.96] : p;
+    if (off) { x.fillStyle = col; x.beginPath(); x.arc(lp[0], lp[1], 3 * d, 0, Math.PI * 2); x.fill(); }
+    x.fillStyle = col; x.fillText(c.id + (off ? ' ▸' : ''), lp[0] + 9 * d, lp[1] - 7 * d);
+    planHit.push({ c, x: lp[0] / d, y: lp[1] / d });
+  }
+
+  // running torpedo + wire
+  const w = W.wire;
+  if (w) {
+    x.fillStyle = rgba(COL.amber, 0.5);
+    for (const tp of w.trail) { const p = S(tp); x.fillRect(p[0] - d, p[1] - d, 2 * d, 2 * d); }
+    const p = S([w.x, w.y]);
+    if (w.wire) { x.setLineDash([2 * d, 4 * d]); x.strokeStyle = rgba(COL.phos, 0.7); x.beginPath(); x.moveTo(cx, cy); x.lineTo(...p); x.stroke(); x.setLineDash([]); }
+    if (w.seeker !== 'off' && w.seeker !== 'spent') {
+      const a0 = rad(w.hdg - 90); x.fillStyle = rgba(w.seeker === 'acquired' ? COL.hostile : COL.amber, 0.12);
+      x.beginPath(); x.moveTo(...p); x.arc(p[0], p[1], 2200 * k, a0 - rad(30), a0 + rad(30)); x.closePath(); x.fill();
+    }
+    x.fillStyle = w.seeker === 'acquired' ? COL.hostile : COL.amber; tri(x, p[0], p[1], w.hdg, 6 * d);
+    x.fillText('U1', p[0] + 9 * d, p[1] + 12 * d);
+  }
+
+  // own ship
+  x.fillStyle = COL.phos; tri(x, cx, cy, SHIP.course, 8 * d);
+  x.strokeStyle = rgba(COL.phos, 0.6); x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.sin(rad(SHIP.course)) * 26 * d, cy - Math.cos(rad(SHIP.course)) * 26 * d); x.stroke();
+}
+
+function drawDots() {
+  const c = dotsC, x = dotsX, d = c._d || 1, Wd = c.width, Ht = c.height;
+  x.clearRect(0, 0, Wd, Ht);
+  const padY = 18 * d, half = 6, cxp = Wd / 2, sx = (Wd / 2 - 10 * d) / half, now = tNow();
+  const yOf = t => padY + (now - t) / WIN * (Ht - 2 * padY);
+  x.lineWidth = d;
+  for (let gx = -half; gx <= half; gx++) {
+    x.strokeStyle = gx === 0 ? rgba(COL.phos, 0.55) : rgba(COL.phos, gx % 3 ? 0.05 : 0.13);
+    x.beginPath(); x.moveTo(cxp + gx * sx, 0); x.lineTo(cxp + gx * sx, Ht); x.stroke();
+  }
+  x.fillStyle = rgba(COL.phos, 0.06); x.fillRect(cxp - sx, 0, 2 * sx, Ht);
+  for (let m = Math.ceil(now - WIN); m <= now; m++) { x.strokeStyle = rgba(COL.phos, 0.05); const y = yOf(m); x.beginPath(); x.moveTo(0, y); x.lineTo(Wd, y); x.stroke(); }
+  const yl = yOf(LEG_T);
+  if (yl < Ht - padY / 2) {
+    x.setLineDash([5 * d, 4 * d]); x.strokeStyle = rgba(COL.bio, 0.6); x.beginPath(); x.moveTo(0, yl); x.lineTo(Wd, yl); x.stroke(); x.setLineDash([]);
+    x.fillStyle = rgba(COL.bio, 0.85); x.font = `${10.5 * d}px "IBM Plex Mono", monospace`; x.textAlign = 'right';
+    x.fillText('OWN LEG 090→045 · 0341', Wd - 6 * d, yl - 4 * d); x.textAlign = 'left';
+  }
+  const tg = W.tgt, obs = tg.obs.filter(o => o.t >= now - WIN), n = obs.length;
+  obs.forEach((o, i) => {
+    const r = wrap(o.b - brgAt(tg, tg.est, o.t)), y = yOf(o.t), a = Math.abs(r);
+    const col = a < 1 ? COL.phos : a < 3 ? COL.amber : COL.hostile, newest = i === n - 1;
+    x.fillStyle = col; x.globalAlpha = 0.45 + 0.55 * (i / n);
+    if (a > half) {
+      const xx = r > 0 ? Wd - 6 * d : 6 * d, s = r > 0 ? 1 : -1;
+      x.beginPath(); x.moveTo(xx + s * 4 * d, y); x.lineTo(xx - s * 3 * d, y - 4 * d); x.lineTo(xx - s * 3 * d, y + 4 * d); x.closePath(); x.fill();
+    } else {
+      x.beginPath(); x.arc(cxp + r * sx, y, (newest ? 4.5 : 2.6) * d, 0, Math.PI * 2); x.fill();
+      if (newest) { x.strokeStyle = col; x.globalAlpha = 0.5; x.beginPath(); x.arc(cxp + r * sx, y, 8 * d, 0, Math.PI * 2); x.stroke(); }
+    }
+  });
+  x.globalAlpha = 1;
+}
+
+/* ---------- readouts ---------- */
+function refresh() {
+  const tg = W.tgt, q = quality(tg), qp = Math.round(q * 100), e = tg.est, rng = curRange(tg), lo = lastObs(tg);
+  tg.q = q;
+  $(`[data-q="${tg.id}"]`) && ($(`[data-q="${tg.id}"]`).textContent = qp + '%');
+  $('#eRngV').innerHTML = `${e.kyd.toFixed(1)} kyd<small>at 0347</small>`;
+  $('#eCrsV').textContent = pad3(e.course) + '°'; $('#eSpdV').textContent = e.speed.toFixed(1) + ' kts';
+  $('#fBrg').textContent = pad3(lo.b) + '°'; $('#fRng').textContent = rng.toFixed(1);
+  const r = rms(tg); $('#fRms').textContent = r.toFixed(1) + '°'; $('#fRms').className = r < 1 ? '' : r < 3 ? 'warn' : 'crit';
+  $('#fCrs').textContent = pad3(e.course) + '°'; $('#fSpd').textContent = e.speed.toFixed(1) + ' kts';
+  $('#fDep').textContent = tg.depth ? `~${tg.depth} ft` : 'surface';
+  $('#qBar').style.width = qp + '%'; $('#qMeter').className = 'meter' + (qp >= 80 ? '' : ' warn');
+  $('#qVal').textContent = qp + '%'; $('#qVal').className = 'val' + (qp >= 80 ? ' ok' : '');
+
+  $('#stTgt').textContent = tg.id; const chip = $('#stTgtChip');
+  chip.textContent = tg.hostile ? 'Hostile' : 'Neutral'; chip.className = 'chip ' + (tg.hostile ? 'crit' : 'ok');
+  $('#stSol').textContent = qp + '%'; $('#stSol').className = qp >= 80 ? '' : 'warn';
+  $('#stRng').textContent = rng.toFixed(1);
+  const loaded = TUBES.filter(t => t.load === 'HWT' || t.load === 'DEC').filter(t => t.state !== 'reloading');
+  $('#stReady').innerHTML = `${TUBES.filter(t => t.state === 'open').length}<small>/${loaded.length} open</small>`;
+  $('#stTime').textContent = zulu() + 'Z';
+  $('#hudScale').innerHTML = `SCALE <b>${W.scale}</b> KYD<br>NORTH-UP`;
+  $('#hudTgt').innerHTML = `${tg.id} EST <b>${qp}%</b><br>${rng.toFixed(1)} KYD ${pad3(lo.b)}°`;
+  $('#hudDots').textContent = `${tg.id} · BRG EVERY 10 S`;
+
+  const t = tube(W.tube), hw = t.load === 'HWT' && t.state !== 'reloading';
+  if (hw) {
+    const p = t.preset, ic = intercept(tg, p.spd), mx = SPD[p.spd].max;
+    $('#pDepV').textContent = p.depth + ' ft'; $('#pEnV').textContent = p.en.toFixed(1) + ' kyd';
+    $('#pMax').textContent = mx + ' kyd';
+    if (ic) {
+      $('#pRun').textContent = (ic.dist / 1000).toFixed(1) + ' kyd'; $('#pRun').className = ic.dist / 1000 > mx ? 'crit' : '';
+      $('#pTime').textContent = mmss(ic.t);
+      $('#hudRun').innerHTML = `T${t.n} RUN <b>${(ic.dist / 1000).toFixed(1)}</b> KYD<br>LEAD ${pad3(ic.hdg)}° · ${mmss(ic.t)}`;
+    } else { $('#pRun').textContent = 'no intercept'; $('#pTime').textContent = '—'; $('#hudRun').innerHTML = `T${t.n} RUN<br>NO INTERCEPT`; }
+    const notes = [];
+    if (ic && ic.dist / 1000 > mx) notes.push('Beyond max run at this speed.');
+    if (p.spd === 55) notes.push('Fast is loud and short-legged.');
+    if (tg.depth && Math.abs(p.depth - tg.depth) > 150) notes.push(`Search depth far from target (~${tg.depth} ft).`);
+    if ((p.depth > SHIP.layer) !== (tg.depth > SHIP.layer) && tg.depth) notes.push('Wrong side of the layer.');
+    if (p.depth >= SHIP.bottom - 100) notes.push('Near the bottom (1,380 ft).');
+    if (ic && p.en * 1000 >= ic.dist) notes.push('Enables after intercept: will overrun.');
+    if (p.en < 2) notes.push('Very early enable: may home on own ship.');
+    if (!tg.hostile) notes.push(`${tg.id} is neutral. Weapons tight.`);
+    $('#pNote').textContent = notes.join(' ') || `Below the layer with ${tg.id}. Good.`; $('#pNote').className = notes.length ? 'warn' : '';
+    $('#preSent').textContent = p.sent ? `Sent ${p.sent}` : 'Not sent'; $('#preSent').className = 'chip ' + (p.sent ? 'ok' : 'warn');
+  } else $('#hudRun').innerHTML = `T${t.n}<br>${t.load === 'DEC' ? 'DECOY · NO RUN' : 'EMPTY'}`;
+
+  const w = W.wire;
+  if (w) {
+    const o = ownPos(tNow());
+    $('#wTime').textContent = mmss(w.t); $('#wRng').textContent = (Math.hypot(w.x - o[0], w.y - o[1]) / 1000).toFixed(1);
+    $('#wHdg').textContent = pad3(w.hdg) + '°'; $('#wDep').textContent = w.depth + ' ft';
+    const seek = { off: `Off · enables ${Math.max(0, (w.en * 1000 - w.dist) / 1000).toFixed(1)} kyd`, searching: 'Searching', acquired: 'ACQUIRED', spent: 'Run ended' }[w.seeker];
+    $('#wSeek').textContent = seek; $('#wSeek').className = w.seeker === 'acquired' ? 'crit' : w.seeker === 'searching' ? 'warn' : '';
+    const left = Math.max(0, 20 - w.dist / 1000);
+    $('#wWire').textContent = w.wire ? `OK · ${left.toFixed(1)} kyd left` : 'CUT'; $('#wWire').className = w.wire ? '' : 'warn';
+    ['#stL', '#stR', '#wCut'].forEach(s => $(s).disabled = !w.wire || w.seeker === 'spent');
+    $('#wEn').disabled = !w.wire || w.seeker !== 'off';
+  }
+
+  const al = $('#alert');
+  if (w && w.seeker === 'acquired') { al.dataset.sev = '3'; $('#alertSev').textContent = 'HOMING'; $('#alertMsg').textContent = `Unit 1 acquired ${tg.id}. Keep the wire or cut it?`; $('#alertMore').textContent = 'Demo'; }
+  else if (w) { al.dataset.sev = '3'; $('#alertSev').textContent = 'UNIT 1'; $('#alertMsg').textContent = `Unit 1 running on the wire, ${mmss(w.t)}. Steer it onto ${tg.id}.`; $('#alertMore').textContent = 'Demo'; }
+  else if (!tg.hostile) { al.dataset.sev = '0'; $('#alertSev').textContent = 'NEUTRAL'; $('#alertMsg').textContent = `${tg.id} is a ${tg.kind}. Tracking only, weapons tight.`; $('#alertMore').textContent = ''; }
+  else if (qp < 80) { al.dataset.sev = '2'; $('#alertSev').textContent = 'SOLUTION'; $('#alertMsg').textContent = `${tg.id} solution ${qp}%. Line up the dots to reach 80% before asking to shoot.`; $('#alertMore').textContent = 'Permission: pending'; }
+  else { al.dataset.sev = '2'; $('#alertSev').textContent = 'READY'; $('#alertMsg').textContent = `${tg.id} solution ${qp}%. Report to the Captain.`; $('#alertMore').textContent = 'Permission: pending'; }
+}
+
+$('#alert').addEventListener('click', () => {
+  const w = W.wire, el = w ? $('#hWire').closest('.card') : $('#solCard');
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+});
+
+planC.addEventListener('pointerup', e => {
+  const b = planC.getBoundingClientRect(), px = e.clientX - b.left, py = e.clientY - b.top;
+  let best = null, bd = 34;
+  for (const h of planHit) { const dd = Math.hypot(h.x - px, h.y - py); if (dd < bd) { bd = dd; best = h.c; } }
+  if (best) selectTarget(best);
+});
+
+/* ---------- loop ---------- */
+let lastT = performance.now(), lastUi = 0;
+function frame(now) {
+  const dtMin = Math.min(0.1, (now - lastT) / 1000) / 60; lastT = now;
+  const t = tNow();
+  while (t >= nextObs) { for (const c of C) addObs(c, nextObs); nextObs += OBS_DT; }
+  for (const c of C) if (c.obs.length > 200) c.obs.splice(0, c.obs.length - 200);
+  stepWire(dtMin);
+  drawPlan(); drawDots();
+  if (now - lastUi > 250) {
+    lastUi = now;
+    const t4 = TUBES.find(x => x.state === 'reloading');
+    if (t4) {
+      t4.pct = Math.min(100, t4.pct + 0.12);
+      if (t4.pct >= 100) { t4.state = 'dry'; t4.load = 'HWT'; log(`Torpedo room: tube ${t4.n} loaded, heavyweight. Dry.`, 'ok'); renderFs(); renderTubes(); syncPresets(); }
+    }
+    refresh();
+    if (Math.floor(now / 1000) % 2 === 0) { refreshWaits(); renderTubes(); if (TUBES.some(x => x.state === 'reloading')) renderFs(); }
+  }
+  requestAnimationFrame(frame);
+}
+renderTargets(); renderTubes(); syncSliders(); syncPresets(); renderFs(); refreshWaits(); refresh();
+fit(planC); fit(dotsC);
+requestAnimationFrame(frame);
+})();
+</script>

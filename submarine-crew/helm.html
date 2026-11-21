@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fathom · Helm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Saira+Stencil+One&display=swap">
+<link rel="stylesheet" href="crew.css">
+<style>
+.prof-wrap{position:relative;height:clamp(300px,calc(100vh - 560px),620px);border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:#061011}
+#prof{display:block;width:100%;height:100%}
+.prof-wrap .hud{padding:8px 10px;text-shadow:0 0 4px #061011}
+.prof-wrap .hud.tl{left:46px}
+.hud .cav{color:var(--hostile)}
+.inst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.inst{grid-template-columns:minmax(0,1fr)}}
+.readout{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.readout .big{font-family:var(--f-data);font-size:30px;line-height:1.05;font-weight:500;font-variant-numeric:tabular-nums}
+.readout .ord{color:var(--amber)}
+.readout small{font-family:var(--f-data);font-size:12px;color:var(--muted)}
+.steer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:center;margin-top:8px}
+.dial{position:relative;width:min(100%,170px);aspect-ratio:1;justify-self:center;touch-action:none;cursor:grab;border-radius:50%}
+.dial svg{display:block;width:100%;height:100%}
+.dial .face{fill:var(--panel-2);stroke:var(--rule-2)}
+.dial .tick{stroke:var(--phos-dim);stroke-width:1.2}
+.dial .tick.major{stroke:var(--phos);stroke-width:2}
+.dial .card-l{fill:var(--muted);font:500 8px var(--f-data);text-anchor:middle;dominant-baseline:middle}
+.dial .ord{stroke:var(--amber);stroke-width:3;stroke-linecap:round}
+.dial .knob{fill:var(--amber)}
+.dial .now{stroke:var(--phos);stroke-width:2.5;stroke-linecap:round}
+.dial-read{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;font-family:var(--f-data);line-height:1.1}
+.dial-read b{font-size:22px;font-weight:500;color:var(--amber)}
+.dial-read span{font-size:11px;color:var(--phos)}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
+.step{min-height:44px;background:var(--panel-2);border:1px solid var(--rule-2);border-radius:6px;font-family:var(--f-data);font-size:13px;cursor:pointer}
+.step:active{border-color:var(--amber);color:var(--amber)}
+.ind{display:flex;flex-direction:column;align-items:center;gap:2px}
+.ind svg{display:block;width:100%;max-width:170px;height:auto;overflow:visible}
+.ind .lbl{text-align:center}
+.ind .val{font-size:15px}
+svg .rim{fill:none;stroke:var(--rule-2);stroke-width:1.5}
+svg .tk{stroke:var(--phos-dim);stroke-width:1}
+svg .tk.z{stroke:var(--phos);stroke-width:2}
+svg .needle{stroke:var(--phos);stroke-width:3;stroke-linecap:round}
+svg .needle.amber{stroke:var(--amber)}
+svg .hub{fill:var(--phos)}
+svg .txt{fill:var(--muted);font:500 9px var(--f-data);text-anchor:middle}
+svg .hullsil{fill:var(--panel-2);stroke:var(--phos);stroke-width:1.5}
+svg .plane{stroke:var(--phos);stroke-width:5;stroke-linecap:round}
+svg .ref{stroke:var(--rule-2);stroke-width:1;stroke-dasharray:3 3}
+.depth-row{display:grid;grid-template-columns:118px minmax(0,1fr);gap:14px;margin-top:6px}
+.gauge{position:relative;height:300px}
+.g-bar{position:absolute;left:0;top:0;bottom:0;width:26px;border:1px solid var(--rule-2);border-radius:3px;background:linear-gradient(180deg,color-mix(in srgb,var(--bio) 22%,transparent),color-mix(in srgb,var(--bio) 4%,transparent) 70%,color-mix(in srgb,var(--muted) 20%,transparent))}
+.g-mark{position:absolute;left:0;width:30px;height:0;border-top:1px solid var(--phos-dim)}
+.g-mark span{position:absolute;left:32px;top:-7px;font-family:var(--f-data);font-size:10px;line-height:1;color:var(--muted);white-space:nowrap}
+.g-mark.ant{border-top:1px dashed var(--amber)}.g-mark.ant span{color:var(--amber)}
+.g-mark.layer{border-top:3px dotted var(--bio)}.g-mark.layer span{color:var(--bio)}
+.g-mark.test{border-top:1px dashed var(--hostile)}.g-mark.test span{color:var(--hostile)}
+.g-mark.bot{border-top:3px solid var(--muted)}
+.g-own,.g-ordm{position:absolute;left:-4px;width:34px;height:0;transition:top .2s linear}
+.g-own::before{content:"";position:absolute;left:0;top:-4px;width:34px;height:8px;border-radius:4px;background:var(--phos);box-shadow:0 0 6px var(--phos)}
+.g-ordm{border-top:2px dashed var(--amber)}
+.g-ordm::after{content:"";position:absolute;left:34px;top:-6px;border:6px solid transparent;border-left-color:var(--amber)}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.quick .btn{flex:1 1 80px;padding:0 8px;font-family:var(--f-data);font-size:12.5px}
+.planes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:12px}
+#resetRow[hidden]{display:none}
+.planes .ind svg{max-width:110px}
+.eot{display:flex;flex-direction:column;gap:4px}
+.bell{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr) auto;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--rule-2);border-radius:4px;background:transparent;font-family:var(--f-data);font-size:13px;letter-spacing:.04em;text-align:left;cursor:pointer}
+.bell small{color:var(--muted);font-size:11px}
+.bell::before{content:"";width:10px;height:10px;border-radius:50%;border:1px solid var(--rule-2)}
+.bell.stop{border-color:var(--phos-dim)}
+.bell.back{color:var(--bio)}
+@media (hover:hover){.bell:hover{background:var(--panel-2)}}
+.bell[aria-pressed="true"]{border-color:var(--amber);color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,transparent)}
+.bell.ans::before{background:var(--phos);border-color:var(--phos);box-shadow:0 0 6px var(--phos)}
+.cav-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin-top:12px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.cav-row .meter{margin:0}
+.tanks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:4px}
+.tank{display:flex;flex-direction:column;align-items:center;gap:4px}
+.tank .tv{position:relative;width:100%;max-width:56px;height:100px;border:1px solid var(--rule-2);border-radius:4px;overflow:hidden;background:var(--panel-2)}
+.tank .tv i{position:absolute;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--bio) 55%,transparent);transition:height .3s linear}
+.tank .tv::after{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px dashed var(--rule-2)}
+.tank .lbl{font-size:10.5px;text-align:center;line-height:1.15}
+.tank .val{font-size:12px}
+.trim-read{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:10px;font-family:var(--f-data);font-size:13px}
+.guard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cover{position:relative;min-height:84px;border-radius:6px;border:2px solid color-mix(in srgb,var(--hostile) 60%,transparent);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--hostile) 14%,transparent) 0 8px,transparent 8px 16px);font-family:var(--f-display);font-size:18px;letter-spacing:.06em;color:var(--hostile);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px}
+.cover small{font-family:var(--f-ui);font-size:12px;letter-spacing:.04em;color:var(--muted)}
+.cover[data-armed="true"]{background:var(--hostile);color:var(--hull);border-color:var(--hostile);animation:sevpulse 0.8s ease-in-out infinite}
+.cover[data-armed="true"] small{color:var(--hull)}
+.cover:disabled{opacity:.35;cursor:not-allowed;animation:none}
+.orders{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.orders li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:8px 10px;border:1px solid var(--rule-2);border-radius:4px;background:var(--panel-2)}
+.orders li.new{border-color:color-mix(in srgb,var(--amber) 60%,transparent);animation:arrive .8s ease-out}
+.orders li.exec{border-color:var(--amber)}
+.orders li.exec .o-txt{color:var(--amber)}
+.orders li.done{opacity:.65;background:transparent}
+.orders li.done .o-txt{color:var(--phos)}
+.orders .o-from{font-family:var(--f-data);font-size:11px;letter-spacing:.06em;color:var(--muted)}
+.orders .o-from b{color:var(--amber);font-weight:500}
+.orders .o-txt{font-size:17px;font-weight:600;line-height:1.25}
+.orders .btn{padding:0 12px}
+@keyframes arrive{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--amber) 60%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+.wait{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;font-size:14px}
+.wait li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.wait li span:first-child b{font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:var(--muted);margin-right:6px}
+@media (max-width:520px){.readout .big{font-size:24px}.gauge{height:260px}.depth-row{grid-template-columns:104px minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.orders li.new,.cover[data-armed="true"]{animation:none}.g-own,.g-ordm,.tank .tv i{transition:none}}
+</style>
+<body data-station="helm">
+
+<header class="bar">
+  <div class="brand">
+    <span class="mark">FATHOM</span>
+    <small>Helm · course, speed, depth and trim</small>
+  </div>
+  <dl class="status" aria-live="off">
+    <div><dt>Course</dt><dd id="stCrs">045°</dd></div>
+    <div><dt>Speed</dt><dd><span id="stSpd">8.0</span><small>kts</small></dd></div>
+    <div><dt>Depth</dt><dd><span id="stDep">150</span><small>ft</small></dd></div>
+    <div><dt>Pitch</dt><dd id="stPitch">0.0°</dd></div>
+    <div><dt>Noise</dt><dd><span class="chip ok" id="stNoise">Quiet</span></dd></div>
+    <div class="st-time"><dt>Time</dt><dd id="stTime">0347:00Z</dd></div>
+  </dl>
+</header>
+
+<button type="button" class="alert" id="alert" data-sev="2" aria-live="polite">
+  <span class="alert-sev" id="alertSev">ORDER</span>
+  <span class="alert-msg" id="alertMsg">Navigator: come right to 052</span>
+  <span class="alert-more" id="alertMore">ACKNOWLEDGE ›</span>
+</button>
+
+<main class="grid">
+  <section class="main-col" aria-label="Ship control">
+    <div class="prof-wrap">
+      <canvas id="prof" aria-label="Side profile of the boat: depth, pitch, planes, the layer and antenna depth"></canvas>
+      <div class="hud tl" id="hudDepth">DEPTH <b>150</b> FT<br>ORDERED 150</div>
+      <div class="hud tr" id="hudSpd">SPEED <b>8.0</b> KTS<br>PITCH 0.0°</div>
+      <div class="hud br" id="hudCav">CAVITATION AT <b>9.3</b> KTS<br>HERE</div>
+    </div>
+    <div class="inst">
+      <section class="card" aria-labelledby="hSteer">
+        <h2 id="hSteer">Course &amp; rudder <span class="h-note" id="steerNote">steady</span></h2>
+        <div class="readout"><span><span class="big ord" id="crsOrd">045°</span> <small>ordered</small></span><span><span class="big" id="crsAct">045°</span> <small>actual</small></span></div>
+        <div class="steer">
+          <div class="dial" id="dial" role="slider" tabindex="0" aria-label="Ordered course" aria-valuemin="0" aria-valuemax="359" aria-valuenow="45">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="face" cx="60" cy="60" r="58"/>
+              <g class="ticks"></g>
+              <line class="now" id="dialNow" x1="60" y1="60" x2="60" y2="14"/>
+              <g id="dialOrd"><line class="ord" x1="60" y1="30" x2="60" y2="16"/><circle class="knob" cx="60" cy="11" r="7"/></g>
+              <circle class="hub" cx="60" cy="60" r="3" fill="var(--phos)"/>
+            </svg>
+            <div class="dial-read" aria-hidden="true"><b id="dialOrdTxt">045</b><span id="dialNowTxt">045</span></div>
+          </div>
+          <div class="ind">
+            <svg viewBox="0 0 140 84" aria-hidden="true">
+              <path class="rim" d="M10 74 A60 60 0 0 1 130 74"/>
+              <g id="rudTicks"></g>
+              <line class="needle amber" id="rudNeedle" x1="70" y1="74" x2="70" y2="24"/>
+              <circle class="hub" cx="70" cy="74" r="4"/>
+              <text class="txt" x="14" y="84">L30</text><text class="txt" x="126" y="84">R30</text>
+            </svg>
+            <span class="lbl">Rudder</span><span class="val" id="rudVal">0°</span>
+          </div>
+        </div>
+        <div class="steps">
+          <button type="button" class="step" data-crs="-10" aria-label="Order 10 degrees left">−10°</button>
+          <button type="button" class="step" data-crs="-1" aria-label="Order 1 degree left">−1°</button>
+          <button type="button" class="step" data-crs="1" aria-label="Order 1 degree right">+1°</button>
+          <button type="button" class="step" data-crs="10" aria-label="Order 10 degrees right">+10°</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="hDepth">
+        <h2 id="hDepth">Depth &amp; planes <span class="chip" id="layerChip">Above layer</span></h2>
+        <div class="depth-row">
+          <div class="gauge" id="gauge" aria-hidden="true">
+            <div class="g-bar"></div>
+            <div class="g-mark" data-d="0"><span>SURFACE</span></div>
+            <div class="g-mark ant" data-d="60"><span>ANT 60</span></div>
+            <div class="g-mark layer" data-d="250"><span>LAYER 250</span></div>
+            <div class="g-mark" data-d="400"><span>400</span></div>
+            <div class="g-mark test" data-d="800"><span>TEST 800</span></div>
+            <div class="g-mark bot" data-d="1380"><span>BOTTOM 1,380</span></div>
+            <div class="g-ordm" id="gOrd"></div>
+            <div class="g-own" id="gOwn"></div>
+          </div>
+          <div>
+            <div class="readout"><span><span class="big ord" id="depOrd">150</span> <small>ordered ft</small></span><span><span class="big" id="depAct">150</span> <small>actual</small></span></div>
+            <input type="range" id="dep" min="60" max="800" step="10" value="150" aria-label="Ordered depth">
+            <div class="quick">
+              <button type="button" class="btn" data-dep="60">60 ANT</button>
+              <button type="button" class="btn" data-dep="150">150</button>
+              <button type="button" class="btn" data-dep="300">300 ↓LYR</button>
+            </div>
+            <p class="hint" id="depHint">Holding 150 ft, 1,230 ft under the keel.</p>
+            <div class="planes">
+              <div class="ind">
+                <svg viewBox="0 0 100 60" aria-hidden="true"><line class="ref" x1="10" y1="30" x2="90" y2="30"/><line class="plane" id="bowPl" x1="25" y1="30" x2="75" y2="30"/><circle class="hub" cx="50" cy="30" r="3"/></svg>
+                <span class="lbl">Bow pl.</span><span class="val" id="bowVal">0°</span>
+              </div>
+              <div class="ind">
+                <svg viewBox="0 0 100 60" aria-hidden="true"><line class="ref" x1="10" y1="30" x2="90" y2="30"/><line class="plane" id="sternPl" x1="25" y1="30" x2="75" y2="30"/><circle class="hub" cx="50" cy="30" r="3"/></svg>
+                <span class="lbl">Stern pl.</span><span class="val" id="sternVal">0°</span>
+              </div>
+              <div class="ind">
+                <svg viewBox="0 0 100 60" aria-hidden="true"><line class="ref" x1="6" y1="30" x2="94" y2="30"/><g id="pitchSil"><path class="hullsil" d="M14 30 Q18 22 34 22 L72 22 Q88 24 90 30 Q88 36 72 38 L34 38 Q18 38 14 30Z"/><rect class="hullsil" x="44" y="14" width="14" height="8" rx="2"/></g></svg>
+                <span class="lbl">Pitch</span><span class="val" id="pitchVal">0.0°</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <aside class="side">
+    <section class="card" aria-labelledby="hOrd">
+      <h2 id="hOrd">Orders <span class="h-note" id="ordNote">from Captain and Navigator</span></h2>
+      <ul class="orders" id="orders"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hEot">
+      <h2 id="hEot">Engine order telegraph <span class="h-note">● motor room answered</span></h2>
+      <div class="eot" id="eot" role="group" aria-label="Engine order"></div>
+      <div class="cav-row"><span>Cavitation</span><div class="meter" id="cavMeter"><i id="cavBar"></i></div><span class="val" id="cavVal">86%</span></div>
+      <p class="hint" id="eotHint">Battery 58%: about 12 h at ahead 2/3.</p>
+    </section>
+
+    <section class="card" aria-labelledby="hTrim">
+      <h2 id="hTrim">Trim &amp; ballast <span class="h-note">10,000 lb trim tanks</span></h2>
+      <div class="tanks">
+        <div class="tank"><div class="tv"><i id="tFwd"></i></div><span class="lbl">FWD TRIM</span><span class="val" id="vFwd">48%</span></div>
+        <div class="tank"><div class="tv"><i id="tAft"></i></div><span class="lbl">AFT TRIM</span><span class="val" id="vAft">52%</span></div>
+        <div class="tank"><div class="tv"><i id="tMbtF"></i></div><span class="lbl">MBT FWD</span><span class="val" id="vMbtF">100%</span></div>
+        <div class="tank"><div class="tv"><i id="tMbtA"></i></div><span class="lbl">MBT AFT</span><span class="val" id="vMbtA">100%</span></div>
+      </div>
+      <div class="trim-read"><span id="trimTxt">Stern heavy 700 lb</span><span class="val" id="leakTxt">+0.6 lb/s aft (shaft seal)</span></div>
+      <div class="btns">
+        <button type="button" class="btn" id="pumpFwd">Pump aft → fwd</button>
+        <button type="button" class="btn" id="pumpAft">Pump fwd → aft</button>
+        <button type="button" class="toggle" id="autoTrim" aria-pressed="false">Auto trim off</button>
+      </div>
+      <p class="hint" id="trimHint">Planes are carrying the trim. Out-of-trim planes add drag and flow noise.</p>
+    </section>
+
+    <section class="card" aria-labelledby="hEm">
+      <h2 id="hEm">Emergency <span class="h-note">tap to lift cover, tap again to fire</span></h2>
+      <div class="guard">
+        <button type="button" class="cover" id="crash" data-armed="false">CRASH DIVE<small>Flood negative, full dive, 400 ft</small></button>
+        <button type="button" class="cover" id="blow" data-armed="false">EMERGENCY BLOW<small>Blow all main ballast</small></button>
+      </div>
+      <div class="btns" id="resetRow" hidden><button type="button" class="btn" id="reset">Reset drill · back to 150 ft</button></div>
+    </section>
+
+    <section class="card" aria-labelledby="hWait">
+      <h2 id="hWait">Waiting on</h2>
+      <ul class="wait">
+        <li><span><b>Captain</b>depth for the 0400Z broadcast</span><span class="chip warn" id="wCapt">Pending</span></li>
+        <li><span><b>Navigator</b>next leg to KILO</span><span class="chip ok" id="wNav">Received</span></li>
+        <li><span><b>Motor room</b>answer the bell</span><span class="chip ok" id="wMotor">Answered</span></li>
+        <li><span><b>Damage ctl</b>shaft seal leak 4 gal/min</span><span class="chip warn">Pumping</span></li>
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLog">
+      <h2 id="hLog">Helm log <span class="h-note">newest first</span></h2>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLinks">
+      <h2 id="hLinks">Crew links</h2>
+      <div class="links"><b>Takes from</b><a href="captain.html">Captain · orders</a><a href="nav.html">Navigator · next leg</a><a href="eng-power.html">Power · battery</a><a href="eng-damage.html">Damage · leak aft</a></div>
+      <div class="links" style="margin-top:8px"><b>Hands to</b><a href="nav.html">Navigator · actuals for DR</a><a href="../submarine-sonar/index.html">Sonar · own noise</a><a href="comms.html">Comms · at antenna depth</a></div>
+    </section>
+  </aside>
+</main>
+
+<script src="crew.js"></script>
+<script src="net.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const rootCss = getComputedStyle(document.documentElement);
+const hex = n => { const h = rootCss.getPropertyValue(n).trim().replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const COL = { phos: hex('--phos'), dim: hex('--phos-dim'), amber: hex('--amber'), hostile: hex('--hostile'), bio: hex('--bio'), hull: hex('--hull'), muted: hex('--muted'), ink: hex('--ink'), panel2: hex('--panel-2') };
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
+const norm = d => ((d % 360) + 360) % 360;
+const angDiff = (a, b) => ((a - b + 540) % 360) - 180;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const approach = (v, t, m) => v + Math.sign(t - v) * Math.min(Math.abs(t - v), m);
+const fmt3 = d => String(Math.round(norm(d)) % 360).padStart(3, '0');
+const ft = n => Math.round(n).toLocaleString('en-US');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const T0 = 3 * 3600 + 47 * 60;
+let simT = 0;
+const p2 = n => String(n).padStart(2, '0');
+const zulu = (s = T0 + simT) => { s = Math.floor(s); return `${p2(Math.floor(s / 3600) % 24)}${p2(Math.floor(s / 60) % 60)}:${p2(s % 60)}`; };
+
+const BELLS = [
+  { id: 'flank', name: 'AHEAD FLANK', kts: 20, hrs: 0.9 },
+  { id: 'full', name: 'AHEAD FULL', kts: 16, hrs: 2.5 },
+  { id: 'std', name: 'AHEAD STD', kts: 12, hrs: 6 },
+  { id: '23', name: 'AHEAD 2/3', kts: 8, hrs: 12 },
+  { id: '13', name: 'AHEAD 1/3', kts: 5, hrs: 30 },
+  { id: 'stop', name: 'ALL STOP', kts: 0, hrs: 0 },
+  { id: 'b13', name: 'BACK 1/3', kts: -3, hrs: 20 },
+  { id: 'bfull', name: 'BACK FULL', kts: -7, hrs: 3 },
+];
+const bellIdx = id => BELLS.findIndex(b => b.id === id);
+const nearestBell = kts => BELLS.reduce((best, b, i) => Math.abs(b.kts - kts) < Math.abs(BELLS[best].kts - kts) ? i : best, 0);
+
+const S = {
+  course: SHIP.course, ordC: SHIP.course, rudder: 0,
+  speed: SHIP.speed, bell: bellIdx('23'), answered: bellIdx('23'), answerAt: 0,
+  depth: SHIP.depth, ordD: SHIP.depth, pitch: 0, vz: 0, bow: 0, stern: 0,
+  fwd: 48, aft: 52, leakLb: 300, mbtF: 100, mbtA: 100, autoTrim: false, pump: 0, pumpLeft: 0,
+  mode: 'normal', // normal | crash | blow | surfaced
+};
+const cavSpeed = d => 5 + Math.max(0, d) / 35;
+const imbalance = () => (S.fwd - 50) * 100 - (S.aft - 50) * 100 - S.leakLb; // + = bow heavy
+
+/* ---------- live crew server: own ship and orders come from NET.s ---------- */
+const stationName = id => (STATIONS.find(s => s.id === id) || { name: id }).name;
+const zSecs = z => +z.slice(0, 2) * 3600 + +z.slice(2, 4) * 60 + +z.slice(5, 7);
+const live = {
+  own: null, orders: [], sig: '', logTop: null, local: [], crashAt: 0,
+  edit: { c: 0, d: 0, s: 0 },
+  state(s) {
+    const o = s.own, now = performance.now(), fresh = t => now - t > 1200;
+    if (!live.own) Object.assign(S, { course: o.course, speed: o.speed, depth: o.depth, ordC: o.oCourse, ordD: o.oDepth });
+    live.own = { ...o };
+    simT = s.t;
+    if (fresh(live.edit.c) && !dialDrag) S.ordC = Math.round(o.oCourse);
+    if (fresh(live.edit.d)) { S.ordD = Math.round(o.oDepth); $('#dep').value = S.ordD; }
+    if (fresh(live.edit.s) && nearestBell(o.oSpeed) !== S.bell) { S.bell = S.answered = nearestBell(o.oSpeed); renderEot(); }
+    const mine = s.orders.filter(x => x.to === 'helm'), sig = mine.map(x => x.id + x.status).join();
+    if (sig !== live.sig) {
+      live.sig = sig;
+      live.orders = mine.slice(0, 8).map(x => ({
+        id: x.id, from: stationName(x.from).toUpperCase(), t: x.at.slice(0, 4) + 'Z', kind: x.kind, v: x.value, txt: x.text,
+        state: { new: '', ack: 'exec', done: 'done' }[x.status], fresh: x.status === 'new',
+      }));
+      renderOrders(); renderWaiting(); refreshAlert();
+    }
+    if ((s.log[0] && s.log[0].id) !== live.logTop) { live.logTop = s.log[0] && s.log[0].id; live.renderLog(); }
+  },
+  // Mirrors the server's step() so motion stays smooth between 0.5 s updates.
+  step(dt) {
+    const L = live.own; if (!L) return;
+    const g = dt * NET.s.scale, d0 = L.depth;
+    L.course = norm(L.course + clamp(angDiff(L.oCourse, L.course), -3 * g, 3 * g));
+    L.speed = approach(L.speed, L.oSpeed, 0.4 * g);
+    L.depth = approach(L.depth, L.oDepth, (L.blow ? 14 : 2 + Math.abs(L.speed) * 0.15) * g);
+    const k = Math.min(1, dt * 8);
+    S.course = norm(S.course + angDiff(L.course, S.course) * k);
+    S.speed += (L.speed - S.speed) * k;
+    S.depth = Math.max(0, S.depth + (L.depth - S.depth) * k);
+    if (g) S.vz += ((L.depth - d0) / g - S.vz) * k;
+
+    const prev = S.mode, now = performance.now();
+    const crashing = live.crashAt && (L.oDepth === 400 || now - live.crashAt < 1500) && S.depth < 360;
+    if (!crashing) live.crashAt = 0;
+    S.mode = L.blow ? 'blow' : S.depth < 1 && L.oDepth < 1 ? 'surfaced' : crashing ? 'crash' : 'normal';
+    if (S.mode !== prev) {
+      $('#resetRow').hidden = S.mode !== 'surfaced';
+      $('#crash').disabled = $('#blow').disabled = S.mode === 'blow' || S.mode === 'surfaced';
+      renderEot(); refreshAlert();
+    }
+
+    const wantPitch = S.mode === 'blow' ? 18 : S.mode === 'surfaced' ? 0 : clamp(-S.vz * 3.5, -15, 15);
+    S.pitch = approach(S.pitch, wantPitch, 6 * dt);
+    S.rudder = approach(S.rudder, clamp(angDiff(L.oCourse, S.course) * 2.2, -30, 30), 20 * dt);
+    const e = L.oDepth - S.depth, bias = -imbalance() / 1000, under = S.mode !== 'surfaced';
+    S.bow = approach(S.bow, !under ? 0 : S.mode === 'blow' ? 20 : clamp(-e * 0.25, -20, 20), 10 * dt);
+    S.stern = approach(S.stern, under ? clamp(wantPitch * 1.6 - bias * 2, -25, 25) : 0, 12 * dt);
+    const mbt = S.mode === 'blow' ? 0 : S.depth > 5 ? 100 : S.mbtF;
+    S.mbtF = approach(S.mbtF, mbt, 22 * dt); S.mbtA = approach(S.mbtA, mbt, 20 * dt);
+  },
+  addLog(text, kind) {
+    live.local.unshift({ at: (T0 + simT) % 86400, text, kind });
+    live.local.length = Math.min(live.local.length, 40);
+    live.renderLog();
+  },
+  renderLog() {
+    const srv = (NET.s ? NET.s.log : []).filter(e => ['helm', 'captain', 'nav'].includes(e.from) || e.kind === 'alert')
+      .map(e => ({ at: zSecs(e.at), text: `${stationName(e.from)}: ${e.text}`, kind: e.kind === 'alert' ? 'alert-l' : e.kind }));
+    logEl.replaceChildren(...srv.concat(live.local).sort((a, b) => b.at - a.at).slice(0, 60).map(e => logLine(e.at, e.text, e.kind)));
+  },
+};
+function renderWaiting() {
+  if (!NET.online) return;
+  const capt = live.orders.find(o => o.from === 'CAPTAIN' && o.kind === 'depth'), nav = live.orders.find(o => o.from === 'NAVIGATOR');
+  $('#wCapt').className = 'chip ' + (capt ? 'ok' : 'warn'); $('#wCapt').textContent = capt ? `Ordered ${capt.v}` : 'Pending';
+  $('#wNav').className = 'chip ' + (nav ? 'ok' : 'warn'); $('#wNav').textContent = nav ? 'Received' : 'Waiting';
+}
+
+/* ---------- log + alert ---------- */
+const logEl = $('#log');
+function logLine(at, msg, kind) {
+  const li = document.createElement('li'); li.className = kind;
+  const t = document.createElement('time'); t.textContent = zulu(at);
+  const sp = document.createElement('span'); sp.textContent = msg;
+  li.append(t, sp);
+  return li;
+}
+function log(msg, kind = '') {
+  if (NET.online) return live.addLog(msg, kind);
+  logEl.prepend(logLine(T0 + simT, msg, kind));
+  while (logEl.children.length > 60) logEl.lastChild.remove();
+}
+function setAlert(sev, tag, msg, more) {
+  const a = $('#alert'); a.dataset.sev = sev;
+  $('#alertSev').textContent = tag; $('#alertMsg').textContent = msg;
+  $('#alertMore').textContent = more || ''; $('#alertMore').hidden = !more;
+}
+
+/* ---------- orders ---------- */
+const ORDERS = [
+  { at: 0, from: 'NAVIGATOR', t: '0346Z', kind: 'course', v: 52, txt: 'Come right to 052', aye: 'Come right to 052, aye.' },
+  { at: 0, from: 'CAPTAIN', t: '0347Z', kind: 'bell', v: '13', txt: 'All ahead one third', aye: 'All ahead one third, aye.' },
+  { at: 16, from: 'CAPTAIN', t: null, kind: 'depth', v: 60, txt: 'Make your depth 60 ft', aye: 'Make my depth 60 ft, aye.' },
+];
+const ordEl = $('#orders');
+const orderList = () => NET.online ? live.orders : ORDERS.filter(o => o.shown);
+const orderBellOf = o => o.kind === 'bell' ? BELLS[bellIdx(o.v)] : { kts: o.v, name: BELLS[nearestBell(o.v)].name };
+function orderProgress(o) {
+  if (o.kind === 'course') return Math.abs(angDiff(o.v, S.course)) < 0.5 && Math.abs(S.rudder) < 2 ? `Steady on ${fmt3(o.v)}` : `Coming ${angDiff(o.v, S.course) > 0 ? 'right' : 'left'} to ${fmt3(o.v)} · ${fmt3(S.course)}°`;
+  if (o.kind === 'bell' || o.kind === 'speed') { const b = orderBellOf(o); return Math.abs(S.speed - b.kts) < 0.3 ? `Making turns for ${b.kts} kts` : `Answering ${b.name.toLowerCase()} · ${S.speed.toFixed(1)} kts`; }
+  return Math.abs(S.depth - o.v) < 2 && Math.abs(S.pitch) < 1.5 ? `Steady at ${o.v} ft` : `${S.depth > o.v ? 'Rising' : 'Going down'} to ${o.v} ft · ${Math.round(S.depth)} ft`;
+}
+function steadyText(o) {
+  if (o.kind === 'course') return `Steady on ${fmt3(o.v)}`;
+  if (o.kind === 'depth') return `Steady at ${o.v} ft`;
+  return `Making turns for ${orderBellOf(o).kts} kts`;
+}
+function ackOrder(o) {
+  if (NET.online) return NET.send('ack', { id: o.id });
+  o.state = 'exec'; o.fresh = false;
+  log(`Helm: ${o.aye}`, 'ok');
+  if (o.kind === 'course') orderCourse(o.v);
+  if (o.kind === 'bell') orderBell(bellIdx(o.v), true);
+  if (o.kind === 'depth') { orderDepth(o.v); $('#wCapt').className = 'chip ok'; $('#wCapt').textContent = 'Ordered 60'; }
+  renderOrders(); refreshAlert();
+}
+function renderOrders() {
+  ordEl.innerHTML = '';
+  orderList().forEach(o => {
+    const li = document.createElement('li');
+    li.className = o.state === 'done' ? 'done' : o.state === 'exec' ? 'exec' : o.fresh ? 'new' : '';
+    li.innerHTML = `<div><div class="o-from"><b>${o.from}</b> · ${o.t}${o.state ? ' · ACK' : ''}</div><div class="o-txt"></div></div>`;
+    li.querySelector('.o-txt').textContent = o.state === 'done' ? steadyText(o) : o.state ? orderProgress(o) : o.txt;
+    o.el = li.querySelector('.o-txt');
+    if (!o.state) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn primary'; b.textContent = 'Acknowledge';
+      b.addEventListener('click', () => ackOrder(o));
+      li.append(b);
+    }
+    ordEl.append(li);
+  });
+  const open = orderList().filter(o => !o.state).length;
+  $('#ordNote').textContent = open ? `${open} to acknowledge` : orderList().length ? 'all acknowledged' : 'none yet';
+}
+function tickOrders() {
+  if (NET.online) { for (const o of live.orders) if (o.state === 'exec' && o.el) o.el.textContent = orderProgress(o); return; }
+  for (const o of ORDERS) {
+    if (!o.shown && simT >= o.at) { o.shown = true; o.fresh = true; o.t = zulu().slice(0, 4) + 'Z'; log(`${o.from}: ${o.txt}.`, 'warn'); renderOrders(); refreshAlert(); }
+    if (o.state === 'exec') {
+      const p = orderProgress(o);
+      if (o.el) o.el.textContent = p;
+      if (/^(Steady|Making)/.test(p)) { o.state = 'done'; log(`Helm: ${p.toLowerCase().replace(/^./, c => c.toUpperCase())}.`, 'ok'); renderOrders(); refreshAlert(); }
+    }
+  }
+}
+
+function refreshAlert() {
+  if (S.mode === 'blow') return setAlert(3, 'BLOW', `Emergency blow · passing ${Math.round(S.depth)} ft`, '');
+  if (S.mode === 'surfaced') return setAlert(3, 'SURFACED', 'On the surface. Everyone out there can hear and see us.', 'RESET ›');
+  if (S.mode === 'crash') return setAlert(3, 'CRASH DIVE', `Passing ${Math.round(S.depth)} ft for 400`, '');
+  if (cavitating()) return setAlert(3, 'CAVITATING', `${S.speed.toFixed(1)} kts at ${Math.round(S.depth)} ft is noisy. Slow below ${cavSpeed(S.depth).toFixed(1)} kts or go deeper`, 'AHEAD 1/3 ›');
+  const pend = orderList().find(o => !o.state);
+  if (pend) return setAlert(2, 'ORDER', `${pend.from[0] + pend.from.slice(1).toLowerCase()}: ${pend.txt.toLowerCase().replace(/^./, c => c.toUpperCase())}`, 'ACKNOWLEDGE ›');
+  const exec = orderList().find(o => o.state === 'exec');
+  if (exec) return setAlert(0, 'EXECUTING', orderProgress(exec), '');
+  setAlert(0, 'STEADY', `Steady on ${fmt3(S.course)}, ${Math.round(S.depth)} ft, ${S.speed.toFixed(0)} kts`, '');
+}
+$('#alert').addEventListener('click', () => {
+  if (S.mode === 'surfaced') return resetDrill();
+  if (S.mode !== 'normal') return;
+  if (cavitating()) return orderBell(bellIdx('13'));
+  const pend = orderList().find(o => !o.state);
+  if (pend) ackOrder(pend);
+});
+
+/* ---------- controls ---------- */
+function orderCourse(v, say) {
+  S.ordC = Math.round(norm(v)) % 360;
+  live.edit.c = performance.now();
+  if (say) {
+    const d = angDiff(S.ordC, S.course); log(Math.abs(d) < 1 ? `Helm: steady on ${fmt3(S.ordC)}.` : `Helm: ${d > 0 ? 'right' : 'left'} rudder, coming to ${fmt3(S.ordC)}.`);
+    if (NET.online) NET.send('helm', { oCourse: S.ordC });
+  }
+  renderInst();
+}
+function orderBell(i, quiet) {
+  if (S.mode === 'blow' || S.mode === 'surfaced') return;
+  S.bell = i; S.answerAt = simT + 1.4;
+  live.edit.s = performance.now();
+  if (NET.online) { S.answered = i; NET.send('helm', { oSpeed: BELLS[i].kts }); }
+  if (!quiet) log(`Helm: ${BELLS[i].name.toLowerCase()}.`);
+  renderEot();
+}
+function orderDepth(v, say) {
+  S.ordD = clamp(Math.round(v / 10) * 10, 60, 800);
+  $('#dep').value = S.ordD;
+  live.edit.d = performance.now();
+  if (say) {
+    log(`Helm: make my depth ${S.ordD} ft${S.ordD > SHIP.layer ? ', below the layer' : ''}.`);
+    if (NET.online) NET.send('helm', { oDepth: S.ordD });
+  }
+  renderInst();
+}
+
+const dial = $('#dial');
+(() => {
+  const NS = 'http://www.w3.org/2000/svg', g = dial.querySelector('.ticks');
+  for (let b = 0; b < 360; b += 10) {
+    const a = rad(b), r2 = b % 90 === 0 ? 46 : b % 30 === 0 ? 50 : 53, l = document.createElementNS(NS, 'line');
+    l.setAttribute('x1', 60 + Math.sin(a) * 56); l.setAttribute('y1', 60 - Math.cos(a) * 56);
+    l.setAttribute('x2', 60 + Math.sin(a) * r2); l.setAttribute('y2', 60 - Math.cos(a) * r2);
+    l.setAttribute('class', b % 90 === 0 ? 'tick major' : 'tick');
+    g.append(l);
+  }
+  [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([t, b]) => {
+    const tx = document.createElementNS(NS, 'text'); tx.setAttribute('class', 'card-l');
+    tx.setAttribute('x', 60 + Math.sin(rad(b)) * 39); tx.setAttribute('y', 60 - Math.cos(rad(b)) * 39); tx.textContent = t; g.append(tx);
+  });
+  const rg = $('#rudTicks');
+  for (let r = -30; r <= 30; r += 5) {
+    const a = rad(r * 2.6), l = document.createElementNS(NS, 'line'), r1 = r % 15 === 0 ? 46 : 52;
+    l.setAttribute('x1', 70 + Math.sin(a) * 58); l.setAttribute('y1', 74 - Math.cos(a) * 58);
+    l.setAttribute('x2', 70 + Math.sin(a) * r1); l.setAttribute('y2', 74 - Math.cos(a) * r1);
+    l.setAttribute('class', r === 0 ? 'tk z' : 'tk'); rg.append(l);
+  }
+})();
+const dialAngle = ev => { const b = dial.getBoundingClientRect(); return Math.round(deg(Math.atan2(ev.clientX - b.left - b.width / 2, b.top + b.height / 2 - ev.clientY))); };
+let dialDrag = false;
+dial.addEventListener('pointerdown', ev => { dialDrag = true; try { dial.setPointerCapture(ev.pointerId); } catch {} orderCourse(dialAngle(ev)); });
+dial.addEventListener('pointermove', ev => { if (dialDrag) orderCourse(dialAngle(ev)); });
+const endDial = () => { if (dialDrag) { dialDrag = false; orderCourse(S.ordC, true); } };
+dial.addEventListener('pointerup', endDial);
+dial.addEventListener('pointercancel', endDial);
+dial.addEventListener('keydown', e => {
+  const d = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1, PageDown: -10, PageUp: 10 }[e.key];
+  if (d) { e.preventDefault(); orderCourse(S.ordC + d, true); }
+});
+document.querySelectorAll('[data-crs]').forEach(b => b.addEventListener('click', () => orderCourse(S.ordC + +b.dataset.crs, true)));
+$('#dep').addEventListener('input', e => orderDepth(+e.target.value));
+$('#dep').addEventListener('change', e => orderDepth(+e.target.value, true));
+document.querySelectorAll('[data-dep]').forEach(b => b.addEventListener('click', () => orderDepth(+b.dataset.dep, true)));
+
+const eot = $('#eot');
+BELLS.forEach((b, i) => {
+  const el = document.createElement('button');
+  el.type = 'button'; el.className = 'bell' + (b.id === 'stop' ? ' stop' : b.kts < 0 ? ' back' : '');
+  el.innerHTML = `<span>${b.name}</span><small>${b.kts ? (b.kts > 0 ? '' : '−') + Math.abs(b.kts) + ' kts' : ''}</small>`;
+  el.addEventListener('click', () => orderBell(i));
+  eot.append(el);
+});
+function renderEot() {
+  [...eot.children].forEach((el, i) => { el.setAttribute('aria-pressed', String(i === S.bell)); el.classList.toggle('ans', i === S.answered); });
+  const b = BELLS[S.bell];
+  $('#eotHint').textContent = S.mode === 'surfaced' ? 'Surfaced: diesels can charge the battery, but we are visible.' : b.kts > 0 ? `Battery 58%: about ${b.hrs} h at ${b.name.toLowerCase()}.${b.kts >= 12 ? ' Flow noise blinds Sonar.' : ''}` : b.kts < 0 ? 'Backing: steerage is poor, planes reverse.' : 'No way on: rudder and planes do nothing.';
+  const w = $('#wMotor');
+  if (S.answered === S.bell) { w.className = 'chip ok'; w.textContent = 'Answered'; } else { w.className = 'chip warn'; w.textContent = 'Ringing'; }
+}
+
+$('#pumpFwd').addEventListener('click', () => { S.pump = 1; S.pumpLeft = 500; log('Helm: pumping 500 lb aft to forward.'); });
+$('#pumpAft').addEventListener('click', () => { S.pump = -1; S.pumpLeft = 500; log('Helm: pumping 500 lb forward to aft.'); });
+$('#autoTrim').addEventListener('click', e => {
+  S.autoTrim = !S.autoTrim; e.currentTarget.setAttribute('aria-pressed', String(S.autoTrim));
+  e.currentTarget.textContent = S.autoTrim ? 'Auto trim on' : 'Auto trim off';
+  log(`Helm: auto trim ${S.autoTrim ? 'on' : 'off'}.`);
+});
+
+/* ---------- guarded emergency controls ---------- */
+const armTimers = {};
+function guard(id, fire) {
+  const el = $('#' + id);
+  el.addEventListener('click', () => {
+    if (el.disabled) return;
+    if (el.dataset.armed !== 'true') {
+      el.dataset.armed = 'true'; el.querySelector('small').textContent = 'Cover up · tap again within 4 s';
+      log(`Helm: ${el.firstChild.textContent.trim().toLowerCase()} cover lifted.`, 'warn');
+      armTimers[id] = setTimeout(() => disarm(id), 4000);
+    } else { disarm(id); fire(); }
+  });
+}
+function disarm(id) {
+  const el = $('#' + id); clearTimeout(armTimers[id]);
+  el.dataset.armed = 'false';
+  el.querySelector('small').textContent = id === 'crash' ? 'Flood negative, full dive, 400 ft' : 'Blow all main ballast';
+}
+guard('crash', () => {
+  if (NET.online) { live.crashAt = performance.now(); return NET.send('helm', { emergency: 'crash' }); }
+  S.mode = 'crash'; orderDepth(400); S.bell = bellIdx('full'); S.answerAt = simT + 0.6; renderEot();
+  log('CRASH DIVE. Negative flooded, full dive on the planes, ahead full, 400 ft.', 'alert-l');
+  refreshAlert();
+});
+guard('blow', () => {
+  if (NET.online) return NET.send('helm', { emergency: 'blow' });
+  S.mode = 'blow';
+  log('EMERGENCY BLOW. High-pressure air to all main ballast tanks.', 'alert-l');
+  $('#crash').disabled = $('#blow').disabled = true;
+  refreshAlert();
+});
+function resetDrill() {
+  if (NET.online) { NET.send('helm', { oDepth: 150, oSpeed: 8 }); return log('Drill reset: make my depth 150 ft, ahead 2/3.', 'ok'); }
+  Object.assign(S, { depth: 150, ordD: 150, pitch: 0, vz: 0, mbtF: 100, mbtA: 100, mode: 'normal', speed: 8 });
+  S.bell = S.answered = bellIdx('23'); $('#dep').value = 150;
+  $('#crash').disabled = $('#blow').disabled = false; $('#resetRow').hidden = true;
+  log('Drill reset: rigged for dive, 150 ft, ahead 2/3.', 'ok');
+  renderEot(); renderInst(); refreshAlert();
+}
+$('#reset').addEventListener('click', resetDrill);
+
+/* ---------- profile canvas ---------- */
+const cv = $('#prof'), ctx = cv.getContext('2d');
+let dpr = 1, W = 0, H = 0;
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const b = cv.getBoundingClientRect();
+  W = cv.width = Math.max(1, Math.round(b.width * dpr)); H = cv.height = Math.max(1, Math.round(b.height * dpr));
+}
+new ResizeObserver(resize).observe(cv);
+const VIS = 600;
+const font = (px, w = 500) => `${w} ${px * dpr}px "IBM Plex Mono", ui-monospace, monospace`;
+const geo = () => { const top = H * 0.12, bot = H - 34 * dpr; return { top, bot, y: d => top + d / VIS * (bot - top) }; };
+const motes = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random(), s: 0.4 + Math.random() * 0.6 }));
+const bubbles = [];
+let propPhase = 0;
+
+function draw(now) {
+  if (!W) return;
+  const g = geo(), t = now / 1000;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  // sky + water
+  ctx.fillStyle = rgba(COL.hull, 1); ctx.fillRect(0, 0, W, g.top);
+  const wg = ctx.createLinearGradient(0, g.top, 0, H);
+  wg.addColorStop(0, rgba(COL.bio, 0.16)); wg.addColorStop(0.5, rgba(COL.bio, 0.05)); wg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = wg; ctx.fillRect(0, g.top, W, H - g.top);
+  // motes drift past at boat speed
+  for (const m of motes) {
+    m.x -= S.speed * 0.0009 * m.s * (reduceMotion ? 0.3 : 1);
+    if (m.x < 0) m.x += 1; if (m.x > 1) m.x -= 1;
+    ctx.fillStyle = rgba(COL.bio, 0.25 * m.s);
+    ctx.fillRect(m.x * W, g.top + m.y * (g.bot - g.top), 1.5 * dpr, 1.5 * dpr);
+  }
+  // surface
+  ctx.strokeStyle = rgba(COL.phos, 0.6); ctx.lineWidth = 1.5 * dpr; ctx.beginPath();
+  for (let x = 0; x <= W; x += 6 * dpr) { const y = g.top + Math.sin(x / (22 * dpr) + t * 1.5) * 2.5 * dpr; x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+  ctx.stroke();
+  // depth scale
+  ctx.font = font(10); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  for (let d = 0; d <= VIS; d += 50) {
+    const y = g.y(d), major = d % 100 === 0;
+    ctx.strokeStyle = rgba(COL.phos, major ? 0.35 : 0.18); ctx.lineWidth = dpr;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo((major ? 10 : 5) * dpr, y); ctx.stroke();
+    if (major && d) { ctx.fillStyle = rgba(COL.muted, 0.9); ctx.fillText(String(d), 13 * dpr, y); }
+  }
+  const hl = (d, col, txt, dash, lw = 1, left = false) => {
+    const y = g.y(d);
+    ctx.setLineDash(dash ? [6 * dpr, 5 * dpr] : []); ctx.strokeStyle = col; ctx.lineWidth = lw * dpr;
+    ctx.beginPath(); ctx.moveTo(44 * dpr, y); ctx.lineTo(W, y); ctx.stroke(); ctx.setLineDash([]);
+    if (txt) { ctx.font = font(10); ctx.textAlign = left ? 'left' : 'right'; ctx.textBaseline = left ? 'top' : 'bottom'; ctx.fillStyle = col; ctx.fillText(txt, left ? 50 * dpr : W - 8 * dpr, y + (left ? 3 : -3) * dpr); }
+  };
+  // layer: shimmering band
+  const ly = g.y(SHIP.layer);
+  const lg = ctx.createLinearGradient(0, ly - 10 * dpr, 0, ly + 10 * dpr);
+  lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(0.5, rgba(COL.bio, 0.22 + 0.06 * Math.sin(t * 2))); lg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = lg; ctx.fillRect(0, ly - 10 * dpr, W, 20 * dpr);
+  hl(SHIP.layer, rgba(COL.bio, 0.8), 'LAYER 250 FT · SOUND SPLITS HERE', true);
+  hl(SHIP.broadcast.needDepth, rgba(COL.amber, 0.75), 'ANTENNA DEPTH 60 · BROADCAST 0400Z', true);
+  if (Math.abs(S.ordD - S.depth) > 2 && S.mode !== 'blow' && S.mode !== 'surfaced') hl(S.ordD, rgba(COL.amber, 1), `ORDERED ${S.ordD}`, true, 1.5, true);
+  // S3 estimated depth, at the edge
+  const sy = g.y(520);
+  ctx.fillStyle = rgba(COL.hostile, 0.8); ctx.beginPath(); ctx.arc(W - 14 * dpr, sy, 4 * dpr, 0, Math.PI * 2); ctx.fill();
+  ctx.font = font(10); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('S3 ~520 FT · BRG 194', W - 24 * dpr, sy);
+  // bottom: off the scale, drawn with a break
+  const by = H - 16 * dpr;
+  ctx.fillStyle = rgba(COL.muted, 0.18); ctx.beginPath(); ctx.moveTo(0, H);
+  for (let x = 0; x <= W; x += 10 * dpr) ctx.lineTo(x, by + Math.sin(x / (40 * dpr)) * 4 * dpr + Math.sin(x / (13 * dpr)) * 2 * dpr);
+  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = rgba(COL.muted, 0.6); ctx.lineWidth = dpr; ctx.beginPath();
+  ctx.moveTo(20 * dpr, g.bot + 6 * dpr); ctx.lineTo(30 * dpr, g.bot + 2 * dpr); ctx.moveTo(20 * dpr, g.bot + 10 * dpr); ctx.lineTo(30 * dpr, g.bot + 6 * dpr); ctx.stroke();
+  ctx.font = font(10); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = rgba(COL.ink, 0.7);
+  ctx.fillText(`BOTTOM ${ft(SHIP.bottom)} FT · ${ft(SHIP.bottom - S.depth)} UNDER KEEL`, 60 * dpr, by - 6 * dpr);
+
+  // the boat
+  const L = Math.min(W * 0.36, 300 * dpr), hh = L * 0.1, cx = W * 0.47, cy = g.y(Math.max(S.depth, -4));
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(-rad(S.pitch));
+  // cavitation bubbles stream from the prop
+  if (cavitating() || S.mode === 'blow') {
+    for (let i = 0; i < (reduceMotion ? 1 : 2); i++) bubbles.push({ x: -L / 2 - 8 * dpr, y: (Math.random() - 0.5) * hh * 0.6, vx: -(1 + Math.random() * 2) * dpr, a: 1, r: (1 + Math.random() * 2.5) * dpr });
+  }
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i]; b.x += b.vx * (1 + S.speed / 8); b.y -= 0.15 * dpr; b.a -= 0.012;
+    if (b.a <= 0) { bubbles.splice(i, 1); continue; }
+    ctx.strokeStyle = rgba(S.mode === 'blow' ? COL.ink : COL.hostile, b.a * 0.8); ctx.lineWidth = dpr;
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
+  }
+  // hull
+  ctx.beginPath();
+  ctx.moveTo(L / 2, 0);
+  ctx.bezierCurveTo(L / 2, -hh * 0.62, L * 0.4, -hh / 2, L * 0.3, -hh / 2);
+  ctx.lineTo(-L * 0.22, -hh / 2);
+  ctx.bezierCurveTo(-L * 0.36, -hh / 2, -L * 0.46, -hh * 0.12, -L / 2, 0);
+  ctx.bezierCurveTo(-L * 0.46, hh * 0.12, -L * 0.36, hh / 2, -L * 0.22, hh / 2);
+  ctx.lineTo(L * 0.3, hh / 2);
+  ctx.bezierCurveTo(L * 0.4, hh / 2, L / 2, hh * 0.62, L / 2, 0);
+  ctx.closePath();
+  ctx.fillStyle = rgba(COL.panel2, 1); ctx.fill();
+  ctx.strokeStyle = rgba(COL.phos, 0.95); ctx.lineWidth = 1.6 * dpr; ctx.stroke();
+  // sail + mast
+  ctx.beginPath(); ctx.moveTo(L * 0.06, -hh / 2); ctx.lineTo(L * 0.09, -hh * 1.25); ctx.lineTo(L * 0.2, -hh * 1.25); ctx.quadraticCurveTo(L * 0.24, -hh * 0.9, L * 0.24, -hh / 2); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  const mastUp = S.depth <= 66;
+  ctx.strokeStyle = rgba(mastUp ? COL.amber : COL.phos, 0.9); ctx.lineWidth = 2 * dpr;
+  ctx.beginPath(); ctx.moveTo(L * 0.15, -hh * 1.25); ctx.lineTo(L * 0.15, -hh * (mastUp ? 2.1 : 1.45)); ctx.stroke();
+  // bow planes (pivot near bow, rise = leading edge up)
+  const plane = (x, y, ang, len) => {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(-rad(ang));
+    ctx.strokeStyle = rgba(COL.amber, 1); ctx.lineWidth = 3 * dpr; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-len * 0.6, 0); ctx.lineTo(len * 0.4, 0); ctx.stroke(); ctx.restore(); ctx.lineCap = 'butt';
+  };
+  plane(L * 0.37, hh * 0.1, S.bow, L * 0.09);
+  // stern: fins, planes, prop
+  ctx.strokeStyle = rgba(COL.phos, 0.9); ctx.lineWidth = 1.6 * dpr;
+  ctx.beginPath(); ctx.moveTo(-L * 0.42, -hh * 0.2); ctx.lineTo(-L * 0.47, -hh * 0.75); ctx.lineTo(-L * 0.49, -hh * 0.1); ctx.moveTo(-L * 0.42, hh * 0.2); ctx.lineTo(-L * 0.47, hh * 0.75); ctx.lineTo(-L * 0.49, hh * 0.1); ctx.stroke();
+  plane(-L * 0.455, 0, S.stern, L * 0.08);
+  propPhase += S.speed * 0.02 * (reduceMotion ? 0.2 : 1);
+  const pr = hh * 0.55;
+  ctx.strokeStyle = rgba(COL.phos, 0.9); ctx.lineWidth = 2 * dpr;
+  ctx.beginPath(); ctx.moveTo(-L / 2 - 3 * dpr, -pr * Math.cos(propPhase)); ctx.lineTo(-L / 2 - 3 * dpr, pr * Math.cos(propPhase)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-L / 2 - 3 * dpr, -pr * Math.sin(propPhase)); ctx.lineTo(-L / 2 - 3 * dpr, pr * Math.sin(propPhase)); ctx.stroke();
+  ctx.restore();
+  // depth tag beside the boat
+  ctx.font = font(12, 600); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  const tagX = cx + L / 2 + 10 * dpr;
+  ctx.fillStyle = rgba(COL.phos, 1); ctx.fillText(`${Math.round(S.depth)} FT`, tagX, cy - 8 * dpr);
+  ctx.font = font(10); ctx.fillStyle = rgba(COL.muted, 1);
+  ctx.fillText(`${S.vz > 0.3 ? '▼' : S.vz < -0.3 ? '▲' : '='} ${Math.abs(S.vz * 60).toFixed(0)} FT/MIN`, tagX, cy + 8 * dpr);
+}
+
+/* ---------- physics (mockup, exaggerated rates) ---------- */
+const cavitating = () => S.mode !== 'surfaced' && S.speed > cavSpeed(S.depth);
+function step(dt) {
+  if (S.pumpLeft > 0) { const m = Math.min(S.pumpLeft, 160 * dt); S.pumpLeft -= m; S.fwd += S.pump * m / 100; S.aft -= S.pump * m / 100; }
+  S.leakLb += 0.55 * dt;
+  if (S.autoTrim) { const imb = imbalance(), m = Math.min(Math.abs(imb), 90 * dt) / 100; S.fwd -= Math.sign(imb) * m / 2; S.aft += Math.sign(imb) * m / 2; }
+  S.fwd = clamp(S.fwd, 0, 100); S.aft = clamp(S.aft, 0, 100);
+  NET.online ? live.step(dt) : stepLocal(dt);
+}
+function stepLocal(dt) {
+  if (S.answered !== S.bell && simT >= S.answerAt) { S.answered = S.bell; log(`Motor room: answering ${BELLS[S.bell].name.toLowerCase()}.`, 'ok'); renderEot(); }
+  const target = S.mode === 'surfaced' ? 0 : BELLS[S.answered].kts;
+  S.speed = approach(S.speed, target, 0.35 * dt);
+  const way = clamp(Math.abs(S.speed) / 8, 0, 1.5);
+
+  // rudder chases a turn toward the ordered course
+  const cd = angDiff(S.ordC, S.course);
+  S.rudder = approach(S.rudder, clamp(cd * 2.2, -30, 30), 7 * dt);
+  S.course = norm(S.course + S.rudder / 30 * 2.2 * Math.max(0.12, way) * Math.sign(S.speed || 1) * dt);
+  if (Math.abs(cd) < 0.15 && Math.abs(S.rudder) < 0.6) { S.course = S.ordC; S.rudder = 0; }
+
+  const bias = -imbalance() / 1000;
+
+  let wantPitch, buoy = 0;
+  if (S.mode === 'blow') {
+    S.mbtF = approach(S.mbtF, 0, 22 * dt); S.mbtA = approach(S.mbtA, 0, 20 * dt);
+    buoy = -(200 - S.mbtF - S.mbtA) / 200 * 24;
+    wantPitch = 18;
+    if (S.depth <= 0) {
+      S.depth = 0; S.mode = 'surfaced'; S.vz = 0; S.bell = bellIdx('stop'); S.answered = S.bell;
+      log('Surfaced. Main ballast dry. Every sonar in the area heard that.', 'alert-l');
+      $('#resetRow').hidden = false; renderEot(); refreshAlert();
+    }
+  }
+  if (S.mode === 'surfaced') {
+    S.pitch = approach(S.pitch, 0, 4 * dt); S.depth = approach(S.depth, 0, 10 * dt); S.vz = 0; S.bow = S.stern = 0;
+    return;
+  }
+  if (S.mode !== 'blow') {
+    const e = S.ordD - S.depth;
+    wantPitch = S.mode === 'crash' ? -15 : clamp(-0.3 * e + 0.4 * S.vz, -12, 12);
+    if (S.mode === 'crash') { buoy = 2.5; if (S.depth > 360) { S.mode = 'normal'; log('Passing 360 ft, negative blown to the mark. Easing out of the dive.', 'ok'); refreshAlert(); } }
+    S.bow = approach(S.bow, S.mode === 'crash' ? -20 : clamp(-e * 0.25, -20, 20), 10 * dt);
+  } else S.bow = approach(S.bow, 20, 10 * dt);
+  const residual = bias * clamp(1 - way, 0, 1);
+  S.stern = approach(S.stern, clamp((wantPitch - S.pitch) * 3 - bias * 2, -25, 25), 12 * dt);
+  S.pitch = approach(S.pitch, wantPitch + residual, (S.mode === 'blow' ? 5 : 2.4) * Math.max(0.15, way) * dt);
+  S.vz = -Math.sin(rad(S.pitch)) * S.speed * 1.69 * 3.2 + buoy;
+  S.depth = Math.max(0, S.depth + S.vz * dt);
+}
+
+/* ---------- rendering ---------- */
+const gaugeY = d => d <= 400 ? d / 400 * 62 : 62 + (d - 400) / 980 * 38;
+document.querySelectorAll('.g-mark').forEach(m => { m.style.top = gaugeY(+m.dataset.d) + '%'; });
+function renderInst() {
+  $('#crsOrd').textContent = fmt3(S.ordC) + '°';
+  $('#crsAct').textContent = fmt3(S.course) + '°';
+  $('#dialOrdTxt').textContent = fmt3(S.ordC);
+  $('#dialNowTxt').textContent = 'NOW ' + fmt3(S.course);
+  $('#dialOrd').setAttribute('transform', `rotate(${S.ordC} 60 60)`);
+  $('#dialNow').setAttribute('transform', `rotate(${S.course} 60 60)`);
+  dial.setAttribute('aria-valuenow', S.ordC);
+  const turning = Math.abs(angDiff(S.ordC, S.course)) > 0.3;
+  $('#steerNote').textContent = turning ? `turning ${angDiff(S.ordC, S.course) > 0 ? 'right' : 'left'}` : 'steady';
+  $('#rudNeedle').setAttribute('transform', `rotate(${S.rudder * 2.6} 70 74)`);
+  $('#rudVal').textContent = Math.abs(S.rudder) < 0.5 ? 'Amidships' : `${S.rudder > 0 ? 'Right' : 'Left'} ${Math.abs(S.rudder).toFixed(0)}°`;
+
+  $('#depOrd').textContent = S.ordD;
+  $('#depAct').textContent = Math.round(S.depth);
+  $('#gOwn').style.top = gaugeY(S.depth) + '%';
+  $('#gOrd').style.top = gaugeY(S.ordD) + '%';
+  const below = S.depth > SHIP.layer, chip = $('#layerChip');
+  chip.textContent = S.mode === 'surfaced' ? 'Surfaced' : below ? 'Below layer' : S.depth <= 66 ? 'Antenna depth' : 'Above layer';
+  chip.className = 'chip' + (S.mode === 'surfaced' ? ' crit' : below ? ' info' : S.depth <= 66 ? ' warn' : '');
+  const fmtPl = v => Math.abs(v) < 0.5 ? '0°' : `${v > 0 ? 'Rise' : 'Dive'} ${Math.abs(v).toFixed(0)}°`;
+  $('#bowPl').setAttribute('transform', `rotate(${-S.bow * 1.5} 50 30)`);
+  $('#sternPl').setAttribute('transform', `rotate(${-S.stern * 1.5} 50 30)`);
+  $('#pitchSil').setAttribute('transform', `rotate(${-S.pitch * 1.5} 50 30)`);
+  $('#bowVal').textContent = fmtPl(S.bow);
+  $('#sternVal').textContent = fmtPl(S.stern);
+  $('#pitchVal').textContent = `${S.pitch > 0.05 ? '▲' : S.pitch < -0.05 ? '▼' : ''}${Math.abs(S.pitch).toFixed(1)}°`;
+  const dh = $('#depHint');
+  if (S.mode === 'surfaced') dh.textContent = 'On the surface. Reset the drill to dive again.';
+  else if (Math.abs(S.ordD - S.depth) > 2) dh.textContent = `${S.ordD < S.depth ? 'Rising' : 'Going down'} to ${S.ordD} ft. Stern planes set the angle, bow planes fine-tune.`;
+  else dh.textContent = `Holding ${Math.round(S.depth)} ft, ${ft(SHIP.bottom - S.depth)} ft under the keel.${S.depth <= 66 ? ' Mast up for the broadcast.' : ''}`;
+
+  const imb = imbalance();
+  [['tFwd', 'vFwd', S.fwd], ['tAft', 'vAft', S.aft], ['tMbtF', 'vMbtF', S.mbtF], ['tMbtA', 'vMbtA', S.mbtA]].forEach(([b, v, x]) => { $('#' + b).style.height = x + '%'; $('#' + v).textContent = Math.round(x) + '%'; });
+  $('#trimTxt').textContent = Math.abs(imb) < 100 ? 'In trim' : `${imb > 0 ? 'Bow' : 'Stern'} heavy ${ft(Math.abs(imb))} lb`;
+  $('#trimTxt').style.color = Math.abs(imb) < 100 ? 'var(--phos)' : Math.abs(imb) > 1200 ? 'var(--hostile)' : 'var(--amber)';
+  $('#trimHint').textContent = Math.abs(imb) < 100 ? 'In trim: planes near zero, quietest running.' : `Stern planes carrying ${Math.abs(imb / 500).toFixed(1)}° to hold the angle. Pump ${imb > 0 ? 'forward to aft' : 'aft to forward'} or turn on auto trim.`;
+}
+function renderStatus() {
+  $('#stTime').textContent = NET.online && NET.clock ? NET.clock : zulu() + 'Z';
+  $('#stCrs').textContent = fmt3(S.course) + '°';
+  $('#stSpd').textContent = S.speed.toFixed(1);
+  $('#stDep').textContent = Math.round(S.depth);
+  $('#stPitch').textContent = `${S.pitch >= 0 ? '+' : '−'}${Math.abs(S.pitch).toFixed(1)}°`;
+  const n = $('#stNoise'), cav = cavitating();
+  const [cls, txt] = S.mode === 'blow' ? ['crit', 'Blowing'] : S.mode === 'surfaced' ? ['crit', 'Surfaced'] : cav ? ['crit', 'Cavitating'] : S.speed >= 12 ? ['warn', 'Flow noise'] : ['ok', 'Quiet'];
+  n.className = 'chip ' + cls; n.textContent = txt;
+  const vc = cavSpeed(S.depth), margin = clamp(S.speed / vc, 0, 1.2);
+  $('#cavBar').style.width = Math.min(100, margin * 100) + '%';
+  $('#cavMeter').className = 'meter' + (cav ? ' crit' : margin > 0.8 ? ' warn' : '');
+  $('#cavVal').textContent = cav ? 'NOISY' : Math.round(margin * 100) + '%';
+  $('#hudDepth').innerHTML = `DEPTH <b>${Math.round(S.depth)}</b> FT<br>ORDERED ${S.ordD}`;
+  $('#hudSpd').innerHTML = `SPEED <b>${S.speed.toFixed(1)}</b> KTS<br>PITCH ${S.pitch >= 0 ? '+' : '−'}${Math.abs(S.pitch).toFixed(1)}°`;
+  $('#hudCav').innerHTML = cav ? `<span class="cav">CAVITATING</span><br>SLOW BELOW ${vc.toFixed(1)} KTS` : `CAVITATION AT <b>${vc.toFixed(1)}</b> KTS<br>AT THIS DEPTH`;
+}
+
+let lastT = performance.now(), acc = 0, wasCav = false;
+function frame(now) {
+  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  simT += dt * (NET.online && NET.s ? NET.s.scale : 1);
+  step(dt);
+  renderInst();
+  draw(now);
+  acc += dt;
+  if (acc > 0.25) {
+    acc = 0; renderStatus(); tickOrders();
+    const cav = cavitating();
+    if (cav !== wasCav) { wasCav = cav; log(cav ? `Cavitating at ${S.speed.toFixed(1)} kts, ${Math.round(S.depth)} ft. Sonar hears us.` : 'Cavitation stopped.', cav ? 'alert-l' : 'ok'); }
+    refreshAlert();
+  }
+  requestAnimationFrame(frame);
+}
+
+if (NET.online) NET.on(live.state);
+else {
+  ORDERS.forEach(o => { if (o.at === 0) o.shown = true; });
+  log('Shaft seal leak in motor room, 4 gal/min. Aft trim drifting heavy.', 'warn');
+  log('Rigged for dive. 150 ft, course 045, ahead 2/3.');
+}
+resize(); renderOrders(); renderEot(); renderInst(); renderStatus(); refreshAlert();
+requestAnimationFrame(frame);
+})();
+</script>
+</html>

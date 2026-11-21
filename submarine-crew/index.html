@@ -1,0 +1,262 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fathom · Crew stations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Saira+Stencil+One&display=swap">
+<link rel="stylesheet" href="crew.css">
+<style>
+.boat-wrap{position:relative;overflow-x:auto;scrollbar-width:thin}
+@media (max-width:640px){#boat{min-width:640px}.alert-more{display:none}}
+#boat{display:block;width:100%;height:auto}
+#boat .hull{fill:var(--panel-2);stroke:var(--rule-2);stroke-width:2}
+#boat .bulk{stroke:var(--rule-2);stroke-width:1.5}
+#boat .comp{font-family:var(--f-data);font-size:11px;fill:var(--muted);letter-spacing:.06em;text-anchor:middle}
+#boat .seat{cursor:pointer}
+#boat .seat circle{fill:color-mix(in srgb,var(--phos) 16%,var(--panel));stroke:var(--phos);stroke-width:1.5;transition:r .15s}
+#boat .seat text{font-family:var(--f-data);font-size:11px;fill:var(--ink);text-anchor:middle}
+#boat .seat.eng circle{stroke:var(--amber);fill:color-mix(in srgb,var(--amber) 14%,var(--panel))}
+#boat .seat.wpn circle{stroke:var(--hostile);fill:color-mix(in srgb,var(--hostile) 14%,var(--panel))}
+#boat .seat.cmd circle{stroke:var(--bio);fill:color-mix(in srgb,var(--bio) 14%,var(--panel))}
+#boat .seat:hover circle,#boat .seat.hl circle{r:17}
+#boat .flow{fill:none;stroke:var(--phos-dim);stroke-width:1.5;stroke-dasharray:4 5;animation:flow 1.6s linear infinite;opacity:0;transition:opacity .2s}
+#boat .flow.on{opacity:1;stroke:var(--amber)}
+@keyframes flow{to{stroke-dashoffset:-18}}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;border:1.5px solid}
+
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.st{display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit;transition:border-color .15s}
+@media (hover:hover){.st:hover{border-color:var(--phos-dim)}}
+.st.hl{border-color:var(--amber)}
+.st-top{display:flex;align-items:baseline;gap:10px}
+.st-name{font-family:var(--f-display);font-size:22px;line-height:1;color:var(--phos)}
+.st.eng .st-name{color:var(--amber)}
+.st.wpn .st-name{color:var(--hostile)}
+.st.cmd .st-name{color:var(--bio)}
+.st-seat{margin-left:auto;font-family:var(--f-data);font-size:11px;color:var(--muted)}
+.st p{margin:0;font-size:14px;text-wrap:pretty}
+.st .only{color:var(--ink)}
+.st .io{font-size:12.5px;color:var(--muted)}
+.st .io b{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-right:4px}
+
+.notes{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:14px;text-wrap:pretty}
+.notes b{color:var(--amber);font-weight:600}
+.merge td{white-space:normal}
+.join{display:flex;flex-direction:column;gap:10px}
+.join label{display:flex;flex-direction:column;gap:4px}
+.join input{font-family:var(--f-data);font-size:16px;min-height:44px;padding:0 12px;border-radius:4px;border:1px solid var(--rule-2);background:var(--panel-2);color:var(--ink);-webkit-user-select:text;user-select:text;width:100%}
+.join input#jRoom{font-size:22px;letter-spacing:.2em;text-transform:uppercase}
+.join .row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.join details summary{cursor:pointer;font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.join details label{margin-top:8px}
+.net-online .aboard{display:flex;flex-direction:column;gap:6px}
+.aboard .room{font-family:var(--f-display);font-size:34px;line-height:1;color:var(--phos);letter-spacing:.12em}
+.st .who{font-family:var(--f-data);font-size:12px;color:var(--muted)}
+.st .who.on{color:var(--phos)}
+.st .who.wired{color:var(--bio)}
+
+</style>
+
+<body data-station="home">
+<header class="bar">
+  <div class="brand">
+    <span class="mark">FATHOM</span>
+    <small>Crew stations · 10 seats, one device each</small>
+  </div>
+  <dl class="status">
+    <div><dt>Crew</dt><dd>10</dd></div>
+    <div><dt>Stations</dt><dd>10</dd></div>
+    <div><dt>Scenario</dt><dd class="warn">S3 hunt</dd></div>
+    <div class="st-time"><dt>Time</dt><dd>0347Z</dd></div>
+  </dl>
+</header>
+
+<button type="button" class="alert" data-sev="2" onclick="location.href='captain.html'">
+  <span class="alert-sev">SHARED MOMENT</span>
+  <span class="alert-msg">All stations show 0347Z: hostile sub S3 closing, 0400Z broadcast needs 60 ft, Motor room leaking.</span>
+  <span class="alert-more">Open Captain →</span>
+</button>
+
+<main class="grid">
+  <div class="main-col">
+    <section class="card" aria-labelledby="hBoat">
+      <h2 id="hBoat">Where everyone sits <span class="h-note">tap a seat to see who it talks to</span></h2>
+      <div class="boat-wrap">
+        <svg id="boat" viewBox="0 0 1000 300" role="img" aria-label="Side cutaway of the boat with crew seats"></svg>
+      </div>
+      <div class="legend">
+        <span><i style="border-color:var(--bio)"></i>Command</span>
+        <span><i style="border-color:var(--phos)"></i>Sensors &amp; ship control</span>
+        <span><i style="border-color:var(--hostile)"></i>Weapons</span>
+        <span><i style="border-color:var(--amber)"></i>Engineering</span>
+      </div>
+    </section>
+
+    <section aria-label="Stations" class="roster" id="roster"></section>
+  </div>
+
+  <aside class="side">
+    <section class="card" aria-labelledby="hJoin">
+      <h2 id="hJoin">Crew a boat <span class="h-note offline-only">live over the internet</span><span class="h-note live-only" id="jConn">connecting…</span></h2>
+      <form class="join offline-only" id="joinForm">
+        <div class="row">
+          <label><span class="lbl">Room code</span><input id="jRoom" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="SUB1" required pattern="[A-Za-z0-9\-]{3,12}"></label>
+          <button type="button" class="btn" id="jNew">New</button>
+        </div>
+        <label><span class="lbl">Your name</span><input id="jName" maxlength="24" autocomplete="nickname" placeholder="e.g. Ana" required></label>
+        <details><summary>Server</summary><label><span class="lbl">WebSocket URL</span><input id="jServer" placeholder="wss://fathom-crew.example.workers.dev" spellcheck="false"></label></details>
+        <button class="btn primary" type="submit">Join, then pick a seat</button>
+      </form>
+      <div class="aboard live-only">
+        <span class="lbl">Aboard</span>
+        <span class="room" id="aRoom"></span>
+        <p class="hint">Tap a station below to take that seat. Everyone on this code shares one boat. Captain, Comms, Helm and Navigator are live; the rest are still mockups.</p>
+        <div class="btns"><button type="button" class="btn" id="aShare">Copy invite link</button><button type="button" class="btn" id="aLeave">Leave</button></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hNotes">
+      <h2 id="hNotes">Notes on the crew split</h2>
+      <ol class="notes">
+        <li><b>Deck gun alone idles.</b> Most play is submerged. Weapons 2 runs the torpedo room (reloads, flooding, muzzle doors) and mans the gun only on the surface.</li>
+        <li><b>Fire control builds the shot.</b> Weapons 1 turns Sonar's track into a firing solution, then fires and wire-guides. Firing waits on the Captain's permission and the torpedo room.</li>
+        <li><b>Helm owns depth too.</b> Steering only would be thin next to the Navigator. Helm runs course, speed, planes, trim and ballast.</li>
+        <li><b>Comms is tied to depth.</b> No reception below 60 ft. Every broadcast or contact report pulls the boat shallow, toward danger. That's the Captain's dilemma.</li>
+        <li><b>The Captain gets hands.</b> A request queue to rule on, the periscope, standing orders. Otherwise they only talk.</li>
+        <li><b>Engineering shares one budget.</b> Power splits the battery, Life support and Damage control both spend it, and every pump or fan adds noise to Sonar's counter-detection.</li>
+      </ol>
+    </section>
+
+    <section class="card" aria-labelledby="hMerge">
+      <h2 id="hMerge">Fewer than 10 players <span class="h-note">merge seats</span></h2>
+      <div class="tbl-wrap">
+        <table class="merge">
+          <thead><tr><th>Crew</th><th>Merge</th></tr></thead>
+          <tbody>
+            <tr><td>9</td><td>Power + Life support</td></tr>
+            <tr><td>8</td><td>+ Navigator into Helm</td></tr>
+            <tr><td>7</td><td>+ Torpedo room into Fire control</td></tr>
+            <tr><td>6</td><td>+ Comms into Sonar</td></tr>
+            <tr><td>5</td><td>+ Damage control into Engineering</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint">Merged seats get both screens as tabs. Below 5 the boat needs AI crew.</p>
+    </section>
+  </aside>
+</main>
+
+<script src="crew.js"></script>
+<script src="net.js"></script>
+<script>
+const SEATS = [
+  { id: 'torpedo', x: 105, y: 150, label: 'WPN2', g: 'wpn' },
+  { id: 'sonar',   x: 220, y: 140, label: 'SON',  g: 'sen' },
+  { id: 'comms',   x: 275, y: 140, label: 'COM',  g: 'sen' },
+  { id: 'captain', x: 405, y: 125, label: 'CO',   g: 'cmd' },
+  { id: 'nav',     x: 455, y: 180, label: 'NAV',  g: 'sen' },
+  { id: 'helm',    x: 375, y: 178, label: 'HLM',  g: 'sen' },
+  { id: 'weapons', x: 510, y: 132, label: 'WPN1', g: 'wpn' },
+  { id: 'life',    x: 630, y: 160, label: 'ENG2', g: 'eng' },
+  { id: 'power',   x: 770, y: 150, label: 'ENG1', g: 'eng' },
+  { id: 'damage',  x: 890, y: 160, label: 'ENG3', g: 'eng' },
+];
+
+const INFO = {
+  captain: { only: 'Rules on every request, works the periscope, gives standing orders.', from: ['sonar', 'comms', 'weapons', 'power', 'damage'], to: ['helm', 'nav', 'weapons', 'comms'] },
+  sonar:   { only: 'Hears, tracks and classifies contacts; pings only on order.', from: ['helm'], to: ['captain', 'weapons', 'nav'] },
+  comms:   { only: 'Receives and decodes broadcasts, sends contact reports, ESM.', from: ['sonar', 'captain'], to: ['captain'] },
+  nav:     { only: 'Plots the route on the chart, keeps the dead-reckoning fix, avoids hazards.', from: ['sonar', 'captain'], to: ['helm', 'captain'] },
+  helm:    { only: 'Drives course, speed, depth and trim; crash dive, emergency blow.', from: ['nav', 'captain', 'damage'], to: ['sonar', 'power'] },
+  weapons: { only: 'Builds the firing solution, sets torpedoes, fires and wire-guides.', from: ['sonar', 'torpedo', 'captain'], to: ['captain', 'torpedo'] },
+  torpedo: { only: 'Loads tubes, floods and opens doors; mans the deck gun when surfaced.', from: ['weapons'], to: ['weapons', 'sonar'] },
+  power:   { only: 'Splits battery power between systems, resets breakers, runs the diesels.', from: ['captain', 'life', 'damage'], to: ['helm', 'sonar', 'weapons', 'life', 'damage'] },
+  life:    { only: 'Keeps O2 up and CO2 down: scrubbers, candles, ventilation.', from: ['power'], to: ['power', 'captain'] },
+  damage:  { only: 'Fights floods and fires, sends the repair party, runs pumps and doors.', from: ['power', 'helm'], to: ['captain', 'helm', 'power'] },
+};
+
+const byId = Object.fromEntries(STATIONS.map(s => [s.id, s]));
+const seatOf = Object.fromEntries(SEATS.map(s => [s.id, s]));
+const NS = 'http://www.w3.org/2000/svg';
+const boat = document.getElementById('boat');
+const el = (tag, attrs, parent = boat) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent.appendChild(n); return n; };
+
+el('path', { class: 'hull', d: 'M40 150 C40 95 90 70 160 70 L330 70 L340 30 L470 30 L480 70 L860 70 C930 70 965 110 975 150 C965 190 930 230 860 230 L160 230 C90 230 40 205 40 150 Z' });
+const BULKS = [170, 320, 560, 700, 840];
+BULKS.forEach(x => el('line', { class: 'bulk', x1: x, y1: 72, x2: x, y2: 228 }));
+[['TORPEDO', 110], ['SONAR / RADIO', 245], ['CONTROL', 440], ['BERTHING', 630], ['ENGINE', 770], ['MOTOR', 895]]
+  .forEach(([t, x]) => el('text', { class: 'comp', x, y: 94 }).textContent = t);
+
+const flows = [];
+for (const [a, inf] of Object.entries(INFO)) for (const b of inf.to) {
+  const p = seatOf[a], q = seatOf[b], mx = (p.x + q.x) / 2, my = Math.min(p.y, q.y) - 30 - Math.abs(p.x - q.x) * 0.12;
+  flows.push({ a, b, n: el('path', { class: 'flow', d: `M${p.x} ${p.y} Q${mx} ${my} ${q.x} ${q.y}` }) });
+}
+
+for (const s of SEATS) {
+  const g = el('g', { class: `seat ${s.g}`, tabindex: 0, role: 'link', 'aria-label': byId[s.id].name, 'data-id': s.id });
+  el('circle', { cx: s.x, cy: s.y, r: 14 }, g);
+  el('text', { x: s.x, y: s.y + 32 }, g).textContent = s.label;
+  g.addEventListener('pointerenter', () => focusSeat(s.id));
+  g.addEventListener('focus', () => focusSeat(s.id));
+  g.addEventListener('click', () => location.href = byId[s.id].file);
+  g.addEventListener('keydown', e => { if (e.key === 'Enter') location.href = byId[s.id].file; });
+}
+
+const name = id => byId[id].name;
+const roster = document.getElementById('roster');
+roster.innerHTML = STATIONS.map(s => {
+  const i = INFO[s.id], g = seatOf[s.id].g;
+  return `<a class="card st ${g}" href="${s.file}" data-id="${s.id}">
+    <div class="st-top"><span class="st-name">${s.name}</span><span class="st-seat">${s.seat === '1' ? '1 seat' : s.seat}</span></div>
+    <p class="only">${i.only}</p>
+    <p class="io"><b>From</b>${i.from.map(name).join(', ')}</p>
+    <p class="io"><b>To</b>${i.to.map(name).join(', ')}</p>
+  </a>`;
+}).join('');
+roster.querySelectorAll('.st').forEach(c => c.addEventListener('pointerenter', () => focusSeat(c.dataset.id)));
+
+function focusSeat(id) {
+  flows.forEach(f => f.n.classList.toggle('on', f.a === id || f.b === id));
+  boat.querySelectorAll('.seat').forEach(g => g.classList.toggle('hl', g.dataset.id === id));
+  roster.querySelectorAll('.st').forEach(c => c.classList.toggle('hl', c.dataset.id === id));
+}
+focusSeat('captain');
+
+const LIVE = new Set(['captain', 'comms', 'helm', 'nav']);
+roster.querySelectorAll('.st').forEach(c => c.insertAdjacentHTML('beforeend', `<span class="who" data-who="${c.dataset.id}"></span>`));
+
+if (!NET.online) {
+  const rnd = () => Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+  const $j = id => document.getElementById(id);
+  $j('jRoom').value = NET.room || '';
+  $j('jName').value = NET.name || '';
+  $j('jServer').value = NET.server || '';
+  $j('jNew').onclick = () => { $j('jRoom').value = rnd(); };
+  $j('joinForm').onsubmit = e => {
+    e.preventDefault();
+    if (!$j('jServer').value.trim()) { $j('jServer').closest('details').open = true; $j('jServer').focus(); NET.toast('Set the server URL first'); return; }
+    NET.join($j('jRoom').value.trim(), { name: $j('jName').value.trim(), server: $j('jServer').value.trim() });
+    location.href = location.pathname;
+  };
+} else {
+  document.getElementById('aRoom').textContent = NET.room;
+  document.getElementById('aLeave').onclick = () => NET.leave();
+  document.getElementById('aShare').onclick = async () => {
+    const u = new URL('index.html', location.href);
+    u.search = new URLSearchParams({ room: NET.room, server: NET.server }).toString();
+    try { await navigator.clipboard.writeText(u.href); NET.toast('Invite link copied'); } catch { prompt('Invite link', u.href); }
+  };
+  NET.on(s => {
+    document.getElementById('jConn').textContent = NET.connected ? `live · ${NET.clock}` : 'reconnecting…';
+    roster.querySelectorAll('.who').forEach(w => {
+      const names = s.seats[w.dataset.who] || [];
+      w.className = 'who' + (names.length ? ' on' : LIVE.has(w.dataset.who) ? ' wired' : '');
+      w.textContent = names.length ? `● ${names.join(', ')}` : LIVE.has(w.dataset.who) ? 'Open seat · live' : 'Open seat · mockup';
+    });
+  });
+}
+</script>
+</body>

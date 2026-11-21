@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fathom · Navigator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Saira+Stencil+One&display=swap">
+<link rel="stylesheet" href="crew.css">
+<style>
+.chart-wrap{position:relative;height:clamp(380px,calc(100vh - 290px),1100px);border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:#061011}
+#chart{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.chart-wrap[data-mode="ruler"] #chart,.chart-wrap[data-mode="wp"] #chart{cursor:crosshair}
+.chart-wrap .hud{padding:8px 10px;text-shadow:0 0 4px #061011,0 0 2px #061011}
+.chart-wrap .hud.br{bottom:0;right:56px}
+.zoom{position:absolute;right:8px;bottom:8px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:44px;height:44px;border-radius:4px;border:1px solid var(--rule-2);background:color-mix(in srgb,var(--panel) 85%,transparent);font-family:var(--f-data);font-size:18px;cursor:pointer}
+.zoom button:active{border-color:var(--amber);color:var(--amber)}
+.zoom .ctr{font-size:10px;letter-spacing:.04em}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.toolbar .hint{margin:0;flex:1 1 220px}
+.seg button[data-v="ruler"][aria-pressed="true"],.seg button[data-v="wp"][aria-pressed="true"]{background:color-mix(in srgb,var(--amber) 16%,transparent);color:var(--amber)}
+.legs tbody tr.next td{color:var(--amber)}
+.legs tbody tr.next td:first-child{box-shadow:inset 3px 0 var(--amber)}
+.legs tbody tr.crit td{color:var(--hostile)}
+.legs tbody tr.crit td:first-child{box-shadow:inset 3px 0 var(--hostile)}
+.legs tbody tr.warn td:last-child{color:var(--amber)}
+.legs tbody tr.added td:first-child::after{content:" +";color:var(--phos-dim)}
+.send-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px}
+.send-row .btn{flex:1 1 200px}
+.pend{display:inline-flex;align-items:center;gap:6px}
+.pend::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;animation:sevpulse 1.2s ease-in-out infinite}
+.chip.ok.pend::before{animation:none}
+.fix{margin-top:10px;padding:10px 12px;border:1px dashed var(--rule-2);border-radius:4px;background:var(--panel-2)}
+.fix p{margin:0 0 8px;font-size:14px;text-wrap:pretty}
+.fix ol{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:6px}
+.fix b{color:var(--amber);font-weight:600}
+.fix .btns{margin-top:10px}
+#profile{display:block;width:100%;height:120px;border:1px solid var(--rule);border-radius:3px;background:#061011}
+.prof-axis{display:flex;justify-content:space-between;font-family:var(--f-data);font-size:10.5px;color:var(--muted);margin-top:4px}
+.orders{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.orders li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:8px 10px;border:1px solid var(--rule-2);border-radius:4px;background:var(--panel-2)}
+.orders li.new{border-color:color-mix(in srgb,var(--amber) 60%,transparent);animation:arrive .8s ease-out}
+.orders li.done{opacity:.6;background:transparent}
+.orders .o-from{font-family:var(--f-data);font-size:11px;letter-spacing:.06em;color:var(--muted)}
+.orders .o-from b{color:var(--amber);font-weight:500}
+.orders li.done .o-from b{color:var(--phos)}
+.orders .o-txt{font-size:16px;font-weight:600;line-height:1.25}
+.orders .btn{min-width:64px;padding:0 12px}
+@keyframes arrive{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--amber) 60%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+.wait{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;font-size:14px}
+.wait li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.wait li span:first-child b{font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:var(--muted);margin-right:6px}
+@media (prefers-reduced-motion:reduce){.pend::before,.orders li.new{animation:none}}
+</style>
+<body data-station="nav">
+
+<header class="bar">
+  <div class="brand">
+    <span class="mark">FATHOM</span>
+    <small>Navigator · plots routes on the large map</small>
+  </div>
+  <dl class="status" aria-live="off">
+    <div><dt>Course</dt><dd id="stCrs">045°</dd></div>
+    <div><dt>SOG</dt><dd><span id="stSog">8.1</span><small>kts</small></dd></div>
+    <div><dt>DR error</dt><dd class="warn">±<span id="stErr">1.10</span><small>nm</small></dd></div>
+    <div><dt>Under keel</dt><dd><span id="stKeel">1,230</span><small>ft</small></dd></div>
+    <div><dt>To KILO</dt><dd><span id="stKilo">14.2</span><small>nm</small></dd></div>
+    <div><dt>ETA KILO</dt><dd id="stEta">0532Z</dd></div>
+    <div class="st-time"><dt>Time</dt><dd id="stTime">0347:00Z</dd></div>
+  </dl>
+</header>
+
+<button type="button" class="alert" id="alert" data-sev="2" aria-live="polite">
+  <span class="alert-sev" id="alertSev">NEXT LEG</span>
+  <span class="alert-msg" id="alertMsg">Come right to 052 for KILO</span>
+  <span class="alert-more" id="alertMore">SEND TO HELM ›</span>
+</button>
+
+<main class="grid">
+  <section class="main-col" aria-label="Navigation chart">
+    <div class="chart-wrap" id="chartWrap" data-mode="pan">
+      <canvas id="chart" aria-label="Navigation chart. Drag to pan, pinch or scroll to zoom. In Ruler mode tap two points for range and bearing; in Add waypoint mode tap to extend the route."></canvas>
+      <div class="hud tl" id="hudScale">CHART · NORTH-UP<br>GRID <b>5</b> NM</div>
+      <div class="hud tr" id="hudCursor">CURSOR<br>—</div>
+      <div class="hud bl" id="hudMode">DRAG · PAN<br>PINCH / WHEEL · ZOOM</div>
+      <div class="hud br" id="hudRuler"></div>
+      <div class="zoom">
+        <button type="button" id="zIn" aria-label="Zoom in">+</button>
+        <button type="button" id="zOut" aria-label="Zoom out">−</button>
+        <button type="button" class="ctr" id="zCtr" aria-label="Centre on own ship">DR</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <div class="seg" data-seg="mode" role="group" aria-label="Chart tool">
+          <button type="button" data-v="pan" aria-pressed="true">Pan</button>
+          <button type="button" data-v="ruler" aria-pressed="false">Ruler</button>
+          <button type="button" data-v="wp" aria-pressed="false">Add waypoint</button>
+        </div>
+        <button type="button" class="toggle" id="tContacts" aria-pressed="true">Sonar bearings</button>
+        <button type="button" class="btn" id="undoWp" disabled>Undo waypoint</button>
+        <p class="hint" id="toolHint">Drag to pan. Pinch or scroll to zoom.</p>
+      </div>
+    </div>
+  </section>
+
+  <aside class="side">
+    <section class="card" aria-labelledby="hOrd">
+      <h2 id="hOrd">Orders <span class="h-note" id="ordNote">2 to acknowledge</span></h2>
+      <ul class="orders" id="orders"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLegs">
+      <h2 id="hLegs">Route <span class="h-note">from DR, SOG 8.1 kts</span></h2>
+      <div class="tbl-wrap">
+        <table class="legs">
+          <thead><tr><th>Leg</th><th class="n">Crs</th><th class="n">nm</th><th class="n">ETA</th><th class="n">Safe ft</th></tr></thead>
+          <tbody id="legBody"></tbody>
+        </table>
+      </div>
+      <div class="send-row">
+        <button type="button" class="btn primary" id="sendLeg">Send next leg to Helm</button>
+        <span class="chip warn" id="sendState">Not sent</span>
+      </div>
+      <p class="hint">Safe = deepest you can run the leg: 200 ft above the shallowest charted bottom, never past test depth 800 ft. Only Helm turns the boat; you send the leg, Helm acknowledges.</p>
+    </section>
+
+    <section class="card" aria-labelledby="hDr">
+      <h2 id="hDr">Position <span class="h-note">dead reckoning, no GPS submerged</span></h2>
+      <dl class="facts">
+        <div class="big"><dt>DR error</dt><dd class="warn">±<span id="fErr">1.10</span></dd></div>
+        <div class="big"><dt>Since fix</dt><dd id="fSince">2:25</dd></div>
+        <div class="big"><dt>At KILO</dt><dd class="warn">±<span id="fErrK">1.9</span></dd></div>
+        <div class="wide"><dt>DR position</dt><dd id="fPos">57°12.4'N 008°41.0'W</dd></div>
+        <div><dt>Last fix</dt><dd id="fLast">0122Z GPS</dd></div>
+        <div><dt>Current est.</dt><dd>110° 0.3 kt</dd></div>
+        <div><dt>Log speed</dt><dd>8.0 kts</dd></div>
+      </dl>
+      <div class="btns"><button type="button" class="btn" id="fixBtn" aria-expanded="false" aria-controls="fixPanel">Fix position…</button></div>
+      <div class="fix" id="fixPanel" hidden>
+        <p>The ellipse grows every minute: log speed and the guessed current drift. Two ways to shrink it:</p>
+        <ol>
+          <li><b>GPS at periscope depth.</b> Needs the boat at 60 ft with a mast up. Captain's call, and S3 is 8.8 kyd away.</li>
+          <li><b>Bottom-contour match.</b> One narrow fathometer ping down, matched against the chart. Low counter-detection, but works best over a sloping bottom like Hadley Bank.</li>
+        </ol>
+        <div class="btns">
+          <button type="button" class="btn" id="askPd">Ask Captain for 60 ft</button>
+          <button type="button" class="btn primary" id="contour">Contour match</button>
+        </div>
+        <div class="meter" id="cmMeter" hidden><i id="cmBar"></i></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hKeel">
+      <h2 id="hKeel">Under keel <span class="h-note">charted, fathometer silent</span></h2>
+      <dl class="facts">
+        <div class="big"><dt>Under keel</dt><dd id="kUnder">1,230</dd></div>
+        <div class="big"><dt>Bottom</dt><dd id="kBottom">1,380</dd></div>
+        <div class="big"><dt>Keel</dt><dd id="kKeel">150</dd></div>
+        <div class="wide"><dt>Bottom within DR error</dt><dd id="kRange">—</dd></div>
+      </dl>
+      <canvas id="profile" aria-label="Bottom profile along the route ahead"></canvas>
+      <div class="prof-axis"><span>DR</span><span id="pMid">20 nm</span><span id="pEnd">40 nm ahead</span></div>
+    </section>
+
+    <section class="card" aria-labelledby="hWait">
+      <h2 id="hWait">Waiting on</h2>
+      <ul class="wait" id="wait">
+        <li><span><b>Helm</b>acknowledge next leg</span><span class="chip warn" id="wHelm">Not sent</span></li>
+        <li><span><b>Captain</b>60 ft for a GPS fix</span><span class="chip" id="wCapt">Not asked</span></li>
+        <li><span><b>Sonar</b>bearings on S1–S3</span><span class="chip ok">Live</span></li>
+        <li><span><b>Helm</b>actual course, speed, depth</span><span class="chip ok">Live</span></li>
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLog">
+      <h2 id="hLog">Nav log <span class="h-note">newest first</span></h2>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLinks">
+      <h2 id="hLinks">Crew links</h2>
+      <div class="links"><b>Takes from</b><a href="captain.html">Captain · intent</a><a href="../submarine-sonar/index.html">Sonar · bearings</a><a href="helm.html">Helm · actuals</a><a href="comms.html">Comms · broadcast 0400Z</a></div>
+      <div class="links" style="margin-top:8px"><b>Hands to</b><a href="helm.html">Helm · next leg</a><a href="captain.html">Captain · route, fix windows</a><a href="weapons.html">Fire control · own position</a></div>
+    </section>
+  </aside>
+</main>
+
+<script src="crew.js"></script>
+<script src="net.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const rootCss = getComputedStyle(document.documentElement);
+const hex = n => { const h = rootCss.getPropertyValue(n).trim().replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const COL = { phos: hex('--phos'), dim: hex('--phos-dim'), amber: hex('--amber'), hostile: hex('--hostile'), bio: hex('--bio'), hull: hex('--hull'), muted: hex('--muted'), ink: hex('--ink') };
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
+const norm = d => ((d % 360) + 360) % 360;
+const angDiff = (a, b) => ((a - b + 540) % 360) - 180;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const fmt3 = d => String(Math.round(norm(d)) % 360).padStart(3, '0');
+const ft = n => Math.round(n).toLocaleString('en-US');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const KYD_PER_NM = 2.025;
+
+/* ---------- time ---------- */
+const T0 = 3 * 3600 + 47 * 60;
+let FIX_T = 1 * 3600 + 22 * 60;
+let simT = 0;
+const p2 = n => String(n).padStart(2, '0');
+const zulu = (s = T0 + simT) => { s = Math.floor(s); return `${p2(Math.floor(s / 3600) % 24)}${p2(Math.floor(s / 60) % 60)}:${p2(s % 60)}`; };
+const hhmm = s => { s = Math.round(s / 60) * 60; return `${p2(Math.floor(s / 3600) % 24)}${p2(Math.floor(s / 60) % 60)}Z`; };
+
+/* ---------- ship + chart data (x east, y north, nm) ---------- */
+const own = { x: 0, y: 0, course: SHIP.course, ordered: SHIP.course, sog: 8.1, depth: SHIP.depth };
+let drErr = 1.1, drShown = 1.1;
+const ERR_RATE = 0.0012; // exaggerated so the ellipse visibly grows in a mockup session
+const ORIGIN = { lat: 57 * 60 + 12.4, lon: 8 * 60 + 41.0 };
+const COSLAT = Math.cos(rad(57.2));
+const past = [{ x: -9.4, y: -9.9 }, { x: -3.1, y: -3.2 }, { x: 0, y: 0 }];
+const route = [
+  { id: 'KILO', x: 14.2 * Math.sin(rad(SHIP.waypoint.brg)), y: 14.2 * Math.cos(rad(SHIP.waypoint.brg)) },
+  { id: 'LIMA', x: 13.5, y: 29.3 },
+  { id: 'MIKE', x: 30.5, y: 30.5 },
+];
+const NAMES = ['NOVEMBER', 'OSCAR', 'PAPA', 'QUEBEC', 'ROMEO', 'TANGO'];
+const WRECK = { x: 6.4, y: 3.4 };
+const BANK = { x: 8.3, y: 19.5 };
+const ZONE = (() => {
+  const cx = 20, cy = 15, hw = 4.5, hh = 3.5, a = rad(-25);
+  return [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([u, v]) => ({ x: cx + u * Math.cos(a) - v * Math.sin(a), y: cy + u * Math.sin(a) + v * Math.cos(a) }));
+})();
+const contacts = SHIP.contacts.map(c => ({ ...c, drift: c.id === 'S3' ? 0.004 : c.id === 'S1' ? -0.003 : 0.001 }));
+
+function rawDepth(x, y) {
+  let d = 1380 + 20 * x - 12 * y;
+  d += 90 * Math.sin(x * 0.31 + 1.2) * Math.cos(y * 0.23 - 0.4) + 60 * Math.sin((x + y) * 0.17 + 2.1) + 35 * Math.sin(x * 0.7 - y * 0.45);
+  d -= 1150 * Math.exp(-((x - BANK.x) ** 2 + (y - BANK.y) ** 2) / 7);
+  d += 380 * Math.exp(-(((x - 26) * 0.5) ** 2 + ((y + 2) * 1.3) ** 2) / 14);
+  return d;
+}
+const D0 = rawDepth(0, 0);
+const depthAt = (x, y) => Math.max(25, rawDepth(x, y) - D0 + SHIP.bottom);
+
+function inZone(x, y) {
+  let inside = false;
+  for (let i = 0, j = ZONE.length - 1; i < ZONE.length; j = i++) {
+    const a = ZONE[i], b = ZONE[j];
+    if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+}
+
+function legInfo(a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy);
+  let minD = Infinity, zone = false;
+  const n = Math.max(2, Math.ceil(dist / 0.2));
+  for (let i = 0; i <= n; i++) {
+    const x = a.x + dx * i / n, y = a.y + dy * i / n;
+    minD = Math.min(minD, depthAt(x, y));
+    if (inZone(x, y)) zone = true;
+  }
+  return { crs: norm(deg(Math.atan2(dx, dy))), dist, minD, zone, safe: Math.min(800, minD - 200) };
+}
+
+/* ---------- bathymetry precompute ---------- */
+const BX0 = -32, BX1 = 52, BY0 = -26, BY1 = 50, CELL = 0.25;
+const NX = Math.round((BX1 - BX0) / CELL) + 1, NY = Math.round((BY1 - BY0) / CELL) + 1;
+const grid = new Float32Array(NX * NY);
+for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) grid[j * NX + i] = depthAt(BX0 + i * CELL, BY0 + j * CELL);
+
+const shade = document.createElement('canvas');
+shade.width = NX; shade.height = NY;
+(() => {
+  const sctx = shade.getContext('2d'), img = sctx.createImageData(NX, NY);
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+    const d = grid[j * NX + i], t = Math.pow(1 - clamp((d - 100) / 2300, 0, 1), 1.6), k = 4 * (j * NX + i);
+    img.data[k] = 6 + 26 * t; img.data[k + 1] = 15 + 50 * t; img.data[k + 2] = 19 + 70 * t; img.data[k + 3] = 255;
+  }
+  sctx.putImageData(img, 0, 0);
+})();
+
+function contour(level) {
+  const segs = [];
+  const lerp = (x0, y0, v0, x1, y1, v1) => { const t = (level - v0) / (v1 - v0); return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t]; };
+  for (let j = 0; j < NY - 1; j++) for (let i = 0; i < NX - 1; i++) {
+    const x = BX0 + i * CELL, y = BY0 + j * CELL, X = x + CELL, Y = y + CELL;
+    const a = grid[j * NX + i], b = grid[j * NX + i + 1], c = grid[(j + 1) * NX + i + 1], d = grid[(j + 1) * NX + i];
+    const pts = [];
+    if ((a < level) !== (b < level)) pts.push(lerp(x, y, a, X, y, b));
+    if ((b < level) !== (c < level)) pts.push(lerp(X, y, b, X, Y, c));
+    if ((c < level) !== (d < level)) pts.push(lerp(X, Y, c, x, Y, d));
+    if ((d < level) !== (a < level)) pts.push(lerp(x, Y, d, x, y, a));
+    if (pts.length >= 2) segs.push([...pts[0], ...pts[1]]);
+    if (pts.length === 4) segs.push([...pts[2], ...pts[3]]);
+  }
+  return segs;
+}
+const LEVELS = [];
+const labels = [];
+for (let lv = 200; lv <= 2600; lv += 200) {
+  const segs = contour(lv), path = new Path2D();
+  for (const s of segs) { path.moveTo(s[0], s[1]); path.lineTo(s[2], s[3]); }
+  for (let k = 0; k < segs.length; k += 7) {
+    const s = segs[k], lx = (s[0] + s[2]) / 2, ly = (s[1] + s[3]) / 2;
+    if (Math.hypot(BANK.x - lx, BANK.y - ly) > 4 && labels.every(l => Math.hypot(l.x - lx, l.y - ly) > 7)) labels.push({ x: lx, y: ly, t: lv.toLocaleString('en-US') });
+  }
+  LEVELS.push({ lv, path, major: lv % 1000 === 0 });
+}
+const shoalPath = (() => { const p = new Path2D(); for (const s of contour(300)) { p.moveTo(s[0], s[1]); p.lineTo(s[2], s[3]); } return p; })();
+let bankMin = Infinity, bankAt = BANK;
+for (let y = BANK.y - 2; y <= BANK.y + 2; y += 0.1) for (let x = BANK.x - 2; x <= BANK.x + 2; x += 0.1) { const d = depthAt(x, y); if (d < bankMin) { bankMin = d; bankAt = { x, y }; } }
+
+/* ---------- canvas + view ---------- */
+const cv = $('#chart'), ctx = cv.getContext('2d');
+const stat = document.createElement('canvas'), sx = stat.getContext('2d');
+let dpr = 1, cssW = 300, cssH = 300, staticDirty = true;
+const view = { x: 13, y: 13, s: 12 };
+let fitted = false;
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const box = cv.getBoundingClientRect();
+  cssW = Math.max(1, box.width); cssH = Math.max(1, box.height);
+  cv.width = stat.width = Math.round(cssW * dpr); cv.height = stat.height = Math.round(cssH * dpr);
+  if (!fitted) { fitView(); fitted = true; }
+  staticDirty = true;
+}
+function fitView() {
+  view.x = 13; view.y = 12.5;
+  view.s = clamp(Math.min(cssW / 44, cssH / 40), 4, 120);
+}
+new ResizeObserver(resize).observe(cv);
+
+const w2s = (x, y) => [(cssW / 2 + (x - view.x) * view.s) * dpr, (cssH / 2 - (y - view.y) * view.s) * dpr];
+const s2w = (px, py) => ({ x: view.x + (px - cssW / 2) / view.s, y: view.y - (py - cssH / 2) / view.s });
+const font = (px, w = 500) => `${w} ${px * dpr}px "IBM Plex Mono", ui-monospace, monospace`;
+
+function label(c, text, x, y, col, align = 'left', base = 'middle', size = 10.5) {
+  c.font = font(size); c.textAlign = align; c.textBaseline = base;
+  c.lineWidth = 3 * dpr; c.strokeStyle = 'rgba(6,16,17,.85)'; c.strokeText(text, x, y);
+  c.fillStyle = col; c.fillText(text, x, y);
+}
+
+function gridStep() {
+  for (const st of [1, 2, 5, 10, 20]) if (st * view.s >= 70) return st;
+  return 20;
+}
+
+function drawStatic() {
+  const c = sx, W = stat.width, H = stat.height, k = view.s * dpr;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.fillStyle = '#061011'; c.fillRect(0, 0, W, H);
+  c.setTransform(k, 0, 0, -k, W / 2 - view.x * k, H / 2 + view.y * k);
+  c.imageSmoothingEnabled = true;
+  c.drawImage(shade, BX0 - CELL / 2, BY0 - CELL / 2, NX * CELL, NY * CELL);
+  for (const L of LEVELS) {
+    c.lineWidth = (L.major ? 1.4 : 0.8) * dpr / k;
+    c.strokeStyle = rgba(COL.bio, L.major ? 0.42 : 0.2);
+    c.stroke(L.path);
+  }
+  c.lineWidth = 1.6 * dpr / k; c.strokeStyle = rgba(COL.amber, 0.85);
+  c.setLineDash([4 * dpr / k, 3 * dpr / k]); c.stroke(shoalPath); c.setLineDash([]);
+  c.setTransform(1, 0, 0, 1, 0, 0);
+
+  // graticule labelled in lat/long, spaced in nm
+  const st = gridStep(), tl = s2w(0, 0), br = s2w(cssW, cssH);
+  c.lineWidth = dpr; c.strokeStyle = rgba(COL.phos, 0.07);
+  c.beginPath();
+  for (let gx = Math.ceil(tl.x / st) * st; gx <= br.x; gx += st) { const [px] = w2s(gx, 0); c.moveTo(px, 0); c.lineTo(px, H); }
+  for (let gy = Math.ceil(br.y / st) * st; gy <= tl.y; gy += st) { const [, py] = w2s(0, gy); c.moveTo(0, py); c.lineTo(W, py); }
+  c.stroke();
+  const lonStep = st * view.s < 110 ? st * 2 : st;
+  for (let gx = Math.ceil(tl.x / lonStep) * lonStep; gx <= br.x; gx += lonStep) {
+    const [px] = w2s(gx, 0), lon = ORIGIN.lon - gx / COSLAT;
+    if (px > 60 * dpr && px < W - 70 * dpr) label(c, `${String(Math.floor(lon / 60)).padStart(3, '0')}°${(lon % 60).toFixed(1).padStart(4, '0')}'W`, px + 3 * dpr, H - 46 * dpr, rgba(COL.phos, 0.4), 'left', 'bottom', 9.5);
+  }
+  for (let gy = Math.ceil(br.y / st) * st; gy <= tl.y; gy += st) {
+    const [, py] = w2s(0, gy), lat = ORIGIN.lat + gy;
+    if (py > 44 * dpr && py < H - 60 * dpr) label(c, `${Math.floor(lat / 60)}°${(lat % 60).toFixed(1).padStart(4, '0')}'N`, 4 * dpr, py - 2 * dpr, rgba(COL.phos, 0.4), 'left', 'bottom', 9.5);
+  }
+  for (const l of labels) {
+    const [px, py] = w2s(l.x, l.y);
+    if (px > 0 && py > 0 && px < W && py < H) label(c, l.t, px, py, rgba(COL.bio, 0.55), 'center', 'middle', 9);
+  }
+
+  // declared minefield
+  const zonePath = () => { c.beginPath(); ZONE.forEach((p, i) => { const [px, py] = w2s(p.x, p.y); i ? c.lineTo(px, py) : c.moveTo(px, py); }); c.closePath(); };
+  c.save();
+  zonePath(); c.fillStyle = rgba(COL.hostile, 0.07); c.fill(); c.clip();
+  c.strokeStyle = rgba(COL.hostile, 0.22); c.lineWidth = dpr; c.beginPath();
+  for (let d = -H; d < W + H; d += 12 * dpr) { c.moveTo(d, 0); c.lineTo(d + H, H); }
+  c.stroke(); c.restore();
+  zonePath(); c.setLineDash([6 * dpr, 4 * dpr]); c.strokeStyle = rgba(COL.hostile, 0.8); c.lineWidth = 1.5 * dpr; c.stroke(); c.setLineDash([]);
+  const zc = w2s(20, 15);
+  label(c, 'ZONE 7', zc[0], zc[1] - 8 * dpr, rgba(COL.hostile, 0.95), 'center', 'middle', 12);
+  label(c, 'DECLARED MINEFIELD', zc[0], zc[1] + 8 * dpr, rgba(COL.hostile, 0.8), 'center', 'middle', 9.5);
+
+  // shoal
+  const [bx, by] = w2s(bankAt.x, bankAt.y);
+  c.fillStyle = rgba(COL.amber, 0.9);
+  c.beginPath(); c.arc(bx, by, 2.5 * dpr, 0, Math.PI * 2); c.fill();
+  label(c, `HADLEY BANK`, bx, by - 12 * dpr, rgba(COL.amber, 0.95), 'center', 'middle', 11);
+  label(c, `shoal ${Math.round(bankMin / 10) * 10} ft`, bx, by + 11 * dpr, rgba(COL.amber, 0.85), 'center', 'middle', 9.5);
+
+  // charted wreck (chart symbol: hull line with masts)
+  const [wx, wy] = w2s(WRECK.x, WRECK.y), u = 7 * dpr;
+  c.strokeStyle = rgba(COL.ink, 0.85); c.lineWidth = 1.4 * dpr; c.beginPath();
+  c.moveTo(wx - u * 1.4, wy); c.lineTo(wx + u * 1.4, wy);
+  for (const o of [-0.7, 0, 0.7]) { c.moveTo(wx + o * u, wy - u * 0.6); c.lineTo(wx + o * u, wy + u * 0.6); }
+  c.stroke();
+  label(c, `WK ${ft(Math.round(depthAt(WRECK.x, WRECK.y) / 10) * 10)}`, wx + u * 1.8, wy, rgba(COL.ink, 0.8), 'left', 'middle', 9.5);
+  staticDirty = false;
+}
+
+/* ---------- route state ---------- */
+const added = [];
+let sendState = 'idle'; // idle → pending → acked → steady
+let mode = 'pan', showContacts = true;
+let ruler = [];
+let cursorW = null;
+
+const allWps = () => route.concat(added);
+function legs() {
+  const out = []; let prev = own, t = T0 + simT;
+  allWps().forEach((w, i) => {
+    const L = legInfo(prev, w); t += L.dist / Math.max(0.5, own.sog) * 3600;
+    out.push({ ...L, from: i ? allWps()[i - 1].id : 'DR', to: w.id, eta: t, added: !!w.added, a: prev, b: w });
+    prev = w;
+  });
+  return out;
+}
+
+/* ---------- dynamic drawing ---------- */
+function drawShip(x, y) {
+  const [px, py] = w2s(x, y), a = rad(own.course);
+  ctx.strokeStyle = rgba(COL.phos, 1); ctx.lineWidth = 2 * dpr;
+  ctx.beginPath(); ctx.arc(px, py, 6 * dpr, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px + Math.sin(a) * 6 * dpr, py - Math.cos(a) * 6 * dpr); ctx.lineTo(px + Math.sin(a) * 26 * dpr, py - Math.cos(a) * 26 * dpr); ctx.stroke();
+  ctx.fillStyle = rgba(COL.phos, 1); ctx.beginPath(); ctx.arc(px, py, 2 * dpr, 0, Math.PI * 2); ctx.fill();
+}
+function ellipse(x, y, err, crs, col, alpha, dash) {
+  const [px, py] = w2s(x, y), k = view.s * dpr;
+  ctx.beginPath(); ctx.ellipse(px, py, err * k, err * 0.62 * k, rad(crs) - Math.PI / 2, 0, Math.PI * 2);
+  ctx.fillStyle = rgba(col, alpha * 0.25); ctx.fill();
+  if (dash) ctx.setLineDash([5 * dpr, 4 * dpr]);
+  ctx.strokeStyle = rgba(col, alpha); ctx.lineWidth = 1.3 * dpr; ctx.stroke(); ctx.setLineDash([]);
+}
+function wpMark(w, col, txt, sub) {
+  const [px, py] = w2s(w.x, w.y), r = 7 * dpr;
+  ctx.strokeStyle = col; ctx.lineWidth = 1.6 * dpr;
+  ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.moveTo(px - r * 1.6, py); ctx.lineTo(px + r * 1.6, py); ctx.moveTo(px, py - r * 1.6); ctx.lineTo(px, py + r * 1.6); ctx.stroke();
+  label(ctx, txt, px + r + 5 * dpr, py - 7 * dpr, col, 'left', 'middle', 11.5);
+  if (sub) label(ctx, sub, px + r + 5 * dpr, py + 7 * dpr, rgba(COL.muted, 1), 'left', 'middle', 9.5);
+}
+
+function draw(now) {
+  if (staticDirty) drawStatic();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(stat, 0, 0);
+  const pulse = reduceMotion ? 0.7 : 0.55 + 0.25 * Math.sin(now / 500);
+
+  // track already run
+  ctx.setLineDash([3 * dpr, 5 * dpr]); ctx.strokeStyle = rgba(COL.phos, 0.4); ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath(); past.concat([own]).forEach((p, i) => { const [px, py] = w2s(p.x, p.y); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.stroke();
+  ctx.setLineDash([]);
+  const [jx, jy] = w2s(past[0].x, past[0].y);
+  label(ctx, 'JULIET 0122Z FIX', jx + 6 * dpr, jy, rgba(COL.phos, 0.45), 'left', 'middle', 9.5);
+
+  // planned legs
+  const L = legs();
+  L.forEach((g, i) => {
+    const [ax, ay] = w2s(g.a.x, g.a.y), [bx, by] = w2s(g.b.x, g.b.y);
+    const next = i === 0;
+    const col = g.zone ? rgba(COL.hostile, 0.95) : next ? (sendState === 'idle' ? rgba(COL.amber, 0.95) : rgba(COL.amber, 0.6 + 0.3 * pulse)) : rgba(COL.phos, 0.75);
+    ctx.strokeStyle = col; ctx.lineWidth = (next ? 2.4 : 1.8) * dpr;
+    if (next && sendState === 'pending') ctx.setLineDash([8 * dpr, 5 * dpr]);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); ctx.setLineDash([]);
+    const mx = (ax + bx) / 2, my = (ay + by) / 2, len = Math.hypot(bx - ax, by - ay);
+    if (len > 90 * dpr) {
+      ctx.save(); ctx.translate(mx, my);
+      let ang = Math.atan2(by - ay, bx - ax); if (ang > Math.PI / 2 || ang < -Math.PI / 2) ang += Math.PI;
+      ctx.rotate(ang);
+      label(ctx, `${fmt3(g.crs)}° · ${g.dist.toFixed(1)} nm${g.zone ? ' · CROSSES ZONE 7' : ''}`, 0, -8 * dpr, col, 'center', 'middle', 10);
+      ctx.restore();
+    }
+  });
+  allWps().forEach((w, i) => wpMark(w, i === 0 ? rgba(COL.amber, 1) : rgba(COL.phos, 0.9), w.id, hhmm(L[i].eta)));
+
+  // projected DR error on arrival at KILO
+  const hrsK = L[0].dist / Math.max(0.5, own.sog);
+  ellipse(route[0].x, route[0].y, drShown + 0.45 * hrsK, L[0].crs, COL.amber, 0.45, true);
+
+  // sonar bearing lines
+  if (showContacts) {
+    const [ox, oy] = w2s(own.x, own.y);
+    for (const c of contacts) {
+      const a = rad(c.brg), rnm = c.kyd / KYD_PER_NM, col = c.hostile ? COL.hostile : COL.phos;
+      const far = rnm * 1.8 * view.s * dpr;
+      ctx.strokeStyle = rgba(col, c.hostile ? 0.45 : 0.22); ctx.lineWidth = dpr;
+      ctx.setLineDash([2 * dpr, 4 * dpr]);
+      ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + Math.sin(a) * far, oy - Math.cos(a) * far); ctx.stroke(); ctx.setLineDash([]);
+      // thicker stretch = range band the passive solution allows
+      const u = (1 - c.sol) * 0.9, r0 = rnm * (1 - u) * view.s * dpr, r1 = rnm * (1 + u) * view.s * dpr;
+      ctx.strokeStyle = rgba(col, c.hostile ? 0.75 : 0.4); ctx.lineWidth = 3.5 * dpr; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(ox + Math.sin(a) * r0, oy - Math.cos(a) * r0); ctx.lineTo(ox + Math.sin(a) * r1, oy - Math.cos(a) * r1); ctx.stroke(); ctx.lineCap = 'butt';
+      label(ctx, `${c.id} ${fmt3(c.brg)}`, ox + Math.sin(a) * (r1 + 10 * dpr), oy - Math.cos(a) * (r1 + 10 * dpr), rgba(col, c.hostile ? 0.95 : 0.6), Math.sin(a) < -0.2 ? 'right' : Math.sin(a) > 0.2 ? 'left' : 'center', 'middle', 10);
+    }
+  }
+
+  // DR position + uncertainty
+  ellipse(own.x, own.y, drShown, own.course, COL.amber, pulse, false);
+  drawShip(own.x, own.y);
+  const [ox, oy] = w2s(own.x, own.y);
+  label(ctx, `DR ±${drShown.toFixed(2)} nm`, ox - 12 * dpr, oy + 16 * dpr, rgba(COL.amber, 0.95), 'right', 'middle', 10);
+
+  // ruler
+  if (ruler.length) {
+    const [ax, ay] = w2s(ruler[0].x, ruler[0].y);
+    ctx.fillStyle = rgba(COL.amber, 1); ctx.strokeStyle = rgba(COL.amber, 1); ctx.lineWidth = 1.8 * dpr;
+    ctx.beginPath(); ctx.arc(ax, ay, 4 * dpr, 0, Math.PI * 2); ctx.fill();
+    const end = ruler[1] || (cursorW && mode === 'ruler' ? cursorW : null);
+    if (end) {
+      const [bx, by] = w2s(end.x, end.y), r = rulerRead(ruler[0], end);
+      if (!ruler[1]) ctx.setLineDash([4 * dpr, 4 * dpr]);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(bx, by, 4 * dpr, 0, Math.PI * 2); ctx.fill();
+      label(ctx, `${fmt3(r.brg)}° · ${r.nm.toFixed(2)} nm`, (ax + bx) / 2 + 8 * dpr, (ay + by) / 2 - 10 * dpr, rgba(COL.amber, 1), 'left', 'middle', 12);
+    }
+  }
+  // pending tap waypoint preview
+  if (mode === 'wp' && cursorW && matchMedia('(hover:hover)').matches) {
+    const last = allWps().at(-1), [ax, ay] = w2s(last.x, last.y), [bx, by] = w2s(cursorW.x, cursorW.y);
+    ctx.setLineDash([4 * dpr, 4 * dpr]); ctx.strokeStyle = rgba(COL.amber, 0.6); ctx.lineWidth = 1.5 * dpr;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); ctx.setLineDash([]);
+  }
+}
+const rulerRead = (a, b) => ({ brg: norm(deg(Math.atan2(b.x - a.x, b.y - a.y))), nm: Math.hypot(b.x - a.x, b.y - a.y) });
+
+/* ---------- input: pan, pinch, wheel, tap ---------- */
+const ptrs = new Map();
+let gest = null;
+const pos = e => { const b = cv.getBoundingClientRect(); return { x: e.clientX - b.left, y: e.clientY - b.top }; };
+const pinch = () => { const [a, b] = [...ptrs.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y), m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } }; };
+function pan(dx, dy) { view.x -= dx / view.s; view.y += dy / view.s; staticDirty = true; }
+function zoomAt(p, f) {
+  const w = s2w(p.x, p.y);
+  view.s = clamp(view.s * f, 4, 140);
+  view.x = w.x - (p.x - cssW / 2) / view.s; view.y = w.y + (p.y - cssH / 2) / view.s;
+  staticDirty = true; updateHud();
+}
+cv.addEventListener('pointerdown', e => {
+  try { cv.setPointerCapture(e.pointerId); } catch {}
+  const p = pos(e); ptrs.set(e.pointerId, p);
+  if (ptrs.size === 1) gest = { start: p, last: p, moved: false, pinch: null };
+  else { gest.moved = true; gest.pinch = pinch(); }
+});
+cv.addEventListener('pointermove', e => {
+  const p = pos(e);
+  if (e.pointerType === 'mouse') { cursorW = s2w(p.x, p.y); updateCursor(); }
+  if (!ptrs.has(e.pointerId) || !gest) return;
+  ptrs.set(e.pointerId, p);
+  if (ptrs.size === 1) {
+    if (!gest.moved && Math.hypot(p.x - gest.start.x, p.y - gest.start.y) > 7) { gest.moved = true; cv.style.cursor = 'grabbing'; }
+    if (gest.moved) pan(p.x - gest.last.x, p.y - gest.last.y);
+    gest.last = p;
+  } else {
+    const pi = pinch();
+    if (gest.pinch && gest.pinch.d > 0) { pan(pi.m.x - gest.pinch.m.x, pi.m.y - gest.pinch.m.y); zoomAt(pi.m, pi.d / gest.pinch.d); }
+    gest.pinch = pi;
+  }
+});
+function endPtr(e) {
+  if (!ptrs.has(e.pointerId)) return;
+  const p = ptrs.get(e.pointerId);
+  ptrs.delete(e.pointerId);
+  if (!ptrs.size) {
+    if (gest && !gest.moved && e.type === 'pointerup') tap(p);
+    gest = null; cv.style.cursor = '';
+  } else if (gest) { gest.last = [...ptrs.values()][0]; gest.pinch = null; }
+}
+cv.addEventListener('pointerup', endPtr);
+cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !ptrs.size) { cursorW = null; updateCursor(); } });
+cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(pos(e), Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015))); }, { passive: false });
+$('#zIn').addEventListener('click', () => zoomAt({ x: cssW / 2, y: cssH / 2 }, 1.4));
+$('#zOut').addEventListener('click', () => zoomAt({ x: cssW / 2, y: cssH / 2 }, 1 / 1.4));
+$('#zCtr').addEventListener('click', () => { view.x = own.x; view.y = own.y; staticDirty = true; });
+
+function tap(p) {
+  const w = s2w(p.x, p.y);
+  cursorW = w; updateCursor();
+  if (mode === 'ruler') {
+    if (ruler.length !== 1) ruler = [w];
+    else {
+      ruler.push(w);
+      const r = rulerRead(ruler[0], ruler[1]);
+      log(`Ruler: ${fmt3(r.brg)}° ${r.nm.toFixed(2)} nm (${(r.nm * KYD_PER_NM).toFixed(1)} kyd).`);
+    }
+    updateHud();
+  } else if (mode === 'wp') {
+    if (added.length >= NAMES.length) { log('Route full: undo a waypoint first.', 'warn'); return; }
+    const last = allWps().at(-1), g = legInfo(last, w);
+    added.push({ id: NAMES[added.length], x: w.x, y: w.y, added: true });
+    const note = g.zone ? ' Crosses Zone 7 minefield.' : g.minD < 400 ? ` Shoal ${ft(g.minD)} ft on leg.` : '';
+    log(`WP ${NAMES[added.length - 1]} added: ${fmt3(g.crs)}° ${g.dist.toFixed(1)} nm from ${last.id}.${note}`, g.zone ? 'alert-l' : note ? 'warn' : 'ok');
+    renderLegs();
+  }
+}
+
+function setMode(v) {
+  mode = v;
+  $('#chartWrap').dataset.mode = v;
+  document.querySelectorAll('[data-seg="mode"] button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  if (v !== 'ruler') ruler = [];
+  $('#toolHint').textContent = v === 'ruler' ? 'Tap two points: range and bearing between them.' : v === 'wp' ? 'Tap the chart to add a waypoint at the end of the route.' : 'Drag to pan. Pinch or scroll to zoom.';
+  $('#hudMode').innerHTML = v === 'ruler' ? 'RULER<br>TAP TWO POINTS' : v === 'wp' ? 'ADD WAYPOINT<br>TAP TO EXTEND ROUTE' : 'DRAG · PAN<br>PINCH / WHEEL · ZOOM';
+  updateHud();
+}
+document.querySelector('[data-seg="mode"]').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.v); });
+$('#tContacts').addEventListener('click', e => { showContacts = !showContacts; e.currentTarget.setAttribute('aria-pressed', String(showContacts)); });
+$('#undoWp').addEventListener('click', () => { const w = added.pop(); if (w) { log(`WP ${w.id} removed.`); renderLegs(); } });
+
+/* ---------- HUD + side panels ---------- */
+function updateCursor() {
+  const el = $('#hudCursor');
+  if (!cursorW) { el.innerHTML = 'CURSOR<br>—'; return; }
+  const r = rulerRead(own, cursorW), d = depthAt(cursorW.x, cursorW.y);
+  el.innerHTML = `CURSOR <b>${fmt3(r.brg)}°</b> ${r.nm.toFixed(1)} NM<br>DEPTH <b>${ft(d)}</b> FT${inZone(cursorW.x, cursorW.y) ? ' · ZONE 7' : ''}`;
+}
+function updateHud() {
+  $('#hudScale').innerHTML = `CHART · NORTH-UP<br>GRID <b>${gridStep()}</b> NM`;
+  const hr = $('#hudRuler');
+  if (ruler.length === 2) { const r = rulerRead(ruler[0], ruler[1]); hr.innerHTML = `RULER <b>${fmt3(r.brg)}°</b><br><b>${r.nm.toFixed(2)}</b> NM · ${(r.nm * KYD_PER_NM).toFixed(1)} KYD`; }
+  else hr.innerHTML = mode === 'ruler' ? (ruler.length ? 'RULER<br>TAP END POINT' : 'RULER<br>TAP START POINT') : '';
+}
+
+const legBody = $('#legBody');
+function renderLegs() {
+  const L = legs();
+  legBody.innerHTML = L.map((g, i) => {
+    const cls = [i === 0 ? 'next' : '', g.zone ? 'crit' : g.safe < 300 ? 'warn' : '', g.added ? 'added' : ''].join(' ');
+    const safe = g.zone ? 'MINES' : g.safe < 100 ? `SHOAL ${Math.round(g.minD)}` : g.safe >= 800 ? '800' : String(Math.round(g.safe / 10) * 10);
+    return `<tr class="${cls}"><td>${g.from}→${g.to}</td><td class="n">${fmt3(g.crs)}</td><td class="n">${g.dist.toFixed(1)}</td><td class="n">${hhmm(g.eta)}</td><td class="n">${safe}</td></tr>`;
+  }).join('');
+  $('#undoWp').disabled = !added.length;
+  const k = L[0];
+  $('#stKilo').textContent = k.dist.toFixed(1);
+  $('#stEta').textContent = hhmm(k.eta);
+  if (sendState === 'idle') $('#sendLeg').textContent = `Send next leg to Helm · ${fmt3(k.crs)}°`;
+}
+
+const profile = $('#profile'), pctx = profile.getContext('2d');
+function drawProfile() {
+  const b = profile.getBoundingClientRect(), W = Math.round(b.width * dpr), H = Math.round(b.height * dpr);
+  if (!W || !H) return;
+  if (profile.width !== W || profile.height !== H) { profile.width = W; profile.height = H; }
+  const c = pctx, MAXD = 2000, SPAN = 40, yOf = d => d / MAXD * H;
+  c.clearRect(0, 0, W, H);
+  const pts = [], marks = [];
+  let segs = legs(), acc = 0;
+  for (const g of segs) { marks.push({ at: acc, id: g.from }); acc += g.dist; }
+  marks.push({ at: acc, id: segs.at(-1).to });
+  for (let i = 0; i <= 200; i++) {
+    let s = i / 200 * SPAN, pt = null, base = 0;
+    for (const g of segs) { if (s <= base + g.dist) { const t = (s - base) / g.dist; pt = { x: g.a.x + (g.b.x - g.a.x) * t, y: g.a.y + (g.b.y - g.a.y) * t }; break; } base += g.dist; }
+    if (!pt) break;
+    pts.push([i / 200 * W, yOf(depthAt(pt.x, pt.y))]);
+  }
+  c.beginPath(); c.moveTo(0, H); pts.forEach(([x, y]) => c.lineTo(x, y)); c.lineTo(pts.at(-1)[0], H); c.closePath();
+  c.fillStyle = rgba(COL.bio, 0.18); c.fill();
+  c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.strokeStyle = rgba(COL.bio, 0.8); c.lineWidth = 1.5 * dpr; c.stroke();
+  const hline = (d, col, txt, dash, right) => {
+    c.setLineDash(dash ? [4 * dpr, 4 * dpr] : []); c.strokeStyle = col; c.lineWidth = dpr;
+    c.beginPath(); c.moveTo(0, yOf(d)); c.lineTo(W, yOf(d)); c.stroke(); c.setLineDash([]);
+    c.font = font(9); c.fillStyle = col; c.textAlign = right ? 'right' : 'left'; c.textBaseline = right ? 'top' : 'bottom'; c.fillText(txt, right ? W - 4 * dpr : 4 * dpr, yOf(d) + (right ? 2 : -2) * dpr);
+  };
+  hline(SHIP.layer, rgba(COL.bio, 0.6), 'LAYER 250', true);
+  hline(800, rgba(COL.hostile, 0.6), 'TEST 800', true);
+  hline(own.depth, rgba(COL.phos, 0.9), `KEEL ${own.depth}`, false, true);
+  c.font = font(9); c.textAlign = 'center'; c.textBaseline = 'bottom';
+  for (const m of marks) if (m.at > 0 && m.at < SPAN) { const x = m.at / SPAN * W; c.strokeStyle = rgba(COL.amber, 0.5); c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); c.fillStyle = rgba(COL.amber, 0.9); c.fillText(m.id, x, H - 3 * dpr); }
+}
+
+function renderKeel() {
+  const bottom = depthAt(own.x, own.y);
+  let lo = Infinity, hi = -Infinity;
+  for (let a = 0; a < 360; a += 20) for (const r of [0.33, 0.66, 1]) {
+    const d = depthAt(own.x + Math.sin(rad(a)) * drShown * r, own.y + Math.cos(rad(a)) * drShown * r);
+    lo = Math.min(lo, d); hi = Math.max(hi, d);
+  }
+  $('#kBottom').textContent = ft(bottom);
+  $('#kKeel').textContent = own.depth;
+  $('#kUnder').textContent = ft(bottom - own.depth);
+  $('#stKeel').textContent = ft(bottom - own.depth);
+  $('#kRange').textContent = `${ft(lo)}–${ft(hi)} ft, so ${ft(lo - own.depth)} ft under keel at worst`;
+}
+
+function renderPos() {
+  const lat = ORIGIN.lat + own.y, lon = ORIGIN.lon - own.x / COSLAT;
+  $('#fPos').textContent = `${Math.floor(lat / 60)}°${(lat % 60).toFixed(1).padStart(4, '0')}'N ${String(Math.floor(lon / 60)).padStart(3, '0')}°${(lon % 60).toFixed(1).padStart(4, '0')}'W`;
+  const since = T0 + simT - FIX_T;
+  $('#fSince').textContent = `${Math.floor(since / 3600)}:${p2(Math.floor(since / 60) % 60)}`;
+  $('#fErr').textContent = drShown.toFixed(2);
+  $('#stErr').textContent = drShown.toFixed(2);
+  $('#fErrK').textContent = (drShown + 0.45 * legs()[0].dist / Math.max(0.5, own.sog)).toFixed(1);
+}
+
+/* ---------- log, alert, orders ---------- */
+const logEl = $('#log');
+function log(msg, kind = '') {
+  const li = document.createElement('li'); li.className = kind;
+  const t = document.createElement('time'); t.textContent = zulu();
+  const sp = document.createElement('span'); sp.textContent = msg;
+  li.append(t, sp); logEl.prepend(li);
+  while (logEl.children.length > 60) logEl.lastChild.remove();
+}
+function setAlert(sev, tag, msg, more) {
+  const a = $('#alert'); a.dataset.sev = sev;
+  $('#alertSev').textContent = tag; $('#alertMsg').textContent = msg;
+  $('#alertMore').textContent = more || ''; $('#alertMore').hidden = !more;
+}
+function refreshAlert() {
+  const k = legs()[0];
+  if (sendState === 'idle') setAlert(2, 'NEXT LEG', `Come right to ${fmt3(k.crs)} for KILO`, 'SEND TO HELM ›');
+  else if (sendState === 'pending') setAlert(0, 'PENDING', `Waiting on Helm to acknowledge ${fmt3(own.ordered)}`, '');
+  else if (fixRunning) setAlert(0, 'FIXING', 'Contour match running…', '');
+  else if (drShown > 0.8) setAlert(2, 'DR ERROR', `±${drShown.toFixed(2)} nm and growing. Plan a fix before KILO`, 'FIX ›');
+  else setAlert(0, 'ON TRACK', `Steady on ${fmt3(own.course)} for KILO, ±${drShown.toFixed(2)} nm`, '');
+}
+$('#alert').addEventListener('click', () => {
+  if (sendState === 'idle') sendLeg();
+  else if (sendState !== 'pending') { openFix(true); $('#hDr').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }); }
+});
+
+const ORDERS = [
+  { at: 0, from: 'CAPTAIN', t: '0345Z', txt: 'Lay a track to KILO clear of Zone 7.', ack: 'Track DR→KILO→LIMA→MIKE laid, 1.9 nm clear of Zone 7.' },
+  { at: 0, from: 'SONAR', t: '0346Z', txt: 'S3 bearing 194, drawing right. Plot it.', ack: 'S3 bearing line on the chart.' },
+  { at: 14, from: 'CAPTAIN', t: null, txt: 'Best chance for a fix before KILO?', ack: 'Recommend GPS at 60 ft with the 0400Z broadcast, or a contour match on Hadley Bank slope.' },
+].filter(o => !NET.online || !o.at);
+const ordEl = $('#orders');
+function renderOrders() {
+  ordEl.innerHTML = '';
+  ORDERS.filter(o => o.shown).forEach((o, i) => {
+    const li = document.createElement('li');
+    li.className = o.done ? 'done' : o.fresh ? 'new' : '';
+    li.innerHTML = `<div><div class="o-from"><b>${o.from}</b> · ${o.done ? 'ACK ' + o.done : o.t}</div><div class="o-txt"></div></div>`;
+    li.querySelector('.o-txt').textContent = o.done ? o.ack : o.txt;
+    if (!o.done) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn primary'; b.textContent = 'Ack';
+      b.addEventListener('click', () => { o.done = zulu().slice(0, 4) + 'Z'; o.fresh = false; log(`Nav: ${o.ack}`, 'ok'); renderOrders(); });
+      li.append(b);
+    }
+    ordEl.append(li);
+  });
+  const open = ORDERS.filter(o => o.shown && !o.done).length;
+  $('#ordNote').textContent = open ? `${open} to acknowledge` : 'all acknowledged';
+}
+
+/* ---------- send leg to Helm ---------- */
+const chipSet = (el, cls, txt, pend) => { el.className = `chip ${cls}${pend ? ' pend' : ''}`; el.textContent = txt; };
+function sendLeg() {
+  if (NET.online) return sendLegLive();
+  if (sendState !== 'idle') return;
+  const k = legs()[0], c = Math.round(k.crs);
+  sendState = 'pending'; own.ordered = c;
+  $('#sendLeg').disabled = true; $('#sendLeg').textContent = `Sent: ${fmt3(c)}° to KILO`;
+  chipSet($('#sendState'), 'warn', 'Pending Helm', true);
+  chipSet($('#wHelm'), 'warn', 'Pending', true);
+  log(`Nav → Helm: recommend come right to ${fmt3(c)}, ${k.dist.toFixed(1)} nm to KILO.`, 'warn');
+  refreshAlert();
+  setTimeout(() => {
+    sendState = 'acked';
+    chipSet($('#sendState'), 'warn', `Helm: coming right`, true);
+    chipSet($('#wHelm'), 'ok', 'Acknowledged');
+    log(`Helm: come right to ${fmt3(c)}, aye.`, 'ok');
+    refreshAlert();
+  }, 4200);
+}
+$('#sendLeg').addEventListener('click', sendLeg);
+
+/* ---------- live crew server: Helm's real answer comes back in NET.s.orders ---------- */
+const LEG_STATE = { new: 'pending', ack: 'acked', done: 'steady' };
+let legOrder = null;
+function sendLegLive() {
+  if (sendState === 'pending' || sendState === 'acked') return;
+  const k = legs()[0], c = Math.round(norm(k.crs)) % 360;
+  const text = `Come ${angDiff(c, own.course) >= 0 ? 'right' : 'left'} to ${fmt3(c)}`;
+  if (NET.send('order', { kind: 'course', value: c, text })) log(`Nav → Helm: ${text.toLowerCase()}, ${k.dist.toFixed(1)} nm to KILO.`, 'warn');
+}
+function syncLive(s) {
+  own.course = s.own.course; own.sog = s.own.speed; own.depth = Math.round(s.own.depth);
+  simT = s.t;
+  $('#stSog').textContent = s.own.speed.toFixed(1);
+  const o = s.orders.find(x => x.from === 'nav' && x.kind === 'course') || null;
+  const st = o ? LEG_STATE[o.status] : 'idle';
+  if (st !== sendState || (o && o.id) !== (legOrder && legOrder.id)) {
+    const first = legOrder === null && sendState === 'idle';
+    sendState = st; legOrder = o;
+    if (o) own.ordered = o.value;
+    const btn = $('#sendLeg'), c = o && fmt3(o.value);
+    btn.disabled = st === 'pending' || st === 'acked';
+    if (st === 'idle') { chipSet($('#sendState'), 'warn', 'Not sent'); chipSet($('#wHelm'), 'warn', 'Not sent'); renderLegs(); }
+    if (st === 'pending') { btn.textContent = `Sent: ${c}° to KILO`; chipSet($('#sendState'), 'warn', 'Pending Helm', true); chipSet($('#wHelm'), 'warn', 'Pending', true); }
+    if (st === 'acked') {
+      btn.textContent = `Sent: ${c}° to KILO`;
+      chipSet($('#sendState'), 'warn', `Helm: coming ${/left/i.test(o.text) ? 'left' : 'right'}`, true); chipSet($('#wHelm'), 'ok', 'Acknowledged');
+      if (!first) log(`Helm: ${o.text.toLowerCase()}, aye.`, 'ok');
+    }
+    if (st === 'steady') {
+      btn.textContent = `Leg sent · steady ${c}° · resend`;
+      chipSet($('#sendState'), 'ok', `Helm: steady ${c}`); chipSet($('#wHelm'), 'ok', 'Steady');
+      if (!first) log(`Helm: steady on ${c}.`, 'ok');
+    }
+    refreshAlert();
+  }
+  const r = s.requests.find(x => x.from === 'nav' && x.kind === 'fix-depth');
+  const RS = { pending: ['warn', 'Pending', true], held: ['warn', 'Held'], approved: ['ok', 'Approved'], denied: ['crit', 'Denied'] };
+  if (r) chipSet($('#wCapt'), ...RS[r.status]);
+  capAsked = !!r && (r.status === 'pending' || r.status === 'held');
+  $('#askPd').disabled = capAsked;
+}
+
+/* ---------- fixing ---------- */
+let fixRunning = false, capAsked = false;
+function openFix(force) {
+  const p = $('#fixPanel'), open = force === true ? true : p.hidden;
+  p.hidden = !open; $('#fixBtn').setAttribute('aria-expanded', String(open));
+}
+$('#fixBtn').addEventListener('click', () => openFix());
+$('#askPd').addEventListener('click', e => {
+  if (capAsked) return;
+  if (NET.online) return NET.send('request', { kind: 'fix-depth', text: `Request 60 ft for a GPS fix, DR ±${drShown.toFixed(2)} nm.` });
+  capAsked = true; e.currentTarget.disabled = true;
+  chipSet($('#wCapt'), 'warn', 'Pending', true);
+  log('Nav → Captain: request 60 ft for a GPS fix, DR ±' + drShown.toFixed(2) + ' nm.', 'warn');
+  setTimeout(() => {
+    chipSet($('#wCapt'), 'warn', 'Held to 0400Z');
+    log('Captain: not with S3 at 8.8 kyd. Take your fix with the 0400Z broadcast.', 'warn');
+  }, 6000);
+});
+$('#contour').addEventListener('click', e => {
+  if (fixRunning) return;
+  const btn = e.currentTarget;
+  fixRunning = true; btn.disabled = true;
+  const m = $('#cmMeter'), bar = $('#cmBar'); m.hidden = false; bar.style.width = '0%';
+  log('Nav: one fathometer ping down. Sonar informed.', 'warn');
+  refreshAlert();
+  let pct = 0;
+  const iv = setInterval(() => {
+    pct += 4; bar.style.width = pct + '%';
+    if (pct < 100) return;
+    clearInterval(iv); fixRunning = false; m.hidden = true; btn.disabled = false;
+    const before = drErr;
+    drErr = Math.max(0.45, drErr * 0.48);
+    own.x -= 0.22; own.y += 0.14; past[past.length - 1] = { x: own.x, y: own.y };
+    $('#fLast').textContent = `${zulu().slice(0, 4)}Z contour`; FIX_T = T0 + simT;
+    log(`Contour match 64%: DR moved 0.26 nm NW, ±${before.toFixed(2)} → ±${drErr.toFixed(2)} nm. Flat bottom here; Hadley Bank slope would match better.`, 'ok');
+    renderLegs(); refreshAlert();
+  }, 160);
+});
+
+/* ---------- loop ---------- */
+let lastT = performance.now(), acc = 0;
+function frame(now) {
+  const dt = Math.min(0.25, (now - lastT) / 1000); lastT = now;
+  const gdt = dt * (NET.online && NET.s ? NET.s.scale : 1);
+  simT += gdt;
+  drErr += ERR_RATE * dt;
+  drShown += (drErr - drShown) * Math.min(1, dt * 3);
+  const d = angDiff(own.ordered, own.course);
+  if (!NET.online && (sendState === 'acked' || sendState === 'steady')) own.course = norm(own.course + Math.sign(d) * Math.min(Math.abs(d), 0.5 * dt));
+  if (!NET.online && sendState === 'acked' && Math.abs(angDiff(own.ordered, own.course)) < 0.3) {
+    sendState = 'steady';
+    chipSet($('#sendState'), 'ok', `Helm: steady ${fmt3(own.ordered)}`);
+    log(`Helm: steady on ${fmt3(own.ordered)}.`, 'ok');
+    $('#sendLeg').textContent = `Leg sent · steady ${fmt3(own.ordered)}°`;
+  }
+  own.x += Math.sin(rad(own.course)) * own.sog / 3600 * gdt;
+  own.y += Math.cos(rad(own.course)) * own.sog / 3600 * gdt;
+  for (const c of contacts) c.brg = norm(c.brg + c.drift * dt);
+  acc += dt;
+  if (acc > 1) {
+    acc = 0;
+    $('#stTime').textContent = NET.online && NET.clock ? NET.clock : zulu() + 'Z';
+    $('#stCrs').textContent = fmt3(own.course) + '°';
+    renderLegs(); renderPos(); renderKeel(); drawProfile(); refreshAlert();
+    ORDERS.forEach(o => { if (!o.shown && simT >= o.at) { o.shown = true; o.fresh = o.at > 0; o.t = o.t || zulu().slice(0, 4) + 'Z'; if (o.fresh) log(`${o.from}: ${o.txt}`, 'warn'); renderOrders(); } });
+  }
+  draw(now);
+  requestAnimationFrame(frame);
+}
+
+ORDERS.forEach(o => { if (o.at === 0) o.shown = true; });
+renderOrders();
+log('Last fix 0122Z GPS at JULIET. Dead reckoning since.');
+log('Fleet broadcast 0400Z needs antenna depth 60 ft.', 'warn');
+resize(); renderLegs(); renderPos(); renderKeel(); drawProfile(); refreshAlert(); updateHud();
+new ResizeObserver(drawProfile).observe(profile);
+if (NET.online) NET.on(syncLive);
+requestAnimationFrame(frame);
+})();
+</script>
+</html>

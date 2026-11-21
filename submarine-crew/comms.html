@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fathom · Comms</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Saira+Stencil+One&display=swap">
+<link rel="stylesheet" href="crew.css">
+<style>
+.tl-wrap{position:relative;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+#tl{display:block;width:100%;height:clamp(230px,34vh,330px)}
+.sp-wrap{position:relative;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+#sp{display:block;width:100%;height:150px}
+.sp-wrap .hud{padding:6px 8px}
+.sig-row{display:grid;grid-template-columns:auto minmax(0,1fr) 48px;gap:10px;align-items:center;margin-top:10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.sig-row .meter{margin:0}
+.sig-row .val{text-align:right;color:var(--ink)}
+.meter.bio i{background:var(--bio)}
+
+.msgs{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px}
+.msg{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;min-height:48px;padding:6px 10px;border:1px solid var(--rule-2);border-radius:4px;background:var(--panel-2);text-align:left;cursor:pointer}
+.msg time{font-family:var(--f-data);font-size:12px;color:var(--muted)}
+.msg .m-txt{min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg[aria-pressed="true"]{border-color:color-mix(in srgb,var(--amber) 60%,transparent);background:color-mix(in srgb,var(--amber) 8%,var(--panel-2))}
+.msg:disabled{cursor:default;opacity:.55}
+.msg.new{animation:arrive 1.4s ease-out}
+@keyframes arrive{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 2px transparent}}
+
+.dec-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:8px}
+.dec-head b{font-family:var(--f-data);font-weight:500;color:var(--ink)}
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px}
+.grp{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:84px;padding:8px 10px;border:1px solid var(--rule-2);border-radius:4px;background:var(--hull);font-family:var(--f-data);cursor:pointer;text-align:left}
+.grp .g-c{font-size:20px;font-weight:500;letter-spacing:.06em;color:var(--ink)}
+.grp .g-p{font-size:12px;color:var(--muted)}
+.grp .g-a{font-size:12px;color:var(--phos-dim);letter-spacing:.06em}
+.grp[aria-pressed="true"]{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
+.grp[aria-pressed="true"] .g-a{color:var(--amber)}
+.grp.done{border-color:var(--phos-dim);cursor:default}
+.grp.done .g-a{color:var(--phos)}
+.grp.bad{animation:bad .5s}
+@keyframes bad{0%,100%{transform:none;border-color:var(--hostile)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.work{margin:10px 0 0;font-family:var(--f-data);font-size:13px;color:var(--muted)}
+.work b{color:var(--amber);font-weight:500}
+.plain{margin:10px 0 12px;padding:10px 12px;border:1px dashed var(--rule-2);border-radius:4px;font-family:var(--f-data);font-size:16px;letter-spacing:.04em;min-height:46px;color:var(--muted)}
+.plain.full{border-style:solid;border-color:var(--phos-dim);color:var(--phos)}
+.book-h{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.book{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.code{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 10px;border:1px solid var(--rule-2);border-radius:4px;background:var(--panel-2);cursor:pointer;text-align:left}
+.code b{font-family:var(--f-data);font-size:14px;font-weight:500;color:var(--phos)}
+.code span{font-size:13px;color:var(--ink);line-height:1.15}
+@media (hover:hover){.code:hover,.grp:hover:not(.done),.msg:hover:not(:disabled){border-color:var(--phos-dim)}}
+.code:active{border-color:var(--amber)}
+.dec-empty{margin:0;color:var(--muted);font-size:14px}
+
+.ords{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ords li{border:1px solid var(--rule-2);border-radius:4px;padding:10px;background:var(--panel-2)}
+.ords li.acked{opacity:.6}
+.ords li.new{animation:arrive 1.4s ease-out}
+.o-top{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.o-top time{margin-left:auto;font-family:var(--f-data);font-size:11px}
+.ords p{margin:6px 0 8px;font-size:15px;line-height:1.3}
+.ords li.acked p{margin-bottom:0}
+
+.mast{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:14px}
+.mast-ctl{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mast-ctl .ctl{grid-template-columns:62px minmax(0,1fr)}
+.toggle:disabled{opacity:.4;cursor:not-allowed}
+.dbar{position:relative;height:220px;border:1px solid var(--rule-2);border-radius:3px;background:linear-gradient(180deg,color-mix(in srgb,var(--bio) 14%,transparent),transparent 70%);font-family:var(--f-data);font-size:9.5px;color:var(--muted)}
+.d-rx{position:absolute;left:0;right:0;top:0;background:color-mix(in srgb,var(--bio) 16%,transparent);border-bottom:1px dashed var(--amber)}
+.d-rx span{position:absolute;right:3px;bottom:2px;color:var(--amber)}
+.d-rx em{position:absolute;left:3px;top:2px;font-style:normal;color:var(--bio)}
+.d-layer{position:absolute;left:0;right:0;height:6px;margin-top:-3px;background:repeating-linear-gradient(90deg,var(--phos-dim) 0 3px,transparent 3px 6px)}
+.d-layer span{position:absolute;right:3px;top:6px}
+.d-ord{position:absolute;left:6px;right:6px;border-top:1px dashed var(--amber);opacity:.7}
+.d-own{position:absolute;left:0;right:0;height:0}
+.d-own::before{content:"";position:absolute;left:8px;top:-4px;width:28px;height:8px;border-radius:4px;background:var(--phos)}
+.d-own span{position:absolute;right:3px;top:-7px;color:var(--phos);font-size:11px}
+.d-tick{position:absolute;left:0;width:5px;border-top:1px solid var(--rule-2)}
+
+.report{margin:10px 0 0;padding:10px 12px;background:var(--hull);border:1px solid var(--rule-2);border-radius:4px;font-family:var(--f-data);font-size:12px;line-height:1.5;white-space:pre-wrap;color:var(--ink);-webkit-user-select:text;user-select:text}
+.warn-box{margin:10px 0 0;padding:8px 10px;border-left:3px solid var(--hostile);background:color-mix(in srgb,var(--hostile) 8%,transparent);font-size:13px;color:var(--ink)}
+.tx-why{align-self:center;font-family:var(--f-data);font-size:11px;color:var(--muted)}
+
+.esm{position:relative;min-height:150px}
+.strip{position:relative;height:26px;margin-bottom:8px;border:1px solid var(--rule-2);border-radius:3px;background:var(--hull)}
+.strip .ax{position:absolute;top:100%;font-family:var(--f-data);font-size:9.5px;color:var(--muted);transform:translateX(-50%);margin-top:1px}
+.strip i{position:absolute;bottom:0;width:3px;margin-left:-1px;background:var(--phos)}
+.strip i.crit{background:var(--hostile)}
+.strip .own{position:absolute;top:0;bottom:0;border-left:1px dashed var(--phos-dim)}
+.esm table{margin-top:16px}
+.esm td{padding:9px 4px}
+.esm td .meter{width:46px;margin:0}
+.esm tr.crit td:nth-child(3){color:var(--hostile)}
+.lock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px;text-align:center;border-radius:3px;background:repeating-linear-gradient(135deg,rgba(0,0,0,.5) 0 4px,rgba(0,0,0,.22) 4px 8px),color-mix(in srgb,var(--panel) 88%,transparent);font-family:var(--f-data);font-size:12px;color:var(--muted)}
+.lock b{font-family:var(--f-display);font-size:22px;font-weight:400;letter-spacing:.08em;color:var(--amber)}
+.lock[hidden]{display:none}
+
+.wait{padding-block:6px}
+.wait + .wait{border-top:1px solid var(--rule)}
+.wait-top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+
+@media (max-width:520px){
+  .mast{grid-template-columns:minmax(0,1fr) 76px}
+  .grp .g-c{font-size:18px}
+  .book{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){
+  .msg.new,.ords li.new,.grp.bad{animation:none}
+}
+</style>
+<body data-station="comms">
+
+<header class="bar">
+  <div class="brand">
+    <span class="mark">FATHOM</span>
+    <small>Comms · radio, ESM, the boat’s link home</small>
+  </div>
+  <dl class="status">
+    <div><dt>Depth</dt><dd><span id="stDep" class="warn">150</span><small>ft</small><span class="chip warn" id="stRx">No rx</span></dd></div>
+    <div><dt>Signal</dt><dd><span id="stSig">0</span><small>%</small></dd></div>
+    <div><dt id="stBcK">0400Z bcst</dt><dd class="warn" id="stBc">13:00</dd></div>
+    <div><dt>Masts</dt><dd id="stMast">Down</dd></div>
+    <div><dt>Decode</dt><dd id="stDec">1</dd></div>
+    <div class="st-time"><dt>Time</dt><dd id="stTime">0347:00Z</dd></div>
+  </dl>
+</header>
+
+<button type="button" class="alert" id="alert" data-sev="2" aria-live="polite">
+  <span class="alert-sev" id="alertSev">DEPTH</span>
+  <span class="alert-msg" id="alertMsg">Fleet broadcast in 13:00. Antenna is 90 ft too deep. Ask the Captain for 60 ft.</span>
+  <span class="alert-more" id="alertMore">Request →</span>
+</button>
+
+<main class="grid">
+  <section class="main-col" aria-label="Broadcast picture">
+    <section class="card" aria-labelledby="hTl">
+      <h2 id="hTl">Broadcast schedule <span class="h-note">depth against broadcast windows</span></h2>
+      <div class="tl-wrap"><canvas id="tl" aria-label="Timeline of broadcast windows and own depth"></canvas></div>
+    </section>
+
+    <section class="card" aria-labelledby="hSp">
+      <h2 id="hSp">Receiver <span class="chip" id="lockChip">No carrier</span></h2>
+      <div class="sp-wrap">
+        <canvas id="sp" aria-label="VLF receiver spectrum"></canvas>
+        <div class="hud tl">VLF <b>10–30</b> KHZ</div>
+        <div class="hud tr" id="spHud">FLEET 19.8 KHZ</div>
+      </div>
+      <div class="sig-row"><span>Signal</span><div class="meter bio"><i id="sigBar"></i></div><span class="val" id="sigVal">0%</span></div>
+      <div class="sig-row"><span>Copy</span><div class="meter"><i id="copyBar"></i></div><span class="val" id="copyVal">—</span></div>
+    </section>
+
+    <section class="card" aria-labelledby="hMsg">
+      <h2 id="hMsg">Incoming traffic <span class="h-note">tap a group, then its code in the book</span></h2>
+      <ul class="msgs" id="msgs"></ul>
+      <div id="dec"></div>
+    </section>
+  </section>
+
+  <aside class="side">
+    <section class="card" aria-labelledby="hOrd">
+      <h2 id="hOrd">Orders <span class="h-note">from the Captain</span></h2>
+      <ul class="ords" id="ords"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hMast">
+      <h2 id="hMast">Masts &amp; antenna <span class="chip warn" id="mastChip">Too deep</span></h2>
+      <div class="mast">
+        <div class="mast-ctl">
+          <dl class="facts" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0">
+            <div class="big"><dt>Depth</dt><dd id="fDep" class="warn">150</dd></div>
+            <div class="big"><dt>Need</dt><dd>60</dd></div>
+            <div class="wide" style="grid-column:span 2"><dt>Gap</dt><dd id="fGap" class="warn">90 ft too deep</dd></div>
+          </dl>
+          <div class="ctl"><span class="lbl">Comms</span><button type="button" class="toggle" id="mComms" aria-pressed="false" disabled>Raise mast</button></div>
+          <div class="ctl"><span class="lbl">ESM</span><button type="button" class="toggle" id="mEsm" aria-pressed="false" disabled>Raise mast</button></div>
+        </div>
+        <div class="dbar" id="dbar" aria-hidden="true">
+          <div class="d-rx" id="dRx"><em>RX ≤60</em></div>
+          <div class="d-layer" id="dLayer"><span>LAYER</span></div>
+          <div class="d-ord" id="dOrd"></div>
+          <div class="d-own" id="dOwn"><span id="dOwnV">150</span></div>
+        </div>
+      </div>
+      <div class="btns"><button type="button" class="btn primary" id="reqBtn">Request 60 ft from Captain</button></div>
+      <div class="ctl" style="margin-top:8px"><span class="lbl">Time</span>
+        <div class="seg" data-seg="time"><button type="button" data-v="1" aria-pressed="false">1×</button><button type="button" data-v="10" aria-pressed="true">10×</button><button type="button" data-v="30" aria-pressed="false">30×</button></div></div>
+      <p class="hint">Seawater blocks radio. Masts and the antenna only work at 60 ft, above the layer, where S3 hears us best and a mast shows on radar.</p>
+    </section>
+
+    <section class="card" aria-labelledby="hRep">
+      <h2 id="hRep">Contact report <span class="h-note">outgoing</span></h2>
+      <div class="ctl"><span class="lbl">Contact</span><div class="seg" data-seg="rep" id="repSeg"></div></div>
+      <div class="ctl"><span class="lbl">Prec.</span>
+        <div class="seg" data-seg="prec"><button type="button" data-v="ROUTINE" aria-pressed="false">Routine</button><button type="button" data-v="IMMEDIATE" aria-pressed="true">Immed.</button><button type="button" data-v="FLASH" aria-pressed="false">Flash</button></div></div>
+      <pre class="report" id="report"></pre>
+      <p class="warn-box">Transmitting reveals our position. Any ESM receiver in range gets a bearing on Fathom, and the raised mast shows on radar.</p>
+      <div class="meter" id="txMeter" hidden><i id="txBar"></i></div>
+      <div class="btns"><button type="button" class="btn danger" id="txBtn" disabled>Transmit</button><span class="tx-why" id="txWhy">Needs 60 ft and comms mast up</span></div>
+    </section>
+
+    <section class="card" aria-labelledby="hEsm">
+      <h2 id="hEsm">ESM · radar intercept <span class="chip warn" id="esmChip">Locked</span></h2>
+      <div class="esm">
+        <div class="strip" id="strip"><div class="own" style="left:12.5%"></div></div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th class="n">Brg</th><th>Band</th><th>Emitter</th><th>Str</th></tr></thead>
+          <tbody id="esmRows"><tr><td class="n">—</td><td>—</td><td>—</td><td>—</td></tr></tbody>
+        </table></div>
+        <div class="lock" id="esmLock"><b>LOCKED</b><span id="esmMsg">ESM mast stowed at 150 ft. Radar intercepts need the mast up at 60 ft.</span></div>
+      </div>
+      <div class="btns"><button type="button" class="btn" id="esmRep" disabled>Report intercepts to Captain</button></div>
+    </section>
+
+    <section class="card" aria-labelledby="hWait">
+      <h2 id="hWait">Waiting on</h2>
+      <div class="wait"><div class="wait-top"><span>Captain · antenna depth</span><span class="chip" id="wCapt">Not asked</span></div></div>
+      <div class="wait"><div class="wait-top"><span>Helm · up to 60 ft</span><span class="val" id="wHelm">150 ft</span></div><div class="meter"><i id="wHelmBar"></i></div></div>
+      <div class="wait"><div class="wait-top"><span>Sonar · S3 solution for report</span><span class="val" id="wSol">55%</span></div><div class="meter warn"><i id="wSolBar"></i></div></div>
+    </section>
+
+    <section class="card" aria-labelledby="hLog">
+      <h2 id="hLog">Comms log <span class="h-note">newest first</span></h2>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLinks">
+      <h2 id="hLinks">Crew links</h2>
+      <div class="links"><b>Takes from</b><a href="captain.html">Captain</a><a href="../submarine-sonar/index.html">Sonar</a><a href="nav.html">Navigator</a></div>
+      <div class="links" style="margin-top:8px"><b>Hands to</b><a href="captain.html">Captain</a><a href="nav.html">Navigator</a><a href="weapons.html">Fire control</a></div>
+    </section>
+  </aside>
+</main>
+
+<script src="crew.js"></script>
+<script src="net.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const rootCss = getComputedStyle(document.documentElement);
+const hex = n => { const h = rootCss.getPropertyValue(n).trim().replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const COL = { phos: hex('--phos'), dim: hex('--phos-dim'), amber: hex('--amber'), hostile: hex('--hostile'), bio: hex('--bio'), hull: hex('--hull'), muted: hex('--muted') };
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const approach = (v, t, m) => v + Math.sign(t - v) * Math.min(Math.abs(t - v), m);
+const fmt3 = d => String(Math.round(((d % 360) + 360) % 360) % 360).padStart(3, '0');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const T0 = 3 * 3600 + 47 * 60, NEED = SHIP.broadcast.needDepth;
+const WIN = [{ t0: 13 * 60, t1: 23 * 60, name: 'FLEET BCST 0400Z' }, { t0: 73 * 60, t1: 83 * 60, name: 'REPEAT 0500Z' }];
+const COPY_SECS = 150;
+
+const S = {
+  t: 0, speed: 10, depth: SHIP.depth, ordDepth: SHIP.depth,
+  req: 'none', comms: false, esm: false, esmT: 0, copy: 0, got: false, missed: false,
+  rep: 'S3', prec: 'IMMEDIATE', tx: -1, sol: 0.55, hist: [], threat: false,
+};
+const ON = NET.online;
+if (!ON) for (let t = -7 * 60; t <= 0; t += 15) S.hist.push([t, SHIP.depth]);
+
+const zulu = (t = S.t, sec = true) => {
+  const s = Math.floor(T0 + t), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60;
+  return String(h).padStart(2, '0') + String(m).padStart(2, '0') + (sec ? ':' + String(s % 60).padStart(2, '0') : '');
+};
+const mmss = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+// Online the receiver also needs the mast: the server copies nothing with it down.
+const signal = () => ON && !S.comms ? 0 : clamp((100 - S.depth) / (100 - NEED), 0, 1);
+const atDepth = () => S.depth <= NEED + 0.5;
+const activeWin = () => ON ? (LIVE.onAir ? LIVE : null) : WIN.find(w => S.t >= w.t0 && S.t < w.t1);
+
+/* ---------- live link: server state mirrored into S and LIVE ---------- */
+const HOUR = 3600, WINDOW = 600;
+const hourKey = h => String(((h % 24) + 24) % 24).padStart(2, '0') + '00Z';
+const LIVE = { key: '0400Z', next: '0500Z', left: WIN[0].t0, onAir: false, depth: SHIP.depth, req: null, ord: null, t: -1, histT: -Infinity, logId: 0, ords: 0 };
+const missedKey = (s, key) => s.log.some(e => e.from === 'comms' && e.text.startsWith(`Missed the ${key}`));
+const bKey = () => ON ? LIVE.key : '0400Z';
+const nextKey = () => ON ? LIVE.next : '0500Z';
+const bLeft = () => ON ? LIVE.left : WIN[0].t0 - S.t;
+
+function onState(s) {
+  if (s.t < LIVE.t - 2) { location.reload(); return; }
+  LIVE.t = s.t; S.t = s.t; S.speed = s.scale; LIVE.depth = s.own.depth; S.ordDepth = s.own.oDepth;
+  if (LIVE.histT === -Infinity) S.depth = s.own.depth;
+  if (s.t - LIVE.histT >= 15) { LIVE.histT = s.t; S.hist.push([s.t, s.own.depth]); }
+  if (S.hist.length > 2000) S.hist.splice(0, S.hist.length - 2000);
+
+  S.comms = s.comms.mast;
+  const secs = NET.secs() ?? T0 + s.t, h = Math.floor(secs / HOUR), since = secs - h * HOUR, key = hourKey(h);
+  const got = s.comms.copied.includes(key), missed = missedKey(s, key), focus = since < WINDOW || got || missed;
+  LIVE.key = focus ? key : hourKey(h + 1); LIVE.next = hourKey(focus ? h + 1 : h + 2);
+  LIVE.left = HOUR - since; LIVE.onAir = since < WINDOW && !got;
+  S.got = focus && got; S.missed = focus && missed && !got;
+
+  LIVE.req = s.requests.find(r => r.from === 'comms' && r.kind === 'antenna-depth') || null;
+  LIVE.ord = LIVE.req && s.orders.find(o => o.kind === 'depth' && o.value === NEED && o.id > LIVE.req.id) || null;
+  S.req = !LIVE.req ? 'none' : { pending: 'sent', held: 'held', approved: 'approved', denied: 'denied' }[LIVE.req.status];
+
+  const m = MSGS[2];
+  if (!m.rx && s.comms.copied.length) { m.rx = true; m.fresh = true; m.at = s.comms.copied[0]; cur = m; selG = 0; renderMsgs(); renderDec(); }
+
+  for (const e of s.log) if (e.kind === 'msg' && e.text.startsWith('To comms: ') && !ORDS.some(o => o.srv === e.id))
+    ORDS.push({ srv: e.id, from: SEAT[e.from] || e.from, at: e.at.slice(0, 4) + 'Z', text: e.text.slice(10), acked: false, fresh: true });
+  if (ORDS.length !== LIVE.ords) { LIVE.ords = ORDS.length; renderOrds(); }
+  if ((s.log[0]?.id || 0) !== LIVE.logId) { LIVE.logId = s.log[0]?.id || 0; renderLog(); }
+
+  document.querySelectorAll('[data-seg="time"] button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === s.scale));
+}
+// Offline: 'none' only. Online a new request is allowed once the last one is denied or its ascent is over.
+function canRequest() {
+  if (!ON) return S.req === 'none';
+  if (S.req === 'none' || S.req === 'denied') return true;
+  return S.req === 'approved' && (!LIVE.ord || LIVE.ord.status === 'done') && S.ordDepth > NEED + 2;
+}
+
+/* ---------- log ---------- */
+const logEl = $('#log');
+const SEAT = Object.fromEntries(STATIONS.map(s => [s.id, s.name]));
+const LOCAL = [];
+const logLi = (msg, kind, at) => {
+  const li = document.createElement('li'); li.className = kind;
+  const t = document.createElement('time'); t.textContent = at;
+  const sp = document.createElement('span'); sp.textContent = msg;
+  li.append(t, sp); return li;
+};
+// Online: the boat's shared log, merged with this station's own decode notes.
+function renderLog() {
+  const srv = (NET.s?.log || []).map(e => ({ at: e.at.replace('Z', ''), text: e.from === 'comms' ? e.text : `${SEAT[e.from] || e.from}: ${e.text}`, kind: e.kind === 'alert' ? 'alert-l' : e.kind === 'msg' ? '' : e.kind }));
+  logEl.replaceChildren(...[...srv, ...LOCAL].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 60).map(e => logLi(e.text, e.kind, e.at)));
+}
+function log(msg, kind = '', at) {
+  if (ON) { LOCAL.unshift({ at: at || zulu(), text: msg, kind }); LOCAL.length = Math.min(LOCAL.length, 60); renderLog(); return; }
+  logEl.prepend(logLi(msg, kind, at || zulu()));
+  while (logEl.children.length > 60) logEl.lastChild.remove();
+}
+
+/* ---------- orders from the Captain ---------- */
+const ORDS = [{ at: '0345Z', text: 'Stand by for the 0400Z broadcast. Draft a contact report on S3. Do not transmit without my order.', acked: false }];
+const ordEl = $('#ords');
+function renderOrds() {
+  ordEl.replaceChildren(...[...ORDS].reverse().sort((a, b) => a.acked - b.acked).map(o => {
+    const li = document.createElement('li'); if (o.acked) li.className = 'acked';
+    if (o.fresh) { li.classList.add('new'); o.fresh = false; }
+    li.innerHTML = `<div class="o-top"><span class="chip warn">${o.from || 'Captain'}</span>${o.acked ? '<span class="chip ok">Acknowledged</span>' : ''}<time>${o.at}</time></div><p></p>` +
+      (o.acked ? '' : `<button type="button" class="btn primary" data-i="${ORDS.indexOf(o)}">Acknowledge</button>`);
+    li.querySelector('p').textContent = o.text;
+    return li;
+  }));
+}
+function order(text, onAck) { ORDS.push({ at: zulu(S.t, false) + 'Z', text, acked: false, fresh: true, onAck }); renderOrds(); log('Captain: ' + text, 'warn'); }
+ordEl.addEventListener('click', e => {
+  const b = e.target.closest('button[data-i]'); if (!b) return;
+  const o = ORDS[+b.dataset.i]; o.acked = true; o.onAck?.();
+  log('Acknowledged: ' + o.text.split('.')[0] + '.', 'ok'); renderOrds();
+});
+
+function requestDepth() {
+  if (!canRequest()) { $('#reqBtn').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' }); return; }
+  if (ON) { NET.send('request', { kind: 'antenna-depth', text: 'Request antenna depth 60 ft for the 0400Z fleet broadcast.' }); return; }
+  S.req = 'sent'; log('Requested antenna depth 60 ft from the Captain for 0400Z.', 'warn'); ui();
+  setTimeout(() => {
+    S.req = 'approved'; S.ordDepth = NEED;
+    order('Approved. Make antenna depth 60 ft. Copy the broadcast, keep masts up no longer than you must, then we go deep.');
+    log('Helm: coming up to 60 ft.', '');
+    ui();
+  }, 5000);
+}
+$('#reqBtn').addEventListener('click', requestDepth);
+$('#alert').addEventListener('click', () => {
+  if (canRequest()) requestDepth();
+  else if (MSGS.some(m => m.rx && !m.done)) $('#dec').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+});
+
+/* ---------- masts ---------- */
+function setMast(k, v) {
+  if (ON && k === 'comms') { NET.send('mast', { up: v }); return; }
+  // Online the ESM receiver rides on the one mast the server knows about.
+  if (v && (ON ? !S.comms : !atDepth())) return;
+  S[k] = v; if (k === 'esm') S.esmT = 0;
+  log(`${k === 'esm' ? 'ESM' : 'Comms'} mast ${v ? 'raised' : 'lowered'}.`, v ? 'warn' : '');
+  if (k === 'esm' && v) { ESM.length = 0; S.threat = false; }
+  ui();
+}
+$('#mComms').addEventListener('click', () => setMast('comms', !S.comms));
+$('#mEsm').addEventListener('click', () => setMast('esm', !S.esm));
+
+document.querySelectorAll('[data-seg]').forEach(seg => seg.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const k = seg.dataset.seg;
+  if (k === 'time' && ON) { NET.send('scale', { value: +b.dataset.v }); return; }
+  seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  if (k === 'time') S.speed = +b.dataset.v;
+  if (k === 'rep') S.rep = b.dataset.v;
+  if (k === 'prec') S.prec = b.dataset.v;
+  renderReport();
+}));
+
+/* ---------- decode ---------- */
+const BOOK = {
+  1168: 'BY 0600Z', 1186: 'BY 0500Z', 2209: 'CONFIRMED', 2290: 'REPORTED', 3068: 'KILO', 3086: 'LIMA', 4712: 'RETURN', 4721: 'PROCEED',
+  5937: 'REPORT CONTACTS', 5973: 'HOLD POSITION', 6402: 'WEAPONS FREE', 6420: 'WEAPONS TIGHT', 7145: 'FRIENDLY SUB', 7154: 'HOSTILE SUB', 8815: 'AREA', 8851: 'CORRIDOR',
+};
+const PADS = [5132, 8806, 2479, 6153, 9047, 3318, 7720, 1594, 4685];
+const enc = (code, pad) => String(code).padStart(4, '0').split('').map((d, i) => (+d + +String(pad).padStart(4, '0')[i]) % 10).join('');
+function mkMsg(id, at, prec, codes, padStart, line) {
+  return { id, at, prec, line, rx: true, done: false, groups: codes.map((c, i) => ({ code: c, pad: PADS[(padStart + i) % PADS.length], cipher: enc(c, PADS[(padStart + i) % PADS.length]), ok: false })) };
+}
+const MSGS = [
+  { id: 'm0', at: '0231Z', prec: 'ROUTINE', rx: true, done: true, plain: 'SEA STATE 4 AREA KILO · NO CHANGE', groups: [] },
+  mkMsg('m1', '0302Z', 'PRIORITY', [7154, 2290, 8815, 3068], 0, 'page 17 · line 3'),
+  { ...mkMsg('m2', '0400Z', 'FLASH', [4721, 3068, 6402, 5937, 1186], 4, 'page 17 · line 4'), rx: false },
+];
+let cur = MSGS[1], selG = 0;
+const msgsEl = $('#msgs'), decEl = $('#dec');
+const plainOf = m => m.plain || m.groups.map(g => g.ok ? BOOK[g.code] : '····').join(' ');
+
+function renderMsgs() {
+  msgsEl.replaceChildren(...MSGS.map(m => {
+    const li = document.createElement('li');
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'msg'; b.dataset.id = m.id;
+    if (m.fresh) { b.classList.add('new'); m.fresh = false; }
+    b.setAttribute('aria-pressed', m === cur);
+    b.disabled = !m.rx;
+    const solved = m.groups.filter(g => g.ok).length;
+    const state = !m.rx ? (S.missed && !activeWin() ? '<span class="chip crit">Missed</span>' : S.copy > 0 ? `<span class="chip warn">Copying ${Math.round(S.copy * 100)}%</span>` : '<span class="chip">Not received</span>')
+      : m.done ? '<span class="chip ok">Decoded</span>' : `<span class="chip warn">${solved}/${m.groups.length}</span>`;
+    const chip = m.prec === 'FLASH' ? 'crit' : m.prec === 'PRIORITY' ? 'warn' : '';
+    b.innerHTML = `<time>${m.at}</time><span class="m-txt"><span class="chip ${chip}">${m.prec}</span> ${m.rx ? (m.done ? plainOf(m) : m.groups.length + ' groups, encrypted') : 'Fleet broadcast · need 60 ft'}</span>${state}`;
+    li.append(b); return li;
+  }));
+}
+msgsEl.addEventListener('click', e => {
+  const b = e.target.closest('.msg'); if (!b || b.disabled) return;
+  cur = MSGS.find(m => m.id === b.dataset.id); selG = cur.groups.findIndex(g => !g.ok);
+  renderMsgs(); renderDec();
+});
+
+function renderDec() {
+  if (!cur.groups.length) { decEl.innerHTML = `<p class="dec-empty">${cur.at} ${cur.prec}: ${cur.plain}</p>`; return; }
+  const g = cur.groups[selG];
+  decEl.innerHTML = `
+    <div class="dec-head"><span class="chip ${cur.prec === 'FLASH' ? 'crit' : 'warn'}">${cur.prec}</span><b>${cur.at} · FLEET</b><span>one-time pad ${cur.line}</span></div>
+    <div class="groups">${cur.groups.map((x, i) => `<button type="button" class="grp${x.ok ? ' done' : ''}" data-g="${i}" aria-pressed="${i === selG && !x.ok}">
+      <span class="g-c">${x.cipher}</span><span class="g-p">− ${String(x.pad).padStart(4, '0')}</span><span class="g-a">${x.ok ? x.code + ' ' + BOOK[x.code] : '= ????'}</span></button>`).join('')}</div>
+    <p class="work">${g ? `Group ${selG + 1}: <b>${g.cipher}</b> − ${String(g.pad).padStart(4, '0')}, digit by digit, no borrowing (mod 10). Find the result in the book.` : 'All groups decoded.'}</p>
+    <div class="plain${cur.done ? ' full' : ''}">${plainOf(cur)}</div>
+    <div class="book-h"><span>Codebook · page 17</span><span>${cur.groups.filter(x => x.ok).length}/${cur.groups.length}</span></div>
+    <div class="book">${Object.entries(BOOK).map(([c, w]) => `<button type="button" class="code" data-c="${c}"><b>${c}</b><span>${w}</span></button>`).join('')}</div>
+    <div class="btns"><button type="button" class="btn primary" id="passBtn" ${cur.done && !cur.passed ? '' : 'disabled'}>${cur.passed ? 'Passed to Captain' : 'Pass to Captain'}</button></div>`;
+}
+decEl.addEventListener('click', e => {
+  const gb = e.target.closest('.grp');
+  if (gb && !gb.classList.contains('done')) { selG = +gb.dataset.g; renderDec(); return; }
+  const cb = e.target.closest('.code');
+  if (cb && cur.groups[selG] && !cur.groups[selG].ok) {
+    const g = cur.groups[selG];
+    if (+cb.dataset.c === g.code) {
+      g.ok = true; log(`${cur.at} group ${selG + 1}: ${g.code} ${BOOK[g.code]}.`, 'ok');
+      if (cur.groups.every(x => x.ok)) { cur.done = true; log(`${cur.at} decoded: ${plainOf(cur)}.`, 'ok'); }
+      selG = cur.groups.findIndex(x => !x.ok);
+      renderDec(); renderMsgs();
+    } else {
+      log(`Group ${selG + 1}: ${cb.dataset.c} does not match. Check the subtraction.`, 'alert-l');
+      const el = decEl.querySelector(`.grp[data-g="${selG}"]`);
+      el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad');
+    }
+    ui(); return;
+  }
+  if (e.target.id === 'passBtn') {
+    if (ON) { if (NET.send('message', { to: 'captain', text: `${cur.at} ${cur.prec}: ${plainOf(cur)}` })) cur.passed = true; renderDec(); return; }
+    cur.passed = true; log(`Passed ${cur.at} ${cur.prec} to Captain: ${plainOf(cur)}.`, 'ok');
+    if (cur.id === 'm2') order('Copy. Weapons free on S3. Lower masts and make your depth 150 ft.', () => { S.comms && setMast('comms', false); S.esm && setMast('esm', false); S.ordDepth = 150; log('Helm: going deep, 150 ft.', ''); });
+    renderDec();
+  }
+});
+
+/* ---------- contact report ---------- */
+$('#repSeg').innerHTML = SHIP.contacts.map(c => `<button type="button" data-v="${c.id}" aria-pressed="${c.id === S.rep}">${c.id}</button>`).join('');
+// The server keeps 200 chars of a message, so the wire copy drops the header lines.
+const reportLine = () => $('#report').textContent.split('\n').filter(l => !/^(FM|TO|BT)\b/.test(l)).join(' / ');
+function renderReport() {
+  const c = SHIP.contacts.find(x => x.id === S.rep), sol = c.hostile ? S.sol : c.sol;
+  const cls = c.kind.toUpperCase() + (c.hostile ? ' HOSTILE' : '');
+  $('#report').textContent =
+`${S.prec}
+FM FATHOM
+TO CTF 64
+BT
+CONTACT REPORT ${zulu(S.t, false)}Z
+1. ${c.id} ${cls}
+2. BRG ${fmt3(c.brg)}T RNG ${c.kyd.toFixed(1)} KYD FROM OWN
+3. CSE ${fmt3(c.course)} SPD ${c.speed} KTS${c.depth ? ' DEPTH EST ' + c.depth + ' FT' : ' SURFACE'}
+4. SOLUTION ${Math.round(sol * 100)} PCT
+5. OWN CSE ${fmt3(SHIP.course)} SPD ${SHIP.speed} ENROUTE ${SHIP.waypoint.id} ETA ${SHIP.waypoint.eta}
+BT`;
+}
+$('#txBtn').addEventListener('click', () => {
+  if (S.tx >= 0) return;
+  if (ON && !NET.send('message', { to: 'captain', text: reportLine() })) return;
+  S.tx = 0; $('#txMeter').hidden = false;
+  if (!ON) log(`Transmitting ${S.prec} contact report on ${S.rep}. Fathom is radiating.`, 'alert-l');
+  ui();
+});
+
+/* ---------- ESM ---------- */
+const ESM_SCHED = [
+  { after: 1.5, brg: 82, band: 'X', who: 'Nav radar · S1 merchant', str: 0.35, grow: 0, crit: false },
+  { after: 3.5, brg: 331, band: 'X', who: 'Nav radar · S2 fishing', str: 0.22, grow: 0, crit: false },
+  { after: 7, brg: 214, band: 'I', who: 'Patrol aircraft · search radar', str: 0.2, grow: 0.06, crit: true },
+];
+const ESM = [];
+function renderEsm() {
+  const rows = $('#esmRows'), strip = $('#strip');
+  strip.querySelectorAll('i').forEach(i => i.remove());
+  if (!ESM.length) { rows.innerHTML = `<tr><td class="n">—</td><td>—</td><td>${S.esm ? 'Listening…' : '—'}</td><td>—</td></tr>`; return; }
+  rows.innerHTML = ESM.map(x => `<tr class="${x.crit ? 'crit' : ''}"><td class="n">${fmt3(x.brg)}</td><td>${x.band}</td><td>${x.who}</td><td><div class="meter ${x.crit ? 'crit' : ''}"><i style="width:${Math.round(x.str * 100)}%"></i></div></td></tr>`).join('');
+  for (const x of ESM) {
+    const i = document.createElement('i'); if (x.crit) i.className = 'crit';
+    i.style.left = (x.brg / 360 * 100) + '%'; i.style.height = (20 + x.str * 80) + '%'; strip.append(i);
+  }
+}
+(() => {
+  const strip = $('#strip');
+  for (const b of [0, 90, 180, 270]) { const s = document.createElement('span'); s.className = 'ax'; s.style.left = (b / 360 * 100) + '%'; s.textContent = fmt3(b); strip.append(s); }
+  strip.querySelector('.own').style.left = (SHIP.course / 360 * 100) + '%';
+})();
+$('#esmRep').addEventListener('click', () => {
+  if (ON) { NET.send('message', { to: 'captain', text: `ESM intercepts: ${ESM.map(x => fmt3(x.brg) + ' ' + x.who).join('; ')}.` }); return; }
+  log(`Reported to Captain: ${ESM.map(x => fmt3(x.brg) + ' ' + x.who).join('; ')}.`, S.threat ? 'alert-l' : 'ok');
+  if (S.threat) order('Copy aircraft radar. Down all masts as soon as the broadcast is in.');
+});
+
+/* ---------- canvases ---------- */
+const tl = $('#tl'), tx = tl.getContext('2d'), sp = $('#sp'), sx = sp.getContext('2d');
+let dpr = 1;
+function fit(c) { const b = c.getBoundingClientRect(); c.width = Math.max(1, Math.round(b.width * dpr)); c.height = Math.max(1, Math.round(b.height * dpr)); }
+function resize() { dpr = Math.min(window.devicePixelRatio || 1, 2); fit(tl); fit(sp); }
+const ro = new ResizeObserver(resize); ro.observe(tl); ro.observe(sp);
+const mono = s => `500 ${s * dpr}px "IBM Plex Mono", monospace`;
+
+const D_MAX = 300;
+let T_MIN = -7 * 60, T_MAX = 113 * 60;
+// Online the view slides with the clock and shows every hourly broadcast in it.
+function tlWindows() {
+  if (!ON) return WIN.map((w, i) => ({ ...w, main: i === 0, done: i === 0 ? (S.got ? 'ok' : S.missed ? 'miss' : '') : '' }));
+  const out = [], copied = NET.s?.comms.copied || [];
+  for (let h = Math.ceil((T0 + T_MIN - WINDOW) / HOUR); h * HOUR - T0 <= T_MAX; h++) {
+    const key = hourKey(h), t0 = h * HOUR - T0;
+    out.push({ t0, t1: t0 + WINDOW, name: (key === LIVE.key ? 'FLEET BCST ' : 'BCST ') + key, main: key === LIVE.key, done: copied.includes(key) ? 'ok' : NET.s && missedKey(NET.s, key) ? 'miss' : '' });
+  }
+  return out;
+}
+function drawTl(now) {
+  const c = tx, W = tl.width, H = tl.height, narrow = W / dpr < 640, span = narrow ? 3600 : 7200;
+  c.clearRect(0, 0, W, H);
+  T_MIN = ON ? Math.max(-7 * 60, S.t - span / 3) : -7 * 60; T_MAX = T_MIN + span;
+  const L = 44 * dpr, Rm = 12 * dpr, laneT = 8 * dpr, laneH = 26 * dpr, top = laneT + laneH + 14 * dpr, bot = H - 22 * dpr;
+  const X = t => L + (t - T_MIN) / (T_MAX - T_MIN) * (W - L - Rm), Y = d => top + d / D_MAX * (bot - top);
+  c.fillStyle = rgba(COL.hull, 1); c.fillRect(0, 0, W, H);
+
+  c.fillStyle = rgba(COL.bio, 0.1); c.fillRect(L, Y(0), W - L - Rm, Y(NEED) - Y(0));
+  c.lineWidth = dpr; c.font = mono(10); c.textBaseline = 'middle';
+  for (let d = 0; d <= D_MAX; d += 50) {
+    c.strokeStyle = rgba(COL.phos, d === 0 ? 0.35 : 0.07); c.beginPath(); c.moveTo(L, Y(d)); c.lineTo(W - Rm, Y(d)); c.stroke();
+    c.fillStyle = rgba(COL.phos, 0.45); c.textAlign = 'right'; c.fillText(d === 0 ? 'SURF' : String(d), L - 6 * dpr, Y(d));
+  }
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  const step = narrow ? 1200 : 600;
+  for (let t = Math.ceil((T0 + T_MIN) / step) * step - T0; t <= T_MAX; t += step) {
+    c.strokeStyle = rgba(COL.phos, 0.07); c.beginPath(); c.moveTo(X(t), top); c.lineTo(X(t), bot); c.stroke();
+    c.fillStyle = rgba(COL.phos, 0.45); c.textAlign = X(t) > W - 30 * dpr ? 'right' : 'center'; c.fillText(zulu(t, false), X(t), bot + 6 * dpr);
+  }
+  c.setLineDash([6 * dpr, 4 * dpr]); c.strokeStyle = rgba(COL.amber, 0.8);
+  c.beginPath(); c.moveTo(L, Y(NEED)); c.lineTo(W - Rm, Y(NEED)); c.stroke();
+  c.strokeStyle = rgba(COL.dim, 0.9); c.beginPath(); c.moveTo(L, Y(SHIP.layer)); c.lineTo(W - Rm, Y(SHIP.layer)); c.stroke(); c.setLineDash([]);
+  c.textAlign = 'left'; c.textBaseline = 'bottom'; c.font = mono(10);
+  c.fillStyle = rgba(COL.bio, 0.85); c.fillText('RECEPTION ≤ 60 FT', L + 6 * dpr, Y(NEED) - 3 * dpr);
+  c.fillStyle = rgba(COL.phos, 0.5); c.fillText('LAYER 250 FT', L + 6 * dpr, Y(SHIP.layer) - 3 * dpr);
+
+  const wins = tlWindows(), mainWin = wins.find(w => w.main);
+  for (const w of wins) {
+    if (w.t0 > T_MAX) continue;
+    const x0 = X(w.t0), x1 = X(w.t1), done = w.done;
+    const col = done === 'ok' ? COL.phos : done === 'miss' ? COL.hostile : COL.amber;
+    c.fillStyle = rgba(col, w.main ? 0.08 : 0.04); c.fillRect(x0, top, x1 - x0, bot - top);
+    c.fillStyle = rgba(col, w.main ? 0.85 : 0.45); c.fillRect(x0, laneT, Math.max(3 * dpr, x1 - x0), laneH);
+    c.fillStyle = rgba(col, 0.95); c.textBaseline = 'middle'; c.textAlign = 'left'; c.font = mono(10.5);
+    const label = w.name + (done === 'ok' ? ' · COPIED' : done === 'miss' ? ' · MISSED' : '');
+    c.fillText(label, x1 + 6 * dpr, laneT + laneH / 2);
+  }
+  const kx = X(105 * 60);
+  if (!narrow && kx > L) {
+  c.fillStyle = rgba(COL.bio, 0.9); c.save(); c.translate(kx, laneT + laneH / 2); c.rotate(Math.PI / 4); c.fillRect(-4 * dpr, -4 * dpr, 8 * dpr, 8 * dpr); c.restore();
+  c.textAlign = 'right'; c.fillText('KILO 0532Z', kx - 8 * dpr, laneT + laneH / 2);
+  }
+
+  // dashed plan: what the boat will do if nothing changes, or the approved ascent
+  c.setLineDash([5 * dpr, 4 * dpr]); c.lineWidth = 1.5 * dpr; c.beginPath();
+  const nowX = X(S.t);
+  if (!ON && S.req === 'approved' && !S.got && S.ordDepth <= NEED) {
+    const tUp = S.t + Math.max(0, S.depth - NEED) / 1.2, tDown = Math.max(tUp + 60, WIN[0].t0 + COPY_SECS + 30);
+    c.strokeStyle = rgba(COL.amber, 0.85);
+    c.moveTo(nowX, Y(S.depth)); c.lineTo(X(tUp), Y(NEED)); c.lineTo(X(tDown), Y(NEED)); c.lineTo(X(tDown + 75), Y(150)); c.lineTo(W - Rm, Y(150));
+  } else {
+    const rate = ON ? 2 + 0.15 * Math.abs(NET.s?.own.speed || 0) : 1.2;
+    c.strokeStyle = rgba(COL.phos, 0.35);
+    c.moveTo(nowX, Y(S.depth)); c.lineTo(X(S.t + (S.ordDepth - S.depth) / rate * Math.sign(S.ordDepth - S.depth || 1)), Y(S.ordDepth)); c.lineTo(W - Rm, Y(S.ordDepth));
+  }
+  c.stroke(); c.setLineDash([]);
+  if (!S.got && S.depth > NEED && mainWin && S.t < mainWin.t0) {
+    const gx = X(mainWin.t0) + 10 * dpr;
+    c.strokeStyle = rgba(COL.hostile, 0.85); c.lineWidth = 1.5 * dpr; c.beginPath();
+    c.moveTo(gx, Y(S.depth) - 3 * dpr); c.lineTo(gx, Y(NEED) + 3 * dpr);
+    c.moveTo(gx - 4 * dpr, Y(NEED) + 8 * dpr); c.lineTo(gx, Y(NEED) + 2 * dpr); c.lineTo(gx + 4 * dpr, Y(NEED) + 8 * dpr); c.stroke();
+    c.fillStyle = rgba(COL.hostile, 0.95); c.textAlign = 'left'; c.textBaseline = 'middle'; c.font = mono(10.5);
+    c.fillText(`${Math.round(S.depth - NEED)} FT TOO DEEP`, gx + 7 * dpr, (Y(S.depth) + Y(NEED)) / 2);
+  }
+
+  c.save(); c.beginPath(); c.rect(L, 0, W - L - Rm, H); c.clip();
+  c.strokeStyle = rgba(COL.phos, 0.95); c.lineWidth = 2 * dpr; c.beginPath();
+  S.hist.forEach(([t, d], i) => i ? c.lineTo(X(t), Y(d)) : c.moveTo(X(t), Y(d)));
+  if (S.hist.length) c.lineTo(nowX, Y(S.depth)); c.stroke(); c.restore();
+
+  c.strokeStyle = rgba(COL.phos, 0.8); c.lineWidth = dpr; c.beginPath(); c.moveTo(nowX, laneT); c.lineTo(nowX, bot); c.stroke();
+  c.fillStyle = rgba(COL.phos, 1); c.beginPath(); c.arc(nowX, Y(S.depth), 4 * dpr, 0, Math.PI * 2); c.fill();
+  c.fillStyle = rgba(COL.hull, 0.85); c.font = mono(10.5); c.textAlign = 'left'; c.textBaseline = 'middle';
+  const lbl = `NOW ${zulu(S.t, false)}Z · ${Math.round(S.depth)} FT`, lw = c.measureText(lbl).width + 8 * dpr;
+  const lx = Math.min(nowX + 6 * dpr, W - Rm - lw);
+  c.fillRect(lx, Y(S.depth) + 8 * dpr, lw, 16 * dpr);
+  c.fillStyle = rgba(COL.phos, 1); c.fillText(lbl, lx + 4 * dpr, Y(S.depth) + 16 * dpr);
+}
+
+const N = 180, spec = new Float32Array(N), hold = new Float32Array(N);
+function drawSp(now) {
+  const c = sx, W = sp.width, H = sp.height, sig = signal(), win = activeWin();
+  c.clearRect(0, 0, W, H);
+  c.fillStyle = rgba(COL.hull, 1); c.fillRect(0, 0, W, H);
+  const fx = f => (f - 10) / 20 * W, base = H - 18 * dpr, top = 24 * dpr;
+  c.lineWidth = dpr; c.strokeStyle = rgba(COL.phos, 0.07); c.font = mono(9.5); c.fillStyle = rgba(COL.phos, 0.4); c.textAlign = 'center'; c.textBaseline = 'top';
+  for (let f = 10; f <= 30; f += 2.5) { c.beginPath(); c.moveTo(fx(f), top); c.lineTo(fx(f), base); c.stroke(); if (f % 5 === 0 && f > 10 && f < 30) c.fillText(f + 'k', fx(f), base + 4 * dpr); }
+  for (let i = 0; i < N; i++) {
+    const f = 10 + i / (N - 1) * 20;
+    let v = 0.06 + Math.random() * 0.07;
+    v += sig * 0.78 * Math.exp(-((f - 19.8) ** 2) / 0.02);
+    v += sig * 0.42 * Math.exp(-((f - 24.0) ** 2) / 0.03);
+    if (win && sig >= 1) v += (0.25 + 0.2 * Math.random()) * (Math.exp(-((f - 19.5) ** 2) / 0.01) + Math.exp(-((f - 20.1) ** 2) / 0.01));
+    spec[i] = reduceMotion ? v : spec[i] * 0.6 + v * 0.4;
+    hold[i] = Math.max(spec[i], hold[i] - 0.004);
+  }
+  const y = v => base - v * (base - top);
+  c.beginPath(); c.moveTo(0, base);
+  for (let i = 0; i < N; i++) c.lineTo(i / (N - 1) * W, y(spec[i]));
+  c.lineTo(W, base); c.closePath(); c.fillStyle = rgba(COL.phos, 0.12); c.fill();
+  c.beginPath(); for (let i = 0; i < N; i++) c.lineTo(i / (N - 1) * W, y(spec[i])); c.strokeStyle = rgba(COL.phos, 0.9); c.lineWidth = 1.3 * dpr; c.stroke();
+  c.beginPath(); for (let i = 0; i < N; i++) c.lineTo(i / (N - 1) * W, y(hold[i])); c.strokeStyle = rgba(COL.phos, 0.25); c.lineWidth = dpr; c.stroke();
+  c.setLineDash([3 * dpr, 4 * dpr]); c.strokeStyle = rgba(COL.amber, 0.6); c.beginPath(); c.moveTo(fx(19.8), top); c.lineTo(fx(19.8), base); c.stroke(); c.setLineDash([]);
+  if (sig < 0.05) {
+    c.fillStyle = rgba(COL.hull, 0.7); c.fillRect(0, H / 2 - 14 * dpr, W, 28 * dpr);
+    c.fillStyle = rgba(COL.amber, 0.95); c.font = mono(W < 500 * dpr ? 10.5 : 12); c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(ON && S.comms === false && atDepth() ? 'NO SIGNAL · RAISE THE COMMS MAST' : `NO SIGNAL · ${Math.round(S.depth)} FT OF SEAWATER BLOCKS RADIO`, W / 2, H / 2);
+  }
+}
+
+/* ---------- UI ---------- */
+const setText = (sel, v) => { const el = $(sel); if (el.textContent !== v) el.textContent = v; };
+const setW = (sel, f) => { $(sel).style.width = (clamp(f, 0, 1) * 100).toFixed(1) + '%'; };
+const DB = d => (clamp(d, 0, 300) / 300 * 100) + '%';
+function ui() {
+  const sig = signal(), ok = atDepth(), dep = Math.round(S.depth), win = activeWin();
+  setText('#stTime', ON && NET.clock ? NET.clock : zulu() + 'Z');
+  setText('#stDep', String(dep)); $('#stDep').className = ok ? '' : 'warn';
+  setText('#stRx', ok ? 'Rx' : sig > 0 ? 'Weak' : 'No rx'); $('#stRx').className = 'chip ' + (ok ? 'ok' : 'warn');
+  setText('#stSig', String(Math.round(sig * 100)));
+  const left = bLeft();
+  setText('#stBcK', bKey() + ' bcst');
+  setText('#stBc', S.got ? 'Copied' : S.missed ? 'Missed' : win ? 'On air' : mmss(left));
+  $('#stBc').className = S.got ? '' : S.missed ? 'crit' : 'warn';
+  setText('#stMast', S.comms || S.esm ? [S.comms && 'Comms', S.esm && 'ESM'].filter(Boolean).join('+') : 'Down');
+  $('#stMast').className = S.comms || S.esm ? 'warn' : '';
+  const todo = MSGS.filter(m => m.rx && !m.done).length;
+  setText('#stDec', String(todo)); $('#stDec').className = todo ? 'warn' : '';
+
+  setText('#fDep', String(dep)); $('#fDep').className = ok ? '' : 'warn';
+  setText('#fGap', ok ? 'At antenna depth' : `${dep - NEED} ft too deep`); $('#fGap').className = ok ? '' : 'warn';
+  setText('#mastChip', ok ? 'Masts free' : 'Too deep'); $('#mastChip').className = 'chip ' + (ok ? 'ok' : 'warn');
+  for (const [id, k] of [['#mComms', 'comms'], ['#mEsm', 'esm']]) {
+    const b = $(id); b.disabled = ON ? (k === 'comms' ? !ok && !S.comms : !S.comms && !S.esm) : !ok; b.setAttribute('aria-pressed', S[k]); setText(id, S[k] ? 'Lower mast' : 'Raise mast');
+  }
+  $('#dRx').style.height = DB(NEED); $('#dLayer').style.top = DB(SHIP.layer);
+  $('#dOwn').style.top = DB(S.depth); $('#dOrd').style.top = DB(S.ordDepth); $('#dOrd').hidden = Math.abs(S.ordDepth - S.depth) < 1;
+  setText('#dOwnV', String(dep));
+  const rb = $('#reqBtn'); rb.disabled = !canRequest();
+  setText('#reqBtn', canRequest() ? (S.req === 'denied' ? 'Denied · ask again' : 'Request 60 ft from Captain')
+    : { sent: 'Request sent · waiting', held: 'Captain holding request', approved: 'Captain approved 60 ft' }[S.req]);
+
+  setText('#lockChip', sig >= 1 ? 'Carrier lock' : sig > 0 ? 'Weak carrier' : 'No carrier');
+  $('#lockChip').className = 'chip ' + (sig >= 1 ? 'ok' : sig > 0 ? 'warn' : '');
+  setText('#spHud', win && sig >= 1 ? 'FLEET 19.8 KHZ · DATA' : 'FLEET 19.8 KHZ');
+  setText('#sigVal', Math.round(sig * 100) + '%'); setW('#sigBar', sig);
+  setText('#copyVal', S.got ? '100%' : S.copy ? Math.round(S.copy * 100) + '%' : '—'); setW('#copyBar', S.got ? 1 : S.copy);
+
+  const txing = S.tx >= 0, canTx = ok && S.comms && !txing;
+  $('#txBtn').disabled = !canTx;
+  setText('#txBtn', txing ? 'Transmitting…' : 'Transmit');
+  setText('#txWhy', txing ? 'Burst on air' : !ok ? `Needs 60 ft (now ${dep} ft)` : !S.comms ? 'Raise the comms mast' : 'Ready. Reveals position.');
+  $('#txWhy').style.color = canTx ? 'var(--hostile)' : '';
+
+  const esmOn = S.esm && (ON ? S.comms : ok);
+  $('#esmLock').hidden = esmOn;
+  setText('#esmMsg', ON && ok && !S.comms ? 'At 60 ft. ESM shares the comms mast: raise it first.' : ok ? 'At 60 ft. Raise the ESM mast to listen for radar.' : `ESM mast stowed at ${dep} ft. Radar intercepts need the mast up at 60 ft.`);
+  setText('#esmChip', esmOn ? (S.threat ? 'Threat' : 'Listening') : 'Locked');
+  $('#esmChip').className = 'chip ' + (esmOn ? (S.threat ? 'crit' : 'ok') : 'warn');
+  $('#esmRep').disabled = !ESM.length;
+
+  setText('#wCapt', { none: 'Not asked', sent: 'Asked', held: 'Held', approved: 'Approved', denied: 'Denied' }[S.req]);
+  $('#wCapt').className = 'chip ' + (S.req === 'approved' ? 'ok' : S.req === 'denied' ? 'crit' : 'warn');
+  setText('#wHelm', ON && LIVE.ord?.status === 'new' ? 'Ordered' : ok ? 'At 60 ft' : `${dep} ft`); setW('#wHelmBar', (150 - S.depth) / (150 - NEED));
+  setText('#wSol', Math.round(S.sol * 100) + '%'); setW('#wSolBar', S.sol / 0.8);
+
+  updateAlert(sig, ok, left, win);
+}
+function updateAlert(sig, ok, left, win) {
+  let sev = 2, tag = 'DEPTH', msg, more = '';
+  if (S.threat && S.esm) { sev = 3; tag = 'RADAR'; msg = 'Aircraft search radar brg 214, strength rising. Get the copy and get masts down.'; }
+  else if (S.tx >= 0) { sev = 3; tag = 'ON AIR'; msg = 'Transmitting. Anyone listening has our bearing.'; }
+  else if (S.missed && !S.got) { sev = 3; tag = 'MISSED'; msg = `Missed the ${bKey()} broadcast. Next repeat ${nextKey()}.`; }
+  else if (MSGS[2].rx && !MSGS[2].done) { tag = 'FLASH'; msg = 'FLASH traffic copied. Decode it and pass it to the Captain.'; more = 'Decode ↓'; }
+  else if (S.got) { sev = 1; tag = 'COPIED'; msg = ok ? 'Broadcast in. Lower masts so the Captain can take us deep.' : 'Broadcast in. Back below 60 ft.'; }
+  else if (win && ok) { sev = 1; tag = 'COPYING'; msg = ON ? (S.comms ? 'Copying the fleet broadcast.' : 'Broadcast on air. Raise the comms mast to copy it.') : `Copying the fleet broadcast: ${Math.round(S.copy * 100)}%.`; }
+  else if (ok) { sev = 1; tag = 'READY'; msg = `At antenna depth. Broadcast in ${mmss(left)}.`; }
+  else if (S.req === 'approved' && ON && LIVE.ord?.status === 'new') { sev = 1; tag = 'APPROVED'; msg = `Captain approved 60 ft. Waiting on Helm. Broadcast in ${mmss(left)}.`; }
+  else if (S.req === 'approved' && S.ordDepth <= NEED) { sev = 1; tag = 'ASCENT'; msg = `Coming up: ${Math.round(S.depth)} ft. Signal ${Math.round(sig * 100)}%.`; }
+  else if (S.req === 'sent') { msg = `Request sent. Waiting on the Captain. Broadcast in ${mmss(left)}.`; }
+  else if (S.req === 'held') { msg = `Captain is holding the request. Broadcast in ${mmss(left)}.`; }
+  else { msg = `Fleet broadcast in ${mmss(left)}. Antenna is ${Math.round(S.depth - NEED)} ft too deep. Ask the Captain for 60 ft.`; more = 'Request →'; }
+  const a = $('#alert'); if (a.dataset.sev !== String(sev)) a.dataset.sev = sev;
+  setText('#alertSev', tag); setText('#alertMsg', msg); setText('#alertMore', more); $('#alertMore').hidden = !more;
+}
+
+/* ---------- tick ---------- */
+let last = performance.now(), uiAcc = 0, histT = 0, repAt = '';
+function tick(now) {
+  const rdt = Math.min(0.1, (now - last) / 1000), dt = rdt * S.speed; last = now;
+  S.t += dt;
+  const prev = S.depth;
+  if (ON) S.depth = Math.abs(LIVE.depth - S.depth) < 0.05 ? LIVE.depth : S.depth + (LIVE.depth - S.depth) * Math.min(1, rdt * 4);
+  else S.depth = approach(S.depth, S.ordDepth, 1.2 * dt);
+  if (prev > NEED + 0.5 && atDepth()) log('At antenna depth 60 ft. Masts clear to raise.', 'ok');
+  if (ON) { if (S.esm && !S.comms) { S.esm = false; log('ESM mast lowered with the comms mast.', 'warn'); } }
+  else if (!atDepth() && (S.comms || S.esm)) { S.comms = S.esm = false; log('Masts lowered: too deep.', 'warn'); }
+  if (!ON && S.t - histT >= 15) { histT = S.t; S.hist.push([S.t, S.depth]); }
+  S.sol = Math.min(0.79, S.sol + 0.00006 * dt);
+
+  const win = activeWin();
+  if (!ON && win === WIN[0] && !S.got) {
+    if (signal() >= 1) { S.copy = Math.min(1, S.copy + dt / COPY_SECS); if (Math.random() < rdt * 2) renderMsgs(); }
+    if (S.copy >= 1) {
+      S.got = true; const m = MSGS[2]; m.rx = true; m.fresh = true;
+      log('0400Z FLASH copied: 5 groups. Decode.', 'ok'); cur = m; selG = 0; renderMsgs(); renderDec();
+    }
+  }
+  if (!ON && !S.got && !S.missed && S.t >= WIN[0].t1) { S.missed = true; log('0400Z broadcast window closed. Not copied.', 'alert-l'); renderMsgs(); }
+
+  if (S.esm && (ON ? S.comms : atDepth())) {
+    S.esmT += rdt;
+    for (const x of ESM_SCHED) if (S.esmT >= x.after && !ESM.includes(x)) {
+      ESM.push(x); x.str = x.crit ? 0.2 : x.str;
+      log(`ESM: ${x.band}-band ${x.who}, brg ${fmt3(x.brg)}.`, x.crit ? 'alert-l' : '');
+      if (x.crit) S.threat = true;
+    }
+    for (const x of ESM) if (x.grow) x.str = Math.min(0.95, x.str + x.grow * rdt);
+  }
+  if (S.tx >= 0) {
+    S.tx += rdt / 3; setW('#txBar', S.tx);
+    if (S.tx >= 1) { S.tx = -1; $('#txMeter').hidden = true; log(`Contact report on ${S.rep} sent and receipted.`, 'ok'); }
+  }
+
+  drawTl(now); drawSp(now);
+  uiAcc += rdt; if (uiAcc > 0.2) { uiAcc = 0; ui(); if (S.esm) renderEsm(); if (zulu(S.t, false) !== repAt) { repAt = zulu(S.t, false); renderReport(); } }
+  requestAnimationFrame(tick);
+}
+
+log('0200Z broadcast copied at last shallow trip.', 'ok', '0231:40');
+log('Stored 0302Z PRIORITY traffic, 4 groups, not yet decoded.', 'warn', '0302:15');
+log('Went deep to 150 ft. No reception.', '', '0310:00');
+log('Captain: stand by for 0400Z, draft report on S3.', 'warn', '0345:00');
+resize(); renderOrds(); renderMsgs(); renderDec(); renderReport(); renderEsm(); ui();
+if (ON) NET.on(s => { onState(s); ui(); });
+requestAnimationFrame(tick);
+})();
+</script>

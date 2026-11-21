@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fathom · Life support</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Saira+Stencil+One&display=swap">
+<link rel="stylesheet" href="crew.css">
+<style>
+.cut-wrap{position:relative}
+#cut{display:block;width:100%;height:300px;cursor:pointer;touch-action:manipulation}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-2px}
+.legend .dot{width:8px;height:8px;border-radius:50%;background:var(--phos)}
+
+.atmo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px 22px}
+.gas-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.gas-name{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.gas-val{font-family:var(--f-data);font-size:34px;font-weight:500;line-height:1;font-variant-numeric:tabular-nums;color:var(--phos)}
+.gas-val small{font-size:14px;color:var(--muted);margin-left:2px}
+.gas-rate{font-family:var(--f-data);font-size:13px;color:var(--amber)}
+.gas-rate.ok{color:var(--phos)}
+.spark{display:block;width:100%;height:76px;margin-top:6px}
+.gas-lim{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:4px;font-size:13px;color:var(--muted)}
+.gas-lim b{font-family:var(--f-data);font-weight:500;color:var(--ink)}
+.gas-lim b.warn{color:var(--amber)}
+.gas-lim b.crit{color:var(--hostile)}
+
+.comp-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.comp-name{font-family:var(--f-display);font-size:26px;line-height:1;color:var(--amber)}
+.crew{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:10px 22px}
+.crew li.note{grid-column:1/-1}
+.crew li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center}
+.crew .who{font-size:14px}
+.crew .who small{font-family:var(--f-data);font-size:10.5px;color:var(--muted);margin-left:6px}
+.crew .meter{grid-column:1/-1;margin-top:0}
+tbody tr{cursor:pointer}
+@media (hover:hover){tbody tr:hover{background:var(--panel-2)}}
+tbody tr.sel{background:color-mix(in srgb,var(--amber) 12%,transparent)}
+tbody tr.sel td:first-child{color:var(--amber)}
+td.warn{color:var(--amber)} td.crit{color:var(--hostile)}
+.qdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:0}
+
+.scr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding-block:6px;border-bottom:1px solid var(--rule)}
+.scr:last-of-type{border-bottom:0}
+.scr b{font-size:15px;font-weight:600}
+.scr .meter{grid-column:1/-1;margin-top:2px}
+.scr small{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.task{margin-top:8px;padding:10px;border:1px dashed color-mix(in srgb,var(--amber) 55%,transparent);border-radius:4px;background:color-mix(in srgb,var(--amber) 5%,transparent)}
+.steps{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:3px;font-size:13.5px;color:var(--muted)}
+.steps li::before{content:"○";font-family:var(--f-data);display:inline-block;width:20px;color:var(--muted)}
+.steps li.done{color:var(--phos-dim)}
+.steps li.done::before{content:"●";color:var(--phos)}
+.steps li.now{color:var(--ink)}
+.steps li.now::before{content:"◐";color:var(--amber)}
+.hold{position:relative;overflow:hidden;width:100%;min-height:52px;border-radius:4px;border:1px solid color-mix(in srgb,var(--amber) 60%,transparent);background:var(--panel-2);font-family:var(--f-data);font-size:13px;letter-spacing:.06em;color:var(--amber);cursor:pointer;touch-action:none}
+.hold .fill{position:absolute;inset:0 auto 0 0;width:0;background:color-mix(in srgb,var(--amber) 22%,transparent)}
+.hold span{position:relative}
+.hold.holding{border-color:var(--amber);color:var(--ink)}
+.task-top{display:flex;justify-content:space-between;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.task-top .val{letter-spacing:0;color:var(--amber)}
+
+.fan{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding-block:4px}
+.fan .lbl{line-height:1.2}
+.fan .lbl small{display:block;font-size:11px;letter-spacing:.04em;text-transform:none;color:var(--phos-dim)}
+.mrow{display:grid;grid-template-columns:80px minmax(0,1fr) 62px;gap:10px;align-items:center;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.mrow .meter{margin:0}
+.mrow .val{text-align:right;color:var(--ink);letter-spacing:0}
+.pwr{margin-top:10px;padding-top:10px;border-top:1px solid var(--rule)}
+
+.candles{display:flex;gap:5px;margin:2px 0 8px}
+.candles i{width:16px;height:30px;border-radius:3px;border:1px solid var(--phos-dim);background:color-mix(in srgb,var(--phos) 15%,transparent)}
+.candles i.used{border-style:dashed;border-color:var(--rule-2);background:transparent}
+.candles i.burn{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 35%,transparent);animation:flick 1.4s ease-in-out infinite}
+@keyframes flick{50%{opacity:.6}}
+.burns{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.burns div{font-family:var(--f-data);font-size:12px;color:var(--amber)}
+.req-st{font-family:var(--f-data);font-size:12px;color:var(--muted);align-self:center}
+.req-st.warn{color:var(--amber)}
+.req-st.ok{color:var(--phos)}
+
+.orders,.wait{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.orders li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 10px;border:1px solid var(--rule);border-left:3px solid var(--amber);border-radius:4px;background:var(--panel-2)}
+.orders li.done{border-left-color:var(--phos-dim);opacity:.55}
+.o-txt{flex:1 1 200px;min-width:0}
+.o-from{display:block;font-family:var(--f-data);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--amber)}
+.orders li.done .o-from{color:var(--muted)}
+.o-msg{font-size:14px;line-height:1.3}
+.o-btns{display:flex;gap:6px;flex-wrap:wrap}
+.o-btns .btn{min-height:44px;padding:0 12px;font-size:14px}
+.wait li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:14px;padding-bottom:8px;border-bottom:1px solid var(--rule)}
+.wait li:last-child{border-bottom:0;padding-bottom:0}
+.wait small{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+@media (max-width:520px){.alert-more{display:none}.gas-val{font-size:28px}}
+@media (prefers-reduced-motion:reduce){.candles i.burn{animation:none}}
+</style>
+<body data-station="life">
+
+<header class="bar">
+  <div class="brand">
+    <span class="mark">FATHOM</span>
+    <small>Life support · ENG 2 · air, heat and crew condition</small>
+  </div>
+  <dl class="status" aria-live="off">
+    <div><dt>O₂</dt><dd><span id="stO2">19.6</span><small>%</small></dd></div>
+    <div><dt>CO₂</dt><dd><span id="stCo2">0.9</span><small>%</small></dd></div>
+    <div><dt>First limit</dt><dd class="warn"><span id="stLim">10.0</span><small id="stLimGas">h · CO₂</small></dd></div>
+    <div><dt>Scrubbers</dt><dd id="stScr" class="warn">1/2</dd></div>
+    <div><dt>Air plant</dt><dd><span id="stKw">48</span><small>kW</small></dd></div>
+    <div class="st-time"><dt>Time</dt><dd id="stTime">0347:00Z</dd></div>
+  </dl>
+</header>
+
+<button type="button" class="alert" id="alert" data-sev="2" aria-live="polite">
+  <span class="alert-sev" id="alertSev">SCRUBBER</span>
+  <span class="alert-msg" id="alertMsg">Scrubber B fouled. CO₂ rising: swap the canister.</span>
+  <span class="alert-more" id="alertMore">SCRUBBERS ›</span>
+</button>
+
+<main class="grid">
+  <section class="main-col" aria-label="Boat atmosphere">
+    <div class="card">
+      <h2>Compartments <span class="h-note">coloured by air quality · tap one</span></h2>
+      <div class="cut-wrap">
+        <canvas id="cut" aria-label="Side cutaway of the boat, stern to bow: motor room, engine room, berthing and scrubbers, control room, torpedo room. Each compartment is coloured by air quality and shows crew as dots. Tap a compartment to inspect it."></canvas>
+      </div>
+      <div class="legend"><span><i style="background:color-mix(in srgb,var(--phos) 45%,transparent)"></i>Good</span><span><i style="background:color-mix(in srgb,var(--amber) 50%,transparent)"></i>Watch</span><span><i style="background:color-mix(in srgb,var(--hostile) 55%,transparent)"></i>Danger</span><span><i class="dot"></i>Crew</span><span><i class="dot" style="background:var(--amber)"></i>Tired / unwell</span></div>
+    </div>
+
+    <section class="card" aria-labelledby="hAtmo">
+      <h2 id="hAtmo">Boat atmosphere <span class="h-note">dashed = projection</span></h2>
+      <div class="atmo">
+        <div>
+          <div class="gas-top"><span class="gas-name">Oxygen</span><span class="gas-val" id="o2Val">19.6<small>%</small></span><span class="gas-rate" id="o2Rate">−0.12%/h</span></div>
+          <canvas class="spark" id="o2Spark" aria-label="Oxygen trend with the 17% impaired threshold"></canvas>
+          <div class="gas-lim"><span>Impaired below <b>17%</b></span><span>Reached in <b id="o2Lim">21.7 h</b></span></div>
+        </div>
+        <div>
+          <div class="gas-top"><span class="gas-name">Carbon dioxide</span><span class="gas-val" id="co2Val">0.9<small>%</small></span><span class="gas-rate" id="co2Rate">+0.21%/h</span></div>
+          <canvas class="spark" id="co2Spark" aria-label="Carbon dioxide trend with the 3% danger threshold"></canvas>
+          <div class="gas-lim"><span>Danger above <b>3%</b></span><span>Reached in <b id="co2Lim" class="warn">10.0 h</b></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hComp">
+      <h2 id="hComp">Selected compartment <span class="h-note">crew fatigue and health</span></h2>
+      <div class="comp-head"><span class="comp-name" id="cName">Control room</span><span class="chip" id="cChip">Good</span></div>
+      <dl class="facts">
+        <div class="big"><dt>O₂</dt><dd id="cO2">19.4%</dd></div>
+        <div class="big"><dt>CO₂</dt><dd id="cCo2">1.1%</dd></div>
+        <div class="big"><dt>Temp</dt><dd id="cT">25 °C</dd></div>
+        <div><dt>Humidity</dt><dd id="cRh">70%</dd></div>
+        <div><dt>Fan</dt><dd id="cFan">Fwd · low</dd></div>
+        <div><dt>Crew</dt><dd id="cCrew">6</dd></div>
+      </dl>
+      <ul class="crew" id="crewList"></ul>
+      <div class="tbl-wrap" style="margin-top:14px">
+        <table>
+          <thead><tr><th>Compartment</th><th class="n">O₂</th><th class="n">CO₂</th><th class="n">°C</th><th class="n">RH</th><th class="n">Crew</th></tr></thead>
+          <tbody id="compBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <aside class="side">
+    <section class="card" id="scrCard" aria-labelledby="hScr">
+      <h2 id="hScr">CO₂ scrubbers <span class="h-note" id="spares">4 spare canisters</span></h2>
+      <div id="scrA" class="scr"></div>
+      <div id="scrB" class="scr"></div>
+      <div id="taskBox"></div>
+    </section>
+
+    <section class="card" aria-labelledby="hOrd">
+      <h2 id="hOrd">Orders &amp; requests <span class="h-note" id="ordNote">3 open</span></h2>
+      <ul class="orders" id="orders"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hFan">
+      <h2 id="hFan">Ventilation fans <span class="h-note">air vs noise</span></h2>
+      <div id="fans"></div>
+      <div class="mrow"><span>Mixing</span><div class="meter"><i id="mixBar"></i></div><span class="val" id="mixVal">50%</span></div>
+      <div class="mrow"><span>Noise</span><div class="meter warn"><i id="noiseBar"></i></div><span class="val" id="noiseVal">LOW</span></div>
+      <div class="pwr">
+        <div class="mrow"><span>Power</span><div class="meter" id="pwrMeter"><i id="pwrBar"></i></div><span class="val" id="pwrVal">48/48</span></div>
+        <p class="hint" id="pwrNote">Scrubbers and fans draw from the Life support line in Power's budget (CB-5, 48 kW allocated).</p>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hCan">
+      <h2 id="hCan">Oxygen candles <span class="h-note" id="canNote">6 in stock</span></h2>
+      <div class="candles" id="candles" aria-hidden="true"></div>
+      <p class="hint">Each burns about 45 min: O₂ +0.6%/h for the boat, but the berthing furnace runs hot. Once lit it can't be put out.</p>
+      <div class="burns" id="burns"></div>
+      <div class="btns"><button type="button" class="btn" id="candleBtn">Light a candle</button></div>
+    </section>
+
+    <section class="card" id="ventCard" aria-labelledby="hVent">
+      <h2 id="hVent">Ventilate at snorkel depth <span class="chip warn">Captain</span></h2>
+      <dl class="facts">
+        <div><dt>Need</dt><dd class="warn">50 ft · mast up</dd></div>
+        <div><dt>Now</dt><dd>150 ft</dd></div>
+        <div><dt>Takes</dt><dd>~20 min</dd></div>
+        <div class="wide"><dt>Result</dt><dd>CO₂ → 0.1%, O₂ → 20.9%, heat and humidity out</dd></div>
+      </dl>
+      <p class="hint">Pulls fresh air down the snorkel mast. The mast shows on radar and the induction roar is loud: S3 is 8.8 kyd away.</p>
+      <div class="btns"><button type="button" class="btn primary" id="ventBtn">Ventilate at snorkel depth</button><span class="req-st" id="ventSt">Needs Captain's approval</span></div>
+    </section>
+
+    <section class="card" aria-labelledby="hWait">
+      <h2 id="hWait">Waiting on <span class="h-note">what other stations hold</span></h2>
+      <ul class="wait" id="wait"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLog">
+      <h2 id="hLog">Life support log <span class="h-note">newest first</span></h2>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="hLinks">
+      <h2 id="hLinks">Crew links</h2>
+      <div class="links"><b>Takes from</b><a href="captain.html">Captain</a><a href="eng-power.html">Power</a><a href="eng-damage.html">Damage control</a></div>
+      <div class="links" style="margin-top:8px"><b>Hands to</b><a href="captain.html">Captain</a><a href="eng-power.html">Power</a><a href="eng-damage.html">Damage control</a><a href="helm.html">Helm</a></div>
+    </section>
+  </aside>
+</main>
+
+<script src="crew.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const css = getComputedStyle(document.documentElement), cv = n => css.getPropertyValue(n).trim();
+const hex = n => { const h = cv(n).replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const COL = { phos: hex('--phos'), dim: hex('--phos-dim'), amber: hex('--amber'), hostile: hex('--hostile'), bio: hex('--bio'), muted: hex('--muted'), ink: hex('--ink'), rule: hex('--rule-2'), panel: hex('--panel-2') };
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+const O2_LIM = 17, CO2_LIM = 3, KW_BASE = 18, KW_SCRUB = 18, FAN_KW = { off: 0, low: 4, high: 10 }, FAN_MIX = { off: 0, low: 0.5, high: 1 }, FAN_NOISE = { off: 0, low: 1, high: 3 };
+const S = {
+  clock: 3 * 3600 + 47 * 60, o2: SHIP.o2, co2: SHIP.co2, sel: 'control', alloc: 48, spares: 4, candles: 6, burning: [],
+  scrA: { st: 'run', life: 62 }, scrB: { st: 'fouled', life: 0 }, task: 0, power: 'none', vent: 'none', h2: 0.4, armed: 0,
+  fans: { fwd: 'low', mid: 'low', aft: 'low' },
+};
+const FANS = [
+  { k: 'fwd', name: 'Fwd fan', covers: 'Control + Torpedo room' },
+  { k: 'mid', name: 'Mid fan', covers: 'Berthing + battery well' },
+  { k: 'aft', name: 'Aft fan', covers: 'Engine + Motor room' },
+];
+const COMPS = [
+  { k: 'motor', name: 'Motor room', short: 'Motor', a: 0, b: 0.17, fan: 'aft', dO2: -0.1, dCo2: -0.1, t: 29, rh: 94,
+    crew: [{ n: 'Damage control', seat: 'ENG 3', fat: 72, h: 'Heat stress' }] },
+  { k: 'engine', name: 'Engine room', short: 'Engine', a: 0.17, b: 0.37, fan: 'aft', dO2: 0, dCo2: -0.1, t: 31, rh: 58,
+    crew: [{ n: 'Power', seat: 'ENG 1', fat: 41, h: 'OK' }] },
+  { k: 'berth', name: 'Berthing & scrubbers', short: 'Berthing', a: 0.37, b: 0.58, fan: 'mid', dO2: 0.1, dCo2: -0.2, t: 23, rh: 66,
+    crew: [{ n: 'Life support', seat: 'ENG 2', fat: 35, h: 'OK' }] },
+  { k: 'control', name: 'Control room', short: 'Control', a: 0.58, b: 0.8, fan: 'fwd', dO2: -0.2, dCo2: 0.2, t: 25, rh: 70,
+    crew: [{ n: 'Captain', seat: 'CO', fat: 55, h: 'OK' }, { n: 'Sonar', seat: '', fat: 62, h: 'Headache' }, { n: 'Comms', seat: '', fat: 30, h: 'OK' },
+      { n: 'Navigator', seat: '', fat: 38, h: 'OK' }, { n: 'Helm', seat: '', fat: 44, h: 'OK' }, { n: 'Fire control', seat: 'WPN 1', fat: 52, h: 'OK' }] },
+  { k: 'torp', name: 'Torpedo room', short: 'Torpedo', a: 0.8, b: 1, fan: 'fwd', dO2: 0, dCo2: 0, t: 21, rh: 72,
+    crew: [{ n: 'Torpedo room', seat: 'WPN 2', fat: 61, h: 'OK' }] },
+];
+COMPS.forEach(c => c.crew.forEach((m, i) => { m.u = 0.18 + ((i * 0.37 + 0.2) % 0.64); m.v = 0.5 + (i % 2) * 0.2; m.ph = Math.random() * 6.3; }));
+
+const running = () => (S.scrA.st === 'run') + (S.scrB.st === 'run');
+const mixOf = z => FAN_MIX[S.fans[z]];
+const avgMix = () => (mixOf('fwd') + mixOf('mid') + mixOf('aft')) / 3;
+const co2Rate = () => 0.34 - 0.16 * running() * (0.6 + 0.4 * avgMix());
+const o2Rate = () => -0.12 + 0.6 * S.burning.length;
+const plantKw = () => KW_BASE + KW_SCRUB * running() + FANS.reduce((a, f) => a + FAN_KW[S.fans[f.k]], 0);
+const spread = c => 1.3 - 0.6 * mixOf(c.fan);
+const compAir = c => {
+  const sp = spread(c), heat = c.k === 'berth' ? 3 * S.burning.length : 0;
+  return { o2: S.o2 + c.dO2 * sp, co2: Math.max(0.05, S.co2 + c.dCo2 * sp), t: 22 + (c.t - 22) * sp + heat, rh: Math.min(99, 60 + (c.rh - 60) * sp) };
+};
+const quality = a => clamp(Math.max((a.co2 - 0.6) / 2.4, (19.6 - a.o2) / 2.6, (a.t - 26) / 10, (a.rh - 70) / 40), 0, 1);
+const qClass = q => q < 0.34 ? 'ok' : q < 0.67 ? 'warn' : 'crit';
+const qCol = q => q < 0.34 ? COL.phos : q < 0.67 ? COL.amber : COL.hostile;
+const qName = q => q < 0.34 ? 'Good' : q < 0.67 ? 'Watch' : 'Danger';
+const zulu = (s = S.clock) => { s = Math.floor(s); const h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60, ss = s % 60; return `${String(h).padStart(2, '0')}${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`; };
+const hhmm = s => zulu(s).slice(0, 4) + 'Z';
+const hoursTo = () => ({ o2: o2Rate() < 0 ? (S.o2 - O2_LIM) / -o2Rate() : Infinity, co2: co2Rate() > 0 ? (CO2_LIM - S.co2) / co2Rate() : Infinity });
+const fmtH = h => isFinite(h) ? h.toFixed(1) + ' h' : 'not at this rate';
+
+/* ---------- log ---------- */
+const logEl = $('#log');
+function log(msg, kind = '', at) {
+  const li = document.createElement('li'); li.className = kind;
+  const t = document.createElement('time'); t.textContent = at || zulu();
+  const sp = document.createElement('span'); sp.textContent = msg;
+  li.append(t, sp); logEl.prepend(li);
+  while (logEl.children.length > 60) logEl.lastChild.remove();
+}
+
+/* ---------- scrubbers ---------- */
+const STEPS = ['Isolate and purge scrubber B', 'Unclamp the spent canister', 'Seat a fresh canister', 'Leak check and seal'];
+const STEP_S = 2.5;
+function renderScrubbers() {
+  const a = S.scrA, b = S.scrB;
+  $('#scrA').innerHTML = `<b>Scrubber A</b><span class="chip ok">Running · 18 kW</span><div class="meter"><i style="width:${a.life}%"></i></div><small>Canister ${Math.round(a.life)}% left · about 9 h</small>`;
+  const bState = { fouled: ['Fouled', 'crit', 'Canister spent at 0307Z. Swap it by hand below.'], swap: ['Swapping', 'warn', 'Work in progress.'], ready: ['Ready · no power', 'warn', 'Fresh canister fitted. Needs 18 kW from Power to start.'], run: ['Running · 18 kW', 'ok', 'Fresh canister.'] }[b.st];
+  $('#scrB').innerHTML = `<b>Scrubber B</b><span class="chip ${bState[1]}">${bState[0]}</span><div class="meter${b.st === 'run' ? '' : ' crit'}"><i style="width:${b.st === 'run' ? b.life : 0}%"></i></div><small>${bState[2]}</small>`;
+  $('#spares').textContent = `${S.spares} spare canister${S.spares === 1 ? '' : 's'}`;
+  const tb = $('#taskBox');
+  if (b.st === 'fouled' || b.st === 'swap') {
+    const step = Math.min(STEPS.length - 1, Math.floor(S.task / STEP_S)), pct = S.task / (STEP_S * STEPS.length) * 100;
+    if (!tb.querySelector('.task')) {
+      tb.innerHTML = `<div class="task"><div class="task-top"><span>Canister swap · hands-on</span><span class="val" id="taskPct">0%</span></div><ol class="steps" id="steps">${STEPS.map(s => `<li>${s}</li>`).join('')}</ol><div class="meter warn"><i id="taskBar"></i></div><button type="button" class="hold" id="holdBtn" style="margin-top:10px"><span class="fill" id="holdFill"></span><span id="holdTxt">PRESS AND HOLD TO WORK</span></button></div>`;
+      bindHold();
+    }
+    $('#taskPct').textContent = Math.round(pct) + '%';
+    $('#taskBar').style.width = pct + '%';
+    $('#holdFill').style.width = ((S.task % STEP_S) / STEP_S * 100) + '%';
+    [...$('#steps').children].forEach((li, i) => li.className = i < step || pct >= 100 ? 'done' : i === step ? 'now' : '');
+  } else if (b.st === 'ready') {
+    const label = { none: 'Request 18 kW from Power', pending: 'Requested · awaiting Power', granted: 'Start scrubber B' }[S.power];
+    tb.innerHTML = `<div class="btns"><button type="button" class="btn primary" id="scrBtn"${S.power === 'pending' ? ' disabled' : ''}>${label}</button></div>`;
+    $('#scrBtn').addEventListener('click', scrBtn);
+  } else tb.innerHTML = '';
+}
+let holding = false;
+function bindHold() {
+  const btn = $('#holdBtn');
+  const on = () => { holding = true; btn.classList.add('holding'); $('#holdTxt').textContent = 'WORKING · KEEP HOLDING'; if (S.scrB.st === 'fouled') { S.scrB.st = 'swap'; log('Started canister swap on scrubber B.'); renderScrubbers(); } };
+  const off = () => { holding = false; btn.classList.remove('holding'); const t = $('#holdTxt'); if (t) t.textContent = 'PRESS AND HOLD TO WORK'; };
+  btn.addEventListener('pointerdown', e => { btn.setPointerCapture(e.pointerId); on(); });
+  btn.addEventListener('pointerup', off); btn.addEventListener('pointercancel', off); btn.addEventListener('lostpointercapture', off);
+  btn.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); on(); } });
+  btn.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') off(); });
+}
+function workTick(dt) {
+  if (!holding || S.scrB.st !== 'swap') return;
+  const before = Math.floor(S.task / STEP_S);
+  S.task += dt;
+  const after = Math.floor(S.task / STEP_S);
+  if (after > before && after < STEPS.length) log(`Done: ${STEPS[before].toLowerCase()}.`);
+  if (S.task >= STEP_S * STEPS.length) {
+    holding = false; S.scrB.st = 'ready'; S.spares--; S.scrB.life = 100;
+    log('Scrubber B canister swapped. Ready, needs 18 kW.', 'ok');
+    render();
+  } else renderScrubbers();
+}
+function scrBtn() {
+  if (S.power === 'none') {
+    S.power = 'pending'; log('Asked Power for +18 kW (66 kW total) to start scrubber B.', 'warn'); render();
+    setTimeout(() => { S.power = 'granted'; S.alloc = 66; log('Power granted 66 kW on CB-5.', 'ok'); render(); }, 5000);
+  } else if (S.power === 'granted') {
+    S.scrB.st = 'run'; log('Scrubber B running. CO₂ rate falling.', 'ok'); render();
+  }
+}
+
+/* ---------- fans ---------- */
+$('#fans').innerHTML = FANS.map(f => `<div class="fan"><span class="lbl">${f.name}<small>${f.covers}</small></span><div class="seg" data-fan="${f.k}">${['off', 'low', 'high'].map(v => `<button type="button" data-v="${v}" aria-pressed="${S.fans[f.k] === v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join('')}</div></div>`).join('');
+$('#fans').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  setFan(b.parentElement.dataset.fan, b.dataset.v);
+});
+function setFan(k, v) {
+  S.fans[k] = v;
+  document.querySelectorAll(`[data-fan="${k}"] button`).forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === v)));
+  const f = FANS.find(x => x.k === k);
+  log(`${f.name} ${v.toUpperCase()}${v === 'high' ? ': audible outside the hull' : v === 'off' ? ': air goes stale locally' : ''}.`, v === 'low' ? '' : 'warn');
+  render();
+}
+
+/* ---------- candles ---------- */
+const candleBtn = $('#candleBtn');
+let armT = 0;
+candleBtn.addEventListener('click', () => {
+  if (S.candles <= 0) return;
+  if (!S.armed) {
+    S.armed = 1; candleBtn.className = 'btn danger'; candleBtn.textContent = 'Confirm: light it (irreversible, adds heat)';
+    clearTimeout(armT); armT = setTimeout(disarm, 4000); return;
+  }
+  clearTimeout(armT); disarm();
+  S.candles--; S.burning.push({ left: 45 * 60 });
+  log('Oxygen candle lit in the berthing furnace. O₂ +0.6%/h for ~45 min, berthing heating up.', 'warn');
+  render();
+});
+function disarm() { S.armed = 0; candleBtn.className = 'btn'; candleBtn.textContent = 'Light a candle'; }
+function renderCandles() {
+  const total = 6, burn = S.burning.length;
+  $('#candles').innerHTML = Array.from({ length: total }, (_, i) => `<i class="${i < S.candles ? '' : i < S.candles + burn ? 'burn' : 'used'}"></i>`).join('');
+  $('#canNote').textContent = `${S.candles} in stock`;
+  $('#burns').innerHTML = S.burning.map((b, i) => `<div>Candle ${i + 1} burning · ${String(Math.floor(b.left / 60)).padStart(2, '0')}:${String(Math.floor(b.left % 60)).padStart(2, '0')} left<div class="meter warn"><i style="width:${(1 - b.left / 2700) * 100}%"></i></div></div>`).join('');
+  candleBtn.disabled = S.candles <= 0;
+}
+
+/* ---------- ventilate ---------- */
+const ventBtn = $('#ventBtn'), ventSt = $('#ventSt');
+ventBtn.addEventListener('click', () => {
+  if (S.vent === 'pending') return;
+  S.vent = 'pending'; ventBtn.disabled = true; ventSt.textContent = 'Requested · awaiting Captain'; ventSt.className = 'req-st warn';
+  log('Requested approval to ventilate at snorkel depth.', 'warn'); renderWait();
+  setTimeout(() => {
+    S.vent = 'deferred'; ventBtn.disabled = false; ventBtn.textContent = 'Ask again';
+    ventSt.textContent = 'Captain: deferred'; ventSt.className = 'req-st warn';
+    ORDERS.unshift({ id: 'vent', from: 'Captain', at: hhmm(S.clock), msg: 'Not while S3 is inside 9 kyd. We ventilate with Power\'s snorkel window after the 0400Z broadcast. Hold the air until then.', acts: ['Acknowledge'] });
+    log('Captain deferred ventilation.', 'warn'); render();
+  }, 7000);
+});
+
+/* ---------- orders ---------- */
+const ORDERS = [
+  { id: 'cap', from: 'Captain', at: '0331Z', msg: 'Rig for quiet. Ventilation fans LOW or off until S3 is resolved.', acts: ['Acknowledge'] },
+  { id: 'dc', from: 'Damage control', at: '0346Z', msg: 'Motor room at 94% humidity. My party is showing heat stress. Can you push the aft fan?', acts: ['Aft fan HIGH', 'Not now'] },
+  { id: 'pwr', from: 'Power', at: '0347Z', msg: 'Life support held at 48 kW on CB-5. Ask before you start scrubber B.', acts: ['Acknowledge'] },
+];
+const ordEl = $('#orders');
+function renderOrders() {
+  ordEl.innerHTML = ORDERS.map(o => `<li class="${o.done ? 'done' : ''}" data-o="${o.id}"><div class="o-txt"><span class="o-from">${o.from} · ${o.at}${o.done ? ' · ' + o.done : ''}</span><span class="o-msg">${o.msg}</span></div>${o.done ? '' : `<div class="o-btns">${o.acts.map((a, i) => `<button type="button" class="btn${i === 0 ? ' primary' : ''}" data-a="${i}">${a}</button>`).join('')}</div>`}</li>`).join('');
+  const open = ORDERS.filter(o => !o.done).length;
+  $('#ordNote').textContent = open ? `${open} open` : 'all handled';
+}
+ordEl.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const o = ORDERS.find(x => x.id === b.closest('li').dataset.o), a = +b.dataset.a;
+  if (o.id === 'dc') { if (a === 0) { o.done = 'AFT FAN HIGH'; setFan('aft', 'high'); } else { o.done = 'DECLINED'; log('Told Damage control: aft fan stays low for quiet.'); } }
+  else { o.done = 'ACK'; log(`Acknowledged ${o.from}.`); }
+  render();
+});
+
+/* ---------- waiting ---------- */
+function renderWait() {
+  const pw = { none: ['Not asked', ''], pending: ['Pending', 'warn'], granted: ['Granted', 'ok'] }[S.power];
+  const vt = { none: ['Not asked', ''], pending: ['Pending', 'warn'], deferred: ['Deferred', 'warn'] }[S.vent];
+  $('#wait').innerHTML = [
+    ['Power', '+18 kW on CB-5 to run scrubber B', ...pw],
+    ['Captain', 'Approval to ventilate at snorkel depth', ...vt],
+    ['Damage control', 'Shaft seal leak keeps the Motor room humid', 'Leaking', 'warn'],
+  ].map(([who, what, st, cls]) => `<li><span>${who}</span><span class="chip ${cls}">${st}</span><small>${what}</small></li>`).join('');
+}
+
+/* ---------- compartments ---------- */
+function selectComp(k) { S.sel = k; renderComp(); }
+$('#compBody').addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) selectComp(tr.dataset.k); });
+function renderComp() {
+  const c = COMPS.find(x => x.k === S.sel), a = compAir(c), q = quality(a);
+  $('#cName').textContent = c.name;
+  $('#cChip').textContent = qName(q); $('#cChip').className = 'chip ' + qClass(q);
+  const set = (id, txt, cls) => { const el = $(id); el.textContent = txt; el.className = cls || ''; };
+  set('#cO2', a.o2.toFixed(1) + '%', a.o2 < 19 ? 'warn' : '');
+  set('#cCo2', a.co2.toFixed(1) + '%', a.co2 > 1.5 ? 'warn' : '');
+  set('#cT', Math.round(a.t) + ' °C', a.t > 28 ? 'warn' : '');
+  set('#cRh', Math.round(a.rh) + '%', a.rh > 85 ? 'warn' : '');
+  $('#cFan').textContent = `${FANS.find(f => f.k === c.fan).name.split(' ')[0]} · ${S.fans[c.fan]}`;
+  $('#cCrew').textContent = c.crew.length;
+  $('#crewList').innerHTML = c.crew.map(m => {
+    const hc = m.h === 'OK' ? 'ok' : 'warn', mc = m.fat >= 70 ? 'crit' : m.fat >= 50 ? 'warn' : '';
+    return `<li><span class="who">${m.n}${m.seat ? `<small>${m.seat}</small>` : ''}</span><span class="chip ${hc}">${m.h}</span><div class="meter ${mc}" title="Fatigue"><i style="width:${m.fat}%"></i></div></li>`;
+  }).join('') + '<li class="note"><span class="hint" style="margin:0">Bar = fatigue. Heat, humidity and CO₂ above 1% raise it faster.</span></li>';
+  $('#compBody').innerHTML = COMPS.map(c2 => {
+    const a2 = compAir(c2), q2 = quality(a2);
+    return `<tr data-k="${c2.k}" class="${c2.k === S.sel ? 'sel' : ''}"><td><span class="qdot" style="background:${rgba(qCol(q2), 1)}"></span>${c2.short}</td><td class="n${a2.o2 < 19 ? ' warn' : ''}">${a2.o2.toFixed(1)}</td><td class="n${a2.co2 > 1.5 ? ' warn' : ''}">${a2.co2.toFixed(1)}</td><td class="n${a2.t > 28 ? ' warn' : ''}">${Math.round(a2.t)}</td><td class="n${a2.rh > 85 ? ' warn' : ''}">${Math.round(a2.rh)}%</td><td class="n">${c2.crew.length}</td></tr>`;
+  }).join('');
+}
+
+/* ---------- cutaway canvas ---------- */
+const cut = $('#cut'), cx = cut.getContext('2d');
+let G = null;
+function sizeCut() {
+  const dpr = Math.min(devicePixelRatio || 1, 2), w = cut.parentElement.clientWidth;
+  const h = Math.round(clamp(w * 0.4, 230, 380));
+  cut.style.height = h + 'px'; cut.width = Math.round(w * dpr); cut.height = Math.round(h * dpr);
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const x0 = 18, x1 = w - 12, yT = h * 0.24, yB = h * 0.9;
+  G = { w, h, x0, x1, L: x1 - x0, yT, yB, yD: yT + (yB - yT) * 0.66, narrow: w < 600 };
+}
+const cxAt = f => G.x0 + G.L * f;
+function hullPath() {
+  const { x0, x1, L, yT, yB } = G, mid = (yT + yB) / 2, st = G.narrow ? 0.09 : 0.14;
+  const p = new Path2D();
+  p.moveTo(x0, mid + 4);
+  p.quadraticCurveTo(x0 + L * st * 0.35, yT, x0 + L * st, yT);
+  p.lineTo(x1 - L * 0.07, yT);
+  p.bezierCurveTo(x1 - L * 0.01, yT, x1, mid - (yB - yT) * 0.2, x1, mid);
+  p.bezierCurveTo(x1, mid + (yB - yT) * 0.25, x1 - L * 0.02, yB, x1 - L * 0.08, yB);
+  p.lineTo(x0 + L * st, yB);
+  p.quadraticCurveTo(x0 + L * st * 0.35, yB, x0, mid + 4);
+  p.closePath();
+  return p;
+}
+let flowT = 0;
+function drawCut(t) {
+  if (!G) return;
+  const { w, h, yT, yB, yD, narrow } = G;
+  cx.clearRect(0, 0, w, h);
+  const hull = hullPath();
+  const sx0 = cxAt(0.62), sx1 = cxAt(0.73);
+  cx.beginPath(); cx.moveTo(sx0, yT + 1); cx.lineTo(sx0 + 6, h * 0.05); cx.lineTo(sx1 - 2, h * 0.05); cx.lineTo(sx1 + 10, yT + 1);
+  cx.fillStyle = rgba(COL.panel, 1); cx.fill(); cx.strokeStyle = rgba(COL.dim, 0.9); cx.lineWidth = 1.5; cx.stroke();
+  cx.save(); cx.clip(hull);
+  cx.fillStyle = rgba(COL.panel, 1); cx.fillRect(0, 0, w, h);
+  COMPS.forEach(c => {
+    const a = compAir(c), q = quality(a), col = qCol(q), xa = cxAt(c.a), xb = cxAt(c.b);
+    cx.fillStyle = rgba(col, 0.16 + 0.22 * q + (c.k === S.sel ? 0.08 : 0));
+    cx.fillRect(xa, yT - 2, xb - xa, yD - yT + 2);
+    if (c.k === S.sel) { cx.strokeStyle = rgba(COL.amber, 0.95); cx.lineWidth = 2; cx.strokeRect(xa + 2, yT + 1, xb - xa - 4, yD - yT - 2); }
+  });
+  const wa = cxAt(0.37), wb = cxAt(0.8);
+  cx.fillStyle = rgba(COL.rule, 0.35); cx.fillRect(wa, yD, wb - wa, yB - yD);
+  cx.strokeStyle = rgba(COL.rule, 0.6); cx.lineWidth = 1;
+  for (let x = wa - (yB - yD); x < wb; x += 8) { cx.beginPath(); cx.moveTo(x, yB); cx.lineTo(x + (yB - yD), yD); cx.stroke(); }
+  cx.strokeStyle = rgba(COL.rule, 1); cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0, yD); cx.lineTo(w, yD); cx.stroke();
+  COMPS.slice(1).forEach(c => { cx.beginPath(); cx.moveTo(cxAt(c.a), yT); cx.lineTo(cxAt(c.a), yB); cx.stroke(); });
+  // fan airflow along the overhead duct
+  const ductY = yT + 7;
+  FANS.forEach(f => {
+    const m = mixOf(f.k); if (!m) return;
+    const zs = COMPS.filter(c => c.fan === f.k), xa = cxAt(zs[0].a) + 4, xb = cxAt(zs[zs.length - 1].b) - 4;
+    cx.strokeStyle = rgba(COL.bio, 0.35 + 0.35 * m); cx.lineWidth = 1.5;
+    const gap = 18, off = reduceMotion ? 0 : (flowT * (14 + 36 * m)) % gap;
+    for (let x = xa + off; x < xb - 6; x += gap) { cx.beginPath(); cx.moveTo(x, ductY - 3); cx.lineTo(x + 4, ductY); cx.lineTo(x, ductY + 3); cx.stroke(); }
+  });
+  // leak in the motor room bilge
+  const lx = cxAt(0.1);
+  cx.fillStyle = rgba(COL.bio, 0.8);
+  for (let i = 0; i < 3; i++) { const ph = ((flowT * 0.8 + i / 3) % 1); cx.beginPath(); cx.arc(lx + i * 5 - 5, yD + 6 + ph * (yB - yD - 14), 1.8, 0, 7); cx.fill(); }
+  cx.fillStyle = rgba(COL.bio, 0.25); cx.fillRect(cxAt(0.03), yB - 8, cxAt(0.17) - cxAt(0.03), 8);
+  cx.restore();
+  cx.strokeStyle = rgba(COL.dim, 1); cx.lineWidth = 2; cx.stroke(hull);
+  // stern planes and screw
+  cx.beginPath(); cx.moveTo(G.x0 + 2, (yT + yB) / 2 + 4); cx.lineTo(G.x0 - 10, (yT + yB) / 2 - 12); cx.moveTo(G.x0 + 2, (yT + yB) / 2 + 4); cx.lineTo(G.x0 - 10, (yT + yB) / 2 + 20); cx.stroke();
+
+  cx.textBaseline = 'alphabetic';
+  COMPS.forEach(c => {
+    const a = compAir(c), q = quality(a), xa = cxAt(c.a), xb = cxAt(c.b), cw = xb - xa;
+    const name = narrow ? c.short : c.name.replace(' & scrubbers', '');
+    const rightAl = c.k === 'motor';
+    cx.font = `600 ${narrow ? 11 : 13}px ${cv('--f-ui')}`; cx.fillStyle = rgba(COL.ink, 0.95); cx.textAlign = rightAl ? 'right' : 'left';
+    const tx = rightAl ? xb - 5 : xa + 6;
+    cx.fillText(name.toUpperCase(), tx, yT + (narrow ? 24 : 27));
+    cx.font = `${narrow ? 10 : 11.5}px ${cv('--f-data')}`; cx.fillStyle = rgba(qCol(q), 1);
+    cx.fillText(narrow ? (cw < 64 ? a.co2.toFixed(1) + '%' : `CO₂ ${a.co2.toFixed(1)}`) : `CO₂ ${a.co2.toFixed(1)}  ${Math.round(a.t)}°C`, tx, yT + (narrow ? 37 : 43));
+    if (!narrow) { cx.fillStyle = rgba(COL.muted, 1); cx.fillText(`RH ${Math.round(a.rh)}%`, tx, yT + 57); }
+    c.crew.forEach((m, i) => {
+      const jx = reduceMotion ? 0 : Math.sin(t / 1700 + m.ph) * 0.05, jy = reduceMotion ? 0 : Math.cos(t / 2300 + m.ph * 1.3) * 0.04;
+      const px = xa + cw * clamp(m.u + jx, 0.1, 0.9), py = yT + (yD - yT) * clamp((narrow ? 0.62 : 0.66) + (m.v - 0.5) * 0.7 + jy, 0.5, 0.92);
+      cx.fillStyle = rgba(m.h === 'OK' && m.fat < 60 ? COL.phos : COL.amber, 1);
+      cx.beginPath(); cx.arc(px, py, narrow ? 3 : 4, 0, 7); cx.fill();
+    });
+  });
+  // scrubber units in berthing
+  const bx = cxAt(0.58) - (narrow ? 34 : 46), by = yD - (narrow ? 15 : 19), sz = narrow ? 13 : 16;
+  [['A', S.scrA.st], ['B', S.scrB.st]].forEach(([n, st], i) => {
+    const col = st === 'run' ? COL.phos : st === 'fouled' ? COL.hostile : COL.amber, x = bx + i * (sz + 4);
+    cx.fillStyle = rgba(col, 0.2); cx.strokeStyle = rgba(col, 1); cx.lineWidth = 1.2;
+    cx.fillRect(x, by, sz, sz); cx.strokeRect(x, by, sz, sz);
+    cx.fillStyle = rgba(col, 1); cx.font = `600 ${narrow ? 9 : 10}px ${cv('--f-data')}`; cx.textAlign = 'center'; cx.fillText(n, x + sz / 2, by + sz - 4);
+  });
+  if (S.burning.length) {
+    const gx = cxAt(0.42), gy = yD - 12, r = 9 + Math.sin(t / 200) * 2;
+    const gr = cx.createRadialGradient(gx, gy, 1, gx, gy, r * 2); gr.addColorStop(0, rgba(COL.amber, 0.9)); gr.addColorStop(1, rgba(COL.amber, 0));
+    cx.fillStyle = gr; cx.beginPath(); cx.arc(gx, gy, r * 2, 0, 7); cx.fill();
+  }
+  cx.font = `${narrow ? 9.5 : 11}px ${cv('--f-data')}`; cx.textAlign = 'center';
+  cx.fillStyle = rgba(S.h2 > 1 ? COL.amber : COL.muted, 1);
+  cx.fillText(`BATTERY WELL · H₂ ${S.h2.toFixed(1)}%`, (wa + wb) / 2, yD + (yB - yD) / 2 + 4);
+  cx.fillStyle = rgba(COL.bio, 1); cx.textAlign = 'left';
+  cx.fillText(narrow ? 'LEAK' : 'SEAL LEAK 4 GPM', cxAt(0.1) + 8, yD + 16);
+  cx.fillStyle = rgba(COL.muted, 1); cx.textAlign = 'left';
+  cx.fillText('◂ STERN', 4, 14);
+  cx.textAlign = 'right'; cx.fillText(`BOW ▸  ${SHIP.depth} FT`, w - 4, 14);
+}
+cut.addEventListener('click', e => {
+  const r = cut.getBoundingClientRect(), f = (e.clientX - r.left - G.x0) / G.L;
+  const c = COMPS.find(c2 => f >= c2.a && f < c2.b) || (f < 0 ? COMPS[0] : COMPS[COMPS.length - 1]);
+  selectComp(c.k);
+});
+
+/* ---------- sparklines ---------- */
+const HIST = { o2: [], co2: [] };
+for (let i = 0; i <= 24; i++) {
+  const m = -120 + i * 5, n = Math.sin(i * 1.9) * 0.015;
+  HIST.o2.push({ m, v: SHIP.o2 - (m / 60) * 0.12 + n });
+  HIST.co2.push({ m, v: m < -40 ? 0.76 + (m + 40) / 60 * 0.02 + n * 0.5 : 0.76 + (m + 40) / 60 * 0.21 + n * 0.5 });
+}
+HIST.o2[24].v = S.o2; HIST.co2[24].v = S.co2;
+function spark(canvas, hist, lo, hi, lim, rate, limCol) {
+  const dpr = Math.min(devicePixelRatio || 1, 2), r = canvas.getBoundingClientRect(); if (!r.width) return;
+  canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+  const c = canvas.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = r.width, h = r.height, x = m => (m + 120) / 180 * (w - 2) + 1, y = v => 4 + (hi - v) / (hi - lo) * (h - 16);
+  c.strokeStyle = rgba(COL.rule, 0.8); c.lineWidth = 1;
+  c.beginPath(); c.moveTo(x(0), 2); c.lineTo(x(0), h - 10); c.stroke();
+  c.strokeStyle = rgba(limCol, 0.9); c.setLineDash([5, 4]);
+  c.beginPath(); c.moveTo(0, y(lim)); c.lineTo(w, y(lim)); c.stroke(); c.setLineDash([]);
+  c.fillStyle = rgba(limCol, 1); c.font = `10px ${cv('--f-data')}`; c.textAlign = 'left'; c.fillText(lim + '%', 2, y(lim) - 3);
+  c.strokeStyle = rgba(COL.phos, 1); c.lineWidth = 2; c.beginPath();
+  hist.forEach((p, i) => i ? c.lineTo(x(p.m), y(p.v)) : c.moveTo(x(p.m), y(p.v))); c.stroke();
+  const last = hist[hist.length - 1];
+  c.strokeStyle = rgba(COL.amber, 0.9); c.setLineDash([3, 4]); c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(x(0), y(last.v)); c.lineTo(x(60), y(last.v + rate)); c.stroke(); c.setLineDash([]);
+  c.fillStyle = rgba(COL.phos, 1); c.beginPath(); c.arc(x(0), y(last.v), 3.5, 0, 7); c.fill();
+  c.fillStyle = rgba(COL.muted, 1); c.textAlign = 'left'; c.fillText('−2 h', 1, h - 1); c.textAlign = 'center'; c.fillText('now', x(0), h - 1); c.textAlign = 'right'; c.fillText('+1 h', w - 1, h - 1);
+}
+function drawSparks() {
+  spark($('#o2Spark'), HIST.o2, 16.5, 21, O2_LIM, o2Rate(), COL.hostile);
+  spark($('#co2Spark'), HIST.co2, 0, 3.4, CO2_LIM, co2Rate(), COL.hostile);
+}
+
+/* ---------- render ---------- */
+function render(full = true) {
+  const hl = hoursTo(), kw = plantKw(), cr = co2Rate(), or = o2Rate();
+  $('#stO2').textContent = S.o2.toFixed(1);
+  $('#stO2').parentElement.className = S.o2 < 18 ? 'crit' : S.o2 < 19 ? 'warn' : '';
+  $('#stCo2').textContent = S.co2.toFixed(1);
+  $('#stCo2').parentElement.className = S.co2 > 2 ? 'crit' : S.co2 > 1 ? 'warn' : '';
+  const first = hl.co2 < hl.o2 ? ['co2', hl.co2] : ['o2', hl.o2];
+  $('#stLim').textContent = isFinite(first[1]) ? first[1].toFixed(1) : '—';
+  $('#stLimGas').textContent = isFinite(first[1]) ? `h · ${first[0] === 'co2' ? 'CO₂' : 'O₂'}` : 'none';
+  $('#stLim').parentElement.className = first[1] < 6 ? 'crit' : first[1] < 12 ? 'warn' : '';
+  $('#stScr').textContent = `${running()}/2`; $('#stScr').className = running() < 2 ? 'warn' : '';
+  $('#stKw').textContent = kw;
+
+  $('#o2Val').innerHTML = S.o2.toFixed(2) + '<small>%</small>';
+  $('#co2Val').innerHTML = S.co2.toFixed(2) + '<small>%</small>';
+  $('#o2Rate').textContent = (or >= 0 ? '+' : '−') + Math.abs(or).toFixed(2) + '%/h'; $('#o2Rate').className = 'gas-rate' + (or >= 0 ? ' ok' : '');
+  $('#co2Rate').textContent = (cr >= 0 ? '+' : '−') + Math.abs(cr).toFixed(2) + '%/h'; $('#co2Rate').className = 'gas-rate' + (cr <= 0 ? ' ok' : '');
+  $('#o2Lim').textContent = fmtH(hl.o2) + (isFinite(hl.o2) ? ` · ~${hhmm(S.clock + hl.o2 * 3600)}` : '');
+  $('#o2Lim').className = hl.o2 < 6 ? 'crit' : hl.o2 < 12 ? 'warn' : '';
+  $('#co2Lim').textContent = fmtH(hl.co2) + (isFinite(hl.co2) ? ` · ~${hhmm(S.clock + hl.co2 * 3600)}` : '');
+  $('#co2Lim').className = hl.co2 < 6 ? 'crit' : hl.co2 < 12 ? 'warn' : '';
+
+  const mix = avgMix(), noise = FANS.reduce((a, f) => a + FAN_NOISE[S.fans[f.k]], 0);
+  $('#mixBar').style.width = (mix * 100) + '%'; $('#mixVal').textContent = Math.round(mix * 100) + '%';
+  $('#noiseBar').style.width = (noise / 9 * 100) + '%';
+  $('#noiseVal').textContent = noise === 0 ? 'SILENT' : noise <= 3 ? 'LOW' : noise <= 5 ? 'MED' : 'HIGH';
+  $('#noiseVal').style.color = noise > 5 ? 'var(--hostile)' : noise > 3 ? 'var(--amber)' : '';
+  const over = kw - S.alloc;
+  $('#pwrBar').style.width = Math.min(100, kw / Math.max(kw, S.alloc) * 100) + '%';
+  $('#pwrMeter').className = 'meter' + (over > 0 ? ' crit' : kw > S.alloc * 0.9 ? ' warn' : '');
+  $('#pwrVal').textContent = `${kw}/${S.alloc}`;
+  $('#pwrNote').textContent = over > 0 ? `Over Power's CB-5 allocation by ${over} kW. Ask Power for more or Power's breaker may trip.` : `Scrubbers and fans draw from the Life support line in Power's budget (CB-5, ${S.alloc} kW allocated). ${S.alloc - kw} kW spare.`;
+  $('#pwrNote').style.color = over > 0 ? 'var(--hostile)' : '';
+
+  if (S.scrB.st === 'fouled' || S.scrB.st === 'swap') setAlert(2, 'SCRUBBER', `Scrubber B fouled. CO₂ +${cr.toFixed(2)}%/h, 3% in ${fmtH(hl.co2)}. Swap the canister.`, 'SCRUBBERS ›', '#scrCard');
+  else if (S.scrB.st === 'ready') setAlert(2, 'POWER', S.power === 'granted' ? 'Power granted 66 kW. Start scrubber B.' : 'Scrubber B ready but unpowered. Ask Power for 18 kW.', 'SCRUBBERS ›', '#scrCard');
+  else if (over > 0) setAlert(2, 'POWER', `Air plant drawing ${kw} kW, over the ${S.alloc} kW allocation.`, 'FANS ›', '#hFan');
+  else setAlert(0, 'AIR OK', `Both scrubbers running. CO₂ ${cr >= 0 ? '+' : '−'}${Math.abs(cr).toFixed(2)}%/h.`, '', null);
+
+  if (full) { renderScrubbers(); renderCandles(); renderOrders(); renderWait(); }
+  renderComp(); drawSparks();
+}
+function setAlert(sev, tag, msg, more, target) {
+  const al = $('#alert');
+  al.dataset.sev = sev; $('#alertSev').textContent = tag; $('#alertMsg').textContent = msg;
+  $('#alertMore').textContent = more; $('#alertMore').hidden = !more; al.dataset.target = target || '';
+}
+$('#alert').addEventListener('click', () => { const t = $('#alert').dataset.target; if (t) $(t).scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' }); });
+
+new ResizeObserver(() => { sizeCut(); drawCut(performance.now()); drawSparks(); }).observe(document.querySelector('.main-col'));
+
+/* ---------- loop ---------- */
+let lastT = performance.now(), acc = 0;
+function frame(now) {
+  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  S.clock += dt; flowT += dt;
+  S.o2 = clamp(S.o2 + o2Rate() * dt / 3600, 15, 21);
+  S.co2 = clamp(S.co2 + co2Rate() * dt / 3600, 0.05, 6);
+  S.burning.forEach(b => b.left -= dt);
+  if (S.burning.some(b => b.left <= 0)) { S.burning = S.burning.filter(b => b.left > 0); log('Oxygen candle burnt out.', 'ok'); render(); }
+  const target = mixOf('mid') === 0 ? 2.5 : mixOf('mid') === 1 ? 0.3 : 0.4;
+  S.h2 += (target - S.h2) * dt * (target > S.h2 ? 0.01 : 0.05);
+  workTick(dt);
+  drawCut(now);
+  acc += dt;
+  if (acc >= 1) {
+    acc = 0;
+    $('#stTime').textContent = zulu() + 'Z';
+    HIST.o2[HIST.o2.length - 1].v = S.o2; HIST.co2[HIST.co2.length - 1].v = S.co2;
+    if (S.burning.length) renderCandles();
+    render(false);
+  }
+  requestAnimationFrame(frame);
+}
+
+log('Scrubber B canister spent. Scrubber B offline.', 'alert-l', '0307:10');
+log('Battle stations. Fans to LOW for quiet.', '', '0331:00');
+log('Damage control reports Motor room humidity 94%.', 'warn', '0346:05');
+sizeCut();
+render();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
