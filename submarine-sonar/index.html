@@ -26,19 +26,33 @@ button{font:inherit;color:inherit}
 .brand{display:flex;flex-direction:column;gap:0}
 .mark{font-family:var(--f-display);font-size:28px;line-height:1;letter-spacing:.05em;color:var(--phos)}
 .brand small{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.status{display:flex;flex-wrap:wrap;gap:6px 22px;margin:0}
+.status{display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 26px;margin:0}
 .status div{display:flex;flex-direction:column}
-.status dt{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.status dd{margin:0;font-family:var(--f-data);font-size:15px;font-variant-numeric:tabular-nums}
-.status .on{color:var(--amber)}
+.status dt{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.status dd{margin:0;font-family:var(--f-data);font-size:26px;line-height:1.1;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.status dd small{font-size:13px;font-weight:400;color:var(--muted);margin-left:3px}
+.status dd .chip{vertical-align:middle;margin-left:6px}
+.status .st-time dd{font-size:15px;color:var(--muted)}
+.status .on,.status .warn{color:var(--amber)}
+.status .crit{color:var(--hostile)}
+
+.alert{display:flex;align-items:center;gap:14px;width:100%;margin-top:12px;min-height:58px;padding:8px 16px;border-radius:6px;border:1px solid var(--rule);background:var(--panel);text-align:left;cursor:pointer}
+.alert-sev{flex:none;font-family:var(--f-data);font-size:13px;font-weight:600;letter-spacing:.12em;padding:4px 10px;border-radius:3px;border:1px solid currentColor;color:var(--phos)}
+.alert-msg{flex:1;min-width:0;font-size:22px;font-weight:600;line-height:1.2;text-wrap:balance}
+.alert-more{flex:none;font-family:var(--f-data);font-size:13px;color:var(--muted)}
+.alert[data-sev="2"]{border-color:color-mix(in srgb,var(--amber) 60%,transparent);background:color-mix(in srgb,var(--amber) 10%,var(--panel))}
+.alert[data-sev="2"] .alert-sev{color:var(--amber)}
+.alert[data-sev="3"]{border-color:var(--hostile);background:color-mix(in srgb,var(--hostile) 16%,var(--panel))}
+.alert[data-sev="3"] .alert-sev{color:var(--hull);background:var(--hostile);border-color:var(--hostile);animation:sevpulse 1.2s ease-in-out infinite}
+@keyframes sevpulse{50%{opacity:.5}}
 
 .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:14px}
 @media (min-width:980px){
   .grid{grid-template-columns:minmax(0,1fr) 360px}
-  .side{max-height:calc(100vh - 100px);overflow-y:auto;position:sticky;top:12px;padding-right:4px;scrollbar-width:thin}
+  .side{max-height:calc(100vh - 24px);overflow-y:auto;position:sticky;top:12px;padding-right:4px;scrollbar-width:thin}
 }
 .scope-col{min-width:0;display:flex;justify-content:center}
-.stack{width:min(100%,max(320px,calc(100vh - 300px)));display:flex;flex-direction:column;gap:12px}
+.stack{width:min(100%,max(320px,calc(100vh - 370px)));display:flex;flex-direction:column;gap:12px}
 .scope-wrap{position:relative;width:100%;aspect-ratio:1;max-width:100%}
 #scope{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none}
 .hud{position:absolute;font-family:var(--f-data);font-size:12px;letter-spacing:.04em;color:var(--muted);pointer-events:none;font-variant-numeric:tabular-nums}
@@ -119,6 +133,9 @@ kbd{font-family:var(--f-data);font-size:10px;border:1px solid var(--rule-2);bord
 .facts dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .facts dd{margin:0;font-family:var(--f-data);font-size:15px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .facts .wide{grid-column:span 3}
+.facts .big dd{font-size:28px;line-height:1.1;font-weight:500}
+.facts dd.warn{color:var(--amber)}
+.facts dd.crit{color:var(--hostile)}
 .sol-row{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .sol-row .meter{margin:0}
 .sol-row .meter i,.sol i{background:var(--phos)}
@@ -139,7 +156,11 @@ tbody tr.sel{background:color-mix(in srgb,var(--amber) 12%,transparent)}
 tbody tr.sel td:first-child{color:var(--amber)}
 tbody tr.lost{opacity:.5}
 tbody tr.hostile td:nth-child(2){color:var(--hostile)}
-.sol{display:inline-block;width:46px;height:5px;background:var(--panel-2);border:1px solid var(--rule);vertical-align:middle}
+tbody tr.warn td:first-child{box-shadow:inset 3px 0 var(--amber)}
+tbody tr.crit td:first-child{box-shadow:inset 3px 0 var(--hostile)}
+tbody tr.warn td:nth-child(5){color:var(--amber)}
+tbody tr.crit td:nth-child(5){color:var(--hostile)}
+.sol{display:inline-block;width:36px;height:5px;background:var(--panel-2);border:1px solid var(--rule);vertical-align:middle}
 .sol i{display:block;height:100%}
 
 #log{list-style:none;margin:0;padding:0;max-height:200px;overflow-y:auto;font-family:var(--f-data);font-size:12px;display:flex;flex-direction:column;gap:5px}
@@ -170,13 +191,15 @@ tbody tr.hostile td:nth-child(2){color:var(--hostile)}
 @media (max-width:520px){
   .mark{font-size:24px}
   .status{gap:4px 14px}
-  .status dd{font-size:13px}
+  .status dd{font-size:19px}
+  .alert{gap:10px;padding:8px 12px}
+  .alert-msg{font-size:17px}
   .hud{font-size:11px}
   .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
   .facts .wide{grid-column:span 2}
 }
 @media (prefers-reduced-motion:reduce){
-  .ping-btn.fire{animation:none}
+  .ping-btn.fire,.alert[data-sev="3"] .alert-sev{animation:none}
   .meter i{transition:none}
 }
 </style>
@@ -187,14 +210,21 @@ tbody tr.hostile td:nth-child(2){color:var(--hostile)}
     <small>Sonar watch trainer · own ship submerged</small>
   </div>
   <dl class="status" aria-live="off">
-    <div><dt>Time</dt><dd id="stTime">0347:00Z</dd></div>
     <div><dt>Course</dt><dd id="stCrs">045°</dd></div>
-    <div><dt>Speed</dt><dd id="stSpd">8.0 kts</dd></div>
-    <div><dt>Depth</dt><dd id="stDep">150 ft</dd></div>
-    <div><dt>Mode</dt><dd id="stMode">PASSIVE</dd></div>
-    <div><dt>Tracks</dt><dd id="stTrk">0</dd></div>
+    <div><dt>Speed</dt><dd><span id="stSpd">8.0</span><small>kts</small></dd></div>
+    <div><dt>Depth</dt><dd><span id="stDep">150</span><small>ft</small><span class="chip" id="stLayer">Above layer</span></dd></div>
+    <div><dt>Sonar</dt><dd id="stMode">PASSIVE</dd></div>
+    <div><dt>Counter-det.</dt><dd id="stCd">0%</dd></div>
+    <div><dt>Held</dt><dd id="stTrk">0</dd></div>
+    <div class="st-time"><dt>Time</dt><dd id="stTime">0347:00Z</dd></div>
   </dl>
 </header>
+
+<button type="button" class="alert" id="alert" data-sev="0" aria-live="polite">
+  <span class="alert-sev" id="alertSev">ALL CLEAR</span>
+  <span class="alert-msg" id="alertMsg">Listening.</span>
+  <span class="alert-more" id="alertMore" hidden></span>
+</button>
 
 <main class="grid">
   <section class="scope-col" aria-label="Sonar scope">
@@ -220,6 +250,38 @@ tbody tr.hostile td:nth-child(2){color:var(--hostile)}
   </section>
 
   <aside class="side">
+    <section class="card" aria-labelledby="hSel">
+      <h2 id="hSel">Selected track <span class="h-note">target motion analysis</span></h2>
+      <p class="empty" id="selEmpty">No track selected. Tap a blip on the scope, a trace on the waterfall, or a row in the track list.</p>
+      <div id="selBody" hidden>
+        <div class="trk-head"><span class="trk-name" id="selName">S1</span><span class="chip" id="selClass">Unknown</span><span class="state" id="selState">Held</span></div>
+        <dl class="facts">
+          <div class="big"><dt>Bearing</dt><dd id="fBrg">—</dd></div>
+          <div class="big"><dt>Range kyd</dt><dd id="fRng">—</dd></div>
+          <div class="big"><dt>CPA kyd</dt><dd id="fCpa">—</dd></div>
+          <div><dt>Course</dt><dd id="fCrs">—</dd></div>
+          <div><dt>Speed</dt><dd id="fSpd">—</dd></div>
+          <div><dt>Time to CPA</dt><dd id="fTcpa">—</dd></div>
+          <div><dt>Signal</dt><dd id="fSe">—</dd></div>
+          <div><dt>Depth</dt><dd id="fDep">—</dd></div>
+          <div><dt>Aspect</dt><dd id="fAsp">—</dd></div>
+          <div class="wide"><dt>Signature</dt><dd id="fSig">—</dd></div>
+        </dl>
+        <div class="sol-row"><span>Solution</span><div class="meter"><i id="selSolBar"></i></div><span class="val" id="selSol">0%</span></div>
+        <div class="btns"><button type="button" class="btn" id="steerBtn">Steer toward</button><button type="button" class="btn" id="selPing">Ping for range</button></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hTrk">
+      <h2 id="hTrk">Track list <span class="h-note">S = sonar contact</span></h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Trk</th><th>Class</th><th class="n">Brg</th><th class="n">Rng</th><th class="n">CPA</th><th>Sol</th></tr></thead>
+          <tbody id="trkBody"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="card" aria-labelledby="hSonar">
       <h2 id="hSonar">Sonar <span class="h-note" id="modeNote">listening, not transmitting</span></h2>
       <div class="ping-row">
@@ -277,38 +339,6 @@ tbody tr.hostile td:nth-child(2){color:var(--hostile)}
         </div>
       </div>
       <p class="hint">Turning sharpens the range estimate on passive tracks. Above 8 kts your own flow noise drowns quiet contacts. The layer at 250 ft splits the sound: deep contacts are hard to hear from above it.</p>
-    </section>
-
-    <section class="card" aria-labelledby="hSel">
-      <h2 id="hSel">Selected track <span class="h-note">target motion analysis</span></h2>
-      <p class="empty" id="selEmpty">No track selected. Click a blip on the scope, a trace on the waterfall, or a row in the track list.</p>
-      <div id="selBody" hidden>
-        <div class="trk-head"><span class="trk-name" id="selName">S1</span><span class="chip" id="selClass">Unknown</span><span class="state" id="selState">Held</span></div>
-        <dl class="facts">
-          <div><dt>Bearing</dt><dd id="fBrg">—</dd></div>
-          <div><dt>Range</dt><dd id="fRng">—</dd></div>
-          <div><dt>Signal</dt><dd id="fSe">—</dd></div>
-          <div><dt>Course</dt><dd id="fCrs">—</dd></div>
-          <div><dt>Speed</dt><dd id="fSpd">—</dd></div>
-          <div><dt>Depth</dt><dd id="fDep">—</dd></div>
-          <div><dt>CPA</dt><dd id="fCpa">—</dd></div>
-          <div><dt>Time to CPA</dt><dd id="fTcpa">—</dd></div>
-          <div><dt>Aspect</dt><dd id="fAsp">—</dd></div>
-          <div class="wide"><dt>Signature</dt><dd id="fSig">—</dd></div>
-        </dl>
-        <div class="sol-row"><span>Solution</span><div class="meter"><i id="selSolBar"></i></div><span class="val" id="selSol">0%</span></div>
-        <div class="btns"><button type="button" class="btn" id="steerBtn">Steer toward</button><button type="button" class="btn" id="selPing">Ping for range</button></div>
-      </div>
-    </section>
-
-    <section class="card" aria-labelledby="hTrk">
-      <h2 id="hTrk">Track list <span class="h-note">S = sonar contact</span></h2>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>Trk</th><th>Class</th><th class="n">Brg</th><th class="n">Rng kyd</th><th>Solution</th></tr></thead>
-          <tbody id="trkBody"></tbody>
-        </table>
-      </div>
     </section>
 
     <section class="card" aria-labelledby="hLog">
@@ -751,6 +781,12 @@ function draw(now) {
     tri(cx + Math.sin(ma) * (R - 6 * dpr), cy - Math.cos(ma) * (R - 6 * dpr), ma, 4.5 * dpr);
     if (e.r > maxR) continue;
     const [x, y] = toScreen(e.brg, e.r);
+    const sev = alerts.get(c.id);
+    if (sev >= 2) {
+      const pr = (15 + (reduceMotion ? 2 : 5 * (0.5 + 0.5 * Math.sin(now / 260)))) * dpr;
+      ctx.strokeStyle = rgba(sev === 3 ? COL.hostile : COL.amber, 0.85); ctx.lineWidth = 2 * dpr;
+      ctx.beginPath(); ctx.arc(x, y, pr, 0, Math.PI * 2); ctx.stroke();
+    }
     if (c.held && c.q > 0.35) {
       const ca = rad(estCourse(c) - r0), len = estSpeed(c) * YD * 360 / maxR * R;
       ctx.strokeStyle = rgba(col, sel ? 0.8 : 0.35); ctx.lineWidth = dpr;
@@ -1060,6 +1096,58 @@ addEventListener('keydown', e => {
   else if (k === 'h' || k === 'H') setSeg('orient', S.northUp ? 'head' : 'north');
 });
 
+function cpaText(c) {
+  if (!c.held || c.q < 0.3) return '—';
+  const k = cpa(c);
+  return k.opening ? 'open' : (k.r / 1000).toFixed(1);
+}
+
+let alerts = new Map(), alertTarget = null;
+function assess() {
+  const list = [];
+  for (const c of S.contacts) {
+    if (!c.detected || !c.held) continue;
+    const reasons = []; let sev = 0;
+    if (c.classified && c.kind === 'submarine') { sev = 3; reasons.push(c.evading ? 'submarine, running' : 'submarine'); }
+    else if (!c.classified && c.q >= 1 && c.depth > S.layer) { sev = 2; reasons.push('possible submarine'); }
+    if (c.q >= 0.3) {
+      const k = cpa(c);
+      if (!k.opening && isFinite(k.t)) {
+        const m = Math.max(1, Math.round(k.t / 60)), cr = (k.r / 1000).toFixed(1);
+        if (k.r < 2000 && k.t < 900) { sev = 3; reasons.push(`collision risk, CPA ${cr} kyd in ${m} min`); }
+        else if (k.r < 4000 && k.t < 1800) { sev = Math.max(sev, 2); reasons.push(`closing, CPA ${cr} kyd in ${m} min`); }
+      }
+    }
+    if (sev) list.push({ sev, c, reasons });
+  }
+  return list.sort((a, b) => b.sev - a.sev || a.c.r - b.c.r);
+}
+function updateAlert() {
+  const list = assess(), cd = S.counter;
+  alerts = new Map(list.map(a => [a.c.id, a.sev]));
+  const sys = cd >= 100 ? { sev: 3, msg: 'Counter-detected. Assume a submarine knows your position.' }
+    : cd >= 60 ? { sev: 2, msg: 'Counter-detection high. Another ping may give you away.' } : null;
+  const top = list[0];
+  let sev = 0, msg, more = 0;
+  alertTarget = null;
+  if (top && (!sys || top.sev >= sys.sev)) {
+    const e = est(top.c), why = top.reasons.join(' · ');
+    sev = top.sev; alertTarget = top.c; more = list.length - 1 + (sys ? 1 : 0);
+    msg = `${top.c.name}: ${why.charAt(0).toUpperCase() + why.slice(1)} · BRG ${fmt3(e.brg)} · ${(e.r / 1000).toFixed(1)} kyd`;
+  } else if (sys) {
+    sev = sys.sev; msg = sys.msg; more = list.length;
+  } else {
+    const held = S.contacts.filter(c => c.held).sort((a, b) => est(a).r - est(b).r), near = held[0];
+    alertTarget = near || null;
+    msg = near ? `No threats. ${held.length} tracks held; nearest ${near.name} at ${(est(near).r / 1000).toFixed(1)} kyd, BRG ${fmt3(est(near).brg)}.` : 'No contacts held. Listening.';
+  }
+  $('#alert').dataset.sev = sev;
+  $('#alertSev').textContent = sev === 3 ? 'CRITICAL' : sev === 2 ? 'CAUTION' : 'ALL CLEAR';
+  $('#alertMsg').textContent = msg;
+  const mo = $('#alertMore'); mo.hidden = more <= 0; mo.textContent = `+${more} more`;
+}
+$('#alert').addEventListener('click', () => { if (alertTarget) select(alertTarget); });
+
 const rows = new Map();
 function updateTable() {
   const tb = $('#trkBody'), list = S.contacts.filter(c => c.detected).sort((a, b) => a.n - b.n);
@@ -1069,7 +1157,7 @@ function updateTable() {
     let tr = rows.get(c.id);
     if (!tr) {
       tr = document.createElement('tr'); tr.tabIndex = 0;
-      tr.innerHTML = '<td></td><td></td><td class="n"></td><td class="n"></td><td><span class="sol"><i></i></span></td>';
+      tr.innerHTML = '<td></td><td></td><td class="n"></td><td class="n"></td><td class="n"></td><td><span class="sol"><i></i></span></td>';
       tr.addEventListener('click', () => select(c));
       tr.addEventListener('keydown', ev => { if (ev.key === 'Enter') select(c); });
       rows.set(c.id, tr);
@@ -1080,8 +1168,10 @@ function updateTable() {
     td[1].textContent = c.classified ? KINDS[c.kind].label : 'Unknown';
     td[2].textContent = fmt3(e.brg);
     td[3].textContent = (e.r / 1000).toFixed(1);
-    td[4].firstChild.firstChild.style.width = Math.round(c.q * 100) + '%';
-    tr.className = [c === S.selected ? 'sel' : '', c.held ? '' : 'lost', c.classified && c.kind === 'submarine' ? 'hostile' : ''].join(' ').trim();
+    td[4].textContent = cpaText(c);
+    td[5].firstChild.firstChild.style.width = Math.round(c.q * 100) + '%';
+    const sev = alerts.get(c.id);
+    tr.className = [c === S.selected ? 'sel' : '', c.held ? '' : 'lost', c.classified && c.kind === 'submarine' ? 'hostile' : '', sev === 3 ? 'crit' : sev === 2 ? 'warn' : ''].join(' ').trim();
   }
 }
 
@@ -1095,15 +1185,17 @@ function updateSel() {
   chip.textContent = c.classified ? KINDS[c.kind].label : 'Unknown';
   chip.className = 'chip ' + (c.classified ? KINDS[c.kind].chip : '');
   $('#selState').textContent = !c.held ? 'Lost · last known' : inBaffles(c.brg) ? 'In baffles' : c.se > 0 ? 'Held · passive' : 'Held · echo only';
-  $('#fBrg').textContent = fmt3(e.brg) + '°T';
-  $('#fRng').textContent = (e.r / 1000).toFixed(1) + ' kyd';
+  $('#fBrg').textContent = fmt3(e.brg) + '°';
+  $('#fRng').textContent = (e.r / 1000).toFixed(1);
+  const sev = alerts.get(c.id);
+  $('#fCpa').className = sev === 3 ? 'crit' : sev === 2 ? 'warn' : '';
   $('#fSe').textContent = c.held && c.se > 0 ? `+${c.se.toFixed(0)} dB` : 'below noise';
   $('#fCrs').textContent = known ? fmt3(estCourse(c)) + '°T' : '---';
   $('#fSpd').textContent = known ? estSpeed(c).toFixed(1) + ' kts' : '--';
   $('#fDep').textContent = c.classified ? (c.depth > 0 ? (c.depth > S.layer ? 'Deep, below layer' : 'Shallow') : 'Surface') : (c.q >= 1 && c.depth > S.layer ? 'Submerged?' : '—');
   if (known) {
     const k = cpa(c);
-    $('#fCpa').textContent = k.opening ? 'Opening' : (k.r / 1000).toFixed(1) + ' kyd';
+    $('#fCpa').textContent = k.opening ? 'open' : (k.r / 1000).toFixed(1);
     $('#fTcpa').textContent = k.opening ? 'Past' : isFinite(k.t) ? Math.round(k.t / 60) + ' min' : '—';
     const asp = angDiff(norm(e.brg + 180), estCourse(c));
     $('#fAsp').textContent = `${Math.abs(Math.round(asp))}° ${asp >= 0 ? 'stbd' : 'port'}`;
@@ -1117,8 +1209,8 @@ function updateUI() {
   const o = S.own;
   $('#stTime').textContent = zulu() + 'Z';
   $('#stCrs').textContent = fmt3(o.course) + '°';
-  $('#stSpd').textContent = o.speed.toFixed(1) + ' kts';
-  $('#stDep').textContent = Math.round(o.depth) + ' ft';
+  $('#stSpd').textContent = o.speed.toFixed(1);
+  $('#stDep').textContent = Math.round(o.depth);
   const md = $('#stMode'); md.textContent = S.mode.toUpperCase(); md.className = S.mode === 'active' ? 'on' : '';
   $('#stTrk').textContent = S.contacts.filter(c => c.held).length;
   $('#modeNote').textContent = S.mode === 'active' ? 'pinging every 6 s' : 'listening, not transmitting';
@@ -1134,6 +1226,7 @@ function updateUI() {
   $('#depVal').textContent = `${o.orderedDepth} ft${Math.abs(o.depth - o.orderedDepth) > 2 ? ` · now ${Math.round(o.depth)}` : ''}`;
   const below = o.depth > S.layer, chip = $('#layerChip');
   chip.textContent = below ? 'Below layer' : 'Above layer'; chip.className = 'chip' + (below ? ' below' : '');
+  const sl = $('#stLayer'); sl.textContent = chip.textContent; sl.className = chip.className;
   $('#gLayer').style.top = (S.layer / 800 * 100) + '%';
   $('#gOwn').style.top = (o.depth / 800 * 100) + '%';
   $('#gOrd').style.top = (o.orderedDepth / 800 * 100) + '%';
@@ -1141,6 +1234,7 @@ function updateUI() {
   const cd = Math.min(100, Math.round(S.counter));
   $('#cdVal').textContent = cd + '%';
   $('#cdBar').style.width = cd + '%';
+  const sd = $('#stCd'); sd.textContent = cd + '%'; sd.className = cd >= 100 ? 'crit' : cd >= 60 ? 'warn' : '';
   $('#cdNote').textContent = cd >= 100 ? 'Counter-detected. Any submarine out there knows where you are.'
     : cd >= 60 ? 'High. Another ping may give you away.'
     : cd >= 25 ? 'Elevated. Your pings are being heard.'
@@ -1155,7 +1249,7 @@ function updateUI() {
   if (S.selected) ws.style.left = (est(S.selected).brg / 360 * 100) + '%';
 
   if (hum && AC && S.sound) hum.gain.setTargetAtTime(0.025 + o.speed * 0.004, AC.currentTime, 0.4);
-  updateTable(); updateSel();
+  updateAlert(); updateTable(); updateSel();
 }
 
 /* ---------- boot ---------- */
