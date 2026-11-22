@@ -286,7 +286,7 @@ function paintSeats() {
     if (st === 'warn') wait++; if (st === 'crit') crit++;
   }
   $('#crewNote').textContent = ON
-    ? `${STATIONS.filter(s => NET.s?.seats[s.id]).length} of 10 manned · ${wait + crit} need attention`
+    ? `${wait + crit} need attention`
     : `${10 - wait - crit} ready · ${wait} waiting · ${crit} trouble`;
 }
 
@@ -835,9 +835,9 @@ function liveSeats() {
   const s = NET.s; if (!s) return;
   const o = s.own;
   for (const st of STATIONS) {
-    const names = s.seats[st.id]?.join(', ');
     const req = s.requests.find(r => r.from === st.id && (r.status === 'pending' || r.status === 'held'));
-    let state = names ? 'ok' : 'empty', note = '';
+    const live = ['captain', 'comms', 'helm', 'nav'].includes(st.id);
+    let state = live ? 'ok' : 'empty', note = live ? '' : 'offline mockup';
     if (st.id === 'captain') { state = 'you'; note = 'command'; }
     else if (req) { state = st.id === 'damage' ? 'crit' : 'warn'; note = (req.status === 'held' ? 'On hold: ' : 'Waiting on you: ') + (SHORT[req.kind] || req.kind.replace(/-/g, ' ')); }
     else if (st.id === 'helm') {
@@ -846,7 +846,7 @@ function liveSeats() {
       if (nw || off) state = 'warn';
     }
     else if (st.id === 'comms' && s.comms.mast) note = 'Masts up';
-    SEAT[st.id] = [state, [names || 'No player', note].filter(Boolean).join(' · ')];
+    SEAT[st.id] = [state, note || 'live'];
   }
 }
 function liveBroadcast() {

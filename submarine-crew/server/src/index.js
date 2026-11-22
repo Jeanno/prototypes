@@ -1,5 +1,5 @@
 // Fathom crew server: one Durable Object per boat (room code) runs the authoritative sim.
-// Clients send actions; the boat broadcasts its full state twice a second.
+// No players: anyone with the crew code can do anything from any screen. `from` only labels which screen acted.
 
 const SEATS = ['captain', 'sonar', 'comms', 'nav', 'helm', 'weapons', 'torpedo', 'power', 'life', 'damage'];
 const BASE = 3 * 3600 + 47 * 60; // game clock starts at 0347:00Z
@@ -34,7 +34,7 @@ function fresh() {
     v: 1, t: 0, scale: 1, nextId: 1,
     own: { course: 45, speed: 8, depth: 150, oCourse: 45, oSpeed: 8, oDepth: 150, blow: false },
     comms: { mast: false, copied: [] },
-    requests: [], orders: [], log: [], seats: {},
+    requests: [], orders: [], log: [],
   };
   // Stations that aren't networked yet still raise their requests, so the Captain's queue is real from the start.
   addRequest(s, 'weapons', 'flood-tube', 'Solution 55% on S3. Request permission to flood tube 2.');
@@ -75,7 +75,7 @@ const ORDER_RANGE = { depth: [0, 800], speed: [-7, 20], course: [0, 359] };
 export class Boat {
   constructor(ctx) {
     this.ctx = ctx;
-    this.socks = new Map(); // ws -> { seat, name }
+    this.socks = new Map(); // ws -> screen id, for log labels
     this.s = null;
     this.timer = null;
     ctx.blockConcurrencyWhile(async () => { this.s = (await ctx.storage.get('state')) || fresh(); });
@@ -83,26 +83,18 @@ export class Boat {
 
   async fetch(req) {
     const url = new URL(req.url);
-    const seat = SEATS.includes(url.searchParams.get('seat')) ? url.searchParams.get('seat') : 'spectator';
-    const name = (url.searchParams.get('name') || '').slice(0, 24) || seat;
+    const screen = SEATS.includes(url.searchParams.get('seat')) ? url.searchParams.get('seat') : 'spectator';
     const [client, server] = Object.values(new WebSocketPair());
     server.accept();
-    this.socks.set(server, { seat, name });
+    this.socks.set(server, screen);
     server.addEventListener('message', e => this.onMessage(server, e.data));
-    const bye = () => { this.socks.delete(server); this.seatsChanged(); if (!this.socks.size) this.stop(); };
+    const bye = () => { this.socks.delete(server); if (!this.socks.size) this.stop(); };
     server.addEventListener('close', bye);
     server.addEventListener('error', bye);
-    this.seatsChanged();
     this.start();
-    this.send(server, { type: 'hello', seat, name });
+    this.send(server, { type: 'hello', screen });
     this.send(server, this.snapshot());
     return new Response(null, { status: 101, webSocket: client });
-  }
-
-  seatsChanged() {
-    const seats = {};
-    for (const { seat, name } of this.socks.values()) (seats[seat] ||= []).push(name);
-    this.s.seats = seats;
   }
 
   start() {
@@ -152,27 +144,24 @@ export class Boat {
     let m;
     try { m = JSON.parse(raw); } catch { return; }
     if (m?.type !== 'action') return;
-    const who = this.socks.get(ws);
-    const err = this.act(who.seat, m);
+    const err = this.act(this.socks.get(ws), m);
     if (err) this.send(ws, { type: 'error', a: m.a, error: err });
     else { this.broadcast(); this.save(); }
   }
 
   // Returns an error string, or nothing on success.
-  act(seat, m) {
+  act(screen, m) {
     const s = this.s, o = s.own;
-    const only = (...seats) => !seats.includes(seat) && `Only ${seats.join(' or ')} can do that`;
 
     switch (m.a) {
       case 'request': {
         if (typeof m.text !== 'string' || !m.text) return 'Missing text';
-        if (s.requests.some(r => r.status === 'pending' && r.from === seat && r.kind === m.kind)) return 'Already pending';
-        const r = addRequest(s, seat, String(m.kind || 'other').slice(0, 24), m.text.slice(0, 200));
-        addLog(s, seat, `Request: ${r.text}`);
+        if (s.requests.some(r => r.status === 'pending' && r.from === screen && r.kind === m.kind)) return 'Already pending';
+        const r = addRequest(s, screen, String(m.kind || 'other').slice(0, 24), m.text.slice(0, 200));
+        addLog(s, screen, `Request: ${r.text}`);
         return;
       }
       case 'decide': {
-        const e = only('captain'); if (e) return e;
         const r = s.requests.find(r => r.id === m.id);
         if (!r) return 'No such request';
         if (!['approved', 'denied', 'held'].includes(m.status)) return 'Bad status';
@@ -183,25 +172,22 @@ export class Boat {
         return;
       }
       case 'order': {
-        const e = only('captain', 'nav'); if (e) return e;
         if (!ORDER_FIELD[m.kind]) return 'Bad order';
         const [lo, hi] = ORDER_RANGE[m.kind], v = Number(m.value);
         if (!(v >= lo && v <= hi)) return 'Out of range';
-        addOrder(s, seat, 'helm', m.kind, v, String(m.text || `${m.kind} ${v}`).slice(0, 80));
+        addOrder(s, screen, 'helm', m.kind, v, String(m.text || `${m.kind} ${v}`).slice(0, 80));
         return;
       }
       case 'ack': {
         const ord = s.orders.find(x => x.id === m.id);
         if (!ord) return 'No such order';
-        if (ord.to !== seat) return `Order is for ${ord.to}`;
         if (ord.status !== 'new') return 'Already acknowledged';
         ord.status = 'ack';
         o[ORDER_FIELD[ord.kind]] = ord.value;
-        addLog(s, seat, `Aye: ${ord.text}.`);
+        addLog(s, 'helm', `Aye: ${ord.text}.`);
         return;
       }
       case 'helm': {
-        const e = only('helm'); if (e) return e;
         if (m.oCourse != null) o.oCourse = norm(Math.round(Number(m.oCourse)) || 0);
         if (m.oSpeed != null) o.oSpeed = clamp(Number(m.oSpeed) || 0, -7, 20);
         if (m.oDepth != null) o.oDepth = clamp(Number(m.oDepth) || 0, 0, 800);
@@ -210,7 +196,6 @@ export class Boat {
         return;
       }
       case 'mast': {
-        const e = only('comms'); if (e) return e;
         if (m.up && o.depth > ANTENNA + 2) return `Too deep: masts need ${ANTENNA} ft`;
         s.comms.mast = !!m.up;
         addLog(s, 'comms', m.up ? 'Masts raised.' : 'Masts lowered.');
@@ -218,7 +203,7 @@ export class Boat {
       }
       case 'message': {
         if (typeof m.text !== 'string' || !m.text) return 'Missing text';
-        addLog(s, seat, `To ${SEATS.includes(m.to) ? m.to : "all"}: ${m.text.slice(0, 400)}`, 'msg');
+        addLog(s, screen, `To ${SEATS.includes(m.to) ? m.to : "all"}: ${m.text.slice(0, 400)}`, 'msg');
         return;
       }
       case 'scale': {
@@ -227,10 +212,7 @@ export class Boat {
         return;
       }
       case 'reset': {
-        const e = only('captain'); if (e) return e;
-        const seats = s.seats;
         this.s = fresh();
-        this.s.seats = seats;
         return;
       }
       default: return 'Unknown action';

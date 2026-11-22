@@ -92,11 +92,11 @@
 
   <aside class="side">
     <section class="card live-only" aria-labelledby="hJoin">
-      <h2 id="hJoin">Aboard <span class="h-note" id="jConn">connecting…</span></h2>
+      <h2 id="hJoin">Crew <span class="h-note" id="jConn">connecting…</span></h2>
       <div class="aboard">
         <span class="room" id="aRoom"></span>
-        <p class="hint">Tap a station to take that seat. Everyone on this code shares one boat. Captain, Comms, Helm and Navigator are live; the rest are still mockups.</p>
-        <div class="btns"><button type="button" class="btn primary" id="aShare">Copy invite link</button><button type="button" class="btn" id="aLeave">Leave</button></div>
+        <p class="hint">Tap any station to work it, and switch freely: the crew code is all it takes. Anyone with the code controls the same boat. Captain, Comms, Helm and Navigator are live; the rest are still mockups.</p>
+        <div class="btns"><button type="button" class="btn primary" id="aShare">Copy crew link</button><button type="button" class="btn" id="aLeave">Leave</button></div>
       </div>
     </section>
 
@@ -216,15 +216,14 @@ if (NET.online) {
   document.getElementById('aLeave').onclick = () => NET.leave();
   document.getElementById('aShare').onclick = async () => {
     const u = new URL('index.html', location.href);
-    u.search = new URLSearchParams({ room: NET.room, server: NET.server }).toString();
-    try { await navigator.clipboard.writeText(u.href); NET.toast('Invite link copied'); } catch { prompt('Invite link', u.href); }
+    u.search = new URLSearchParams({ room: NET.room }).toString();
+    try { await navigator.clipboard.writeText(u.href); NET.toast('Crew link copied'); } catch { prompt('Crew link', u.href); }
   };
   NET.on(s => {
     document.getElementById('jConn').textContent = NET.connected ? `live · ${NET.clock}` : 'reconnecting…';
     roster.querySelectorAll('.who').forEach(w => {
-      const names = s.seats[w.dataset.who] || [];
-      w.className = 'who' + (names.length ? ' on' : LIVE.has(w.dataset.who) ? ' wired' : '');
-      w.textContent = names.length ? `● ${names.join(', ')}` : LIVE.has(w.dataset.who) ? 'Open seat · live' : 'Open seat · mockup';
+      w.className = 'who' + (LIVE.has(w.dataset.who) ? ' on' : '');
+      w.textContent = LIVE.has(w.dataset.who) ? '● Live' : 'Offline mockup';
     });
   });
 }

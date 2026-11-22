@@ -4,7 +4,7 @@ const room = 'T' + Math.random().toString(36).slice(2, 7).toUpperCase();
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 function join(seat) {
-  const ws = new WebSocket(`${BASE}/room/${room}?seat=${seat}&name=${seat}-bot`);
+  const ws = new WebSocket(`${BASE}/room/${room}?seat=${seat}`);
   const c = { ws, s: null, errors: [] };
   ws.onmessage = e => { const m = JSON.parse(e.data); if (m.type === 'state') c.s = m.s; if (m.type === 'error') c.errors.push(m.error); };
   c.send = (a, p = {}) => ws.send(JSON.stringify({ type: 'action', a, ...p }));
@@ -19,14 +19,16 @@ async function errored(c, re, ms = 5000) { const t0 = Date.now(); while (Date.no
 const ok = (cond, msg) => { if (!cond) throw new Error('FAIL ' + msg); console.log('ok', msg); };
 
 const cap = await join('captain'), com = await join('comms'), helm = await join('helm');
-await until(cap, s => s.seats.helm && s.seats.comms, 5000, 'seats');
+await until(cap, s => s, 5000, 'state');
 ok(cap.s.requests.length === 3, 'seeded 3 requests');
 
 com.send('mast', { up: true });
 ok(await errored(com, /Too deep/), 'mast refused at 150 ft');
 
-helm.send('decide', { id: 1, status: 'approved' });
-ok(await errored(helm, /Only captain/), 'helm cannot decide');
+const tube = cap.s.requests.find(r => r.kind === 'flood-tube');
+helm.send('decide', { id: tube.id, status: 'denied' });
+await until(cap, s => s.requests.find(r => r.id === tube.id).status === 'denied', 3000, 'helm decides');
+ok(helm.errors.length === 0, 'any screen can do anything');
 
 com.send('request', { kind: 'antenna-depth', text: 'Request antenna depth 60 ft for the 0400Z broadcast.' });
 await until(cap, s => s.requests.some(r => r.kind === 'antenna-depth'), 3000, 'request arrives');
